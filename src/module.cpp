@@ -16,7 +16,7 @@ namespace standalone{
 static void init(v8::Local<v8::Object> target) {
 
     // expose hello method
-    Nan::SetMethod(target, "composite", standalone::convert);
+    Nan::SetMethod(target, "composite", standalone::composite);
 
 }
 
