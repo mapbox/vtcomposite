@@ -13,9 +13,8 @@ NAN_METHOD(composite) {
 // "target" is a magic var that nodejs passes into a module's scope.
 // When you write things to target, they become available to call from
 // Javascript world.
-static void init(v8::Local<v8::Object> target) {
-
-    // expose hello method
+NAN_MODULE_INIT(init)
+{
     Nan::SetMethod(target, "composite", standalone::composite);
 }
 
