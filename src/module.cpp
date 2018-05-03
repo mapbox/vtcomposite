@@ -1,8 +1,7 @@
-#include <nan.h>
 #include "vtcomposite.hpp"
+#include <nan.h>
 
-NAN_MODULE_INIT(init)
-{
+NAN_MODULE_INIT(init) {
     Nan::SetMethod(target, "composite", vtile::composite);
 }
 
