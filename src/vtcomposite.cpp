@@ -14,7 +14,7 @@ NAN_METHOD(composite) {
     }
 
 
-    v8::Local<v8::Function> callback = callback_val.As<v8::Function>();
+    //v8::Local<v8::Function> callback = callback_val.As<v8::Function>();
     // validate tiles
     if (!info[0]->IsArray())
     {
