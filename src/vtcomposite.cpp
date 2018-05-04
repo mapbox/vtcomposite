@@ -104,6 +104,15 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'y' value must not be less than zero", callback);
         }
+
+        //// construct vtzero::vector_tile from the buffer
+        vtzero::vector_tile tile{node::Buffer::Data(buffer), node::Buffer::Length(buffer)};
+        auto layer = tile.next_layer();
+        {
+            std::string name(layer.name());
+            std::cerr << "LAYER:" << name << std::endl;
+        }
+        ////
     }
 }
 
