@@ -28,7 +28,7 @@ script:
   # after successful tests, publish binaries if specified in commit message
   - ./scripts/publish.sh --TOOLSET=${TOOLSET:-} --debug=$([ "${BUILDTYPE}" == 'debug' ] && echo "true" || echo "false")
 
-# the matrix allows you to specify different operating systems and environments to 
+# the matrix allows you to specify different operating systems and environments to
 # run your tests and build binaries
 matrix:
   include:
@@ -37,7 +37,7 @@ matrix:
 
     # linux cfi build node v6/release
     - os: linux
-      env: BUILDTYPE=release TOOLSET=cfi CXXFLAGS="-fsanitize=cfi -fvisibility=hidden" LDFLAGS="-fsanitize=cfi"
+      env: BUILDTYPE=release TOOLSET=cfi CXXFLAGS="-flto -fsanitize=cfi -fvisibility=hidden" LDFLAGS="-flto -fsanitize=cfi"
       node_js: 6
     # linux publishable node v6/release
     - os: linux
@@ -79,7 +79,7 @@ matrix:
       before_script:
 
     ## ** Builds that do not get published **
-    
+
     # g++ build (default builds all use clang++)
     - os: linux
       env: BUILDTYPE=debug CXX="g++-6" CC="gcc-6" LINK="g++-6" AR="ar" NM="nm"
