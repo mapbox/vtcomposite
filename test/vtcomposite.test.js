@@ -5,7 +5,7 @@ var path = require('path');
 var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
 
-test.only('[composite] composites successfully', function(t) {
+test('[composite] composites successfully', function(t) {
 
   const buffer = bufferSF;
 
@@ -18,17 +18,13 @@ test.only('[composite] composites successfully', function(t) {
   var options = {}; 
 
   module.composite(vtileSourceBuffers, zxy_ofmaprequest, options, function(err, vtBuffer){
-    // console.log('');
     console.log('vtbuffer', vtBuffer);
     // vtBuffer.features.forEach(function(feature) {
     //   console.log('FEATURE', feature);
-    //   // assert.ok(feature.properties.tilequery.distance <= 1000, 'less than radius');
     // });
-    console.log('errror', err.message); 
     t.end();
     // t.equal(vtBuffer, 'mocked output buffer', 'returned single buffer');
   });
-  // t.end();
 });
 
 // vtzero has class vector tile - accepts a pointer to a buffer and the actual length of it. 
