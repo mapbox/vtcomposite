@@ -6,6 +6,123 @@
 
 namespace vtile {
 
+/// an intermediate representation of a tile buffer and its necessary components
+struct TileObject
+{
+    TileObject(std::uint32_t z0,
+               std::uint32_t x0,
+               std::uint32_t y0,
+               v8::Local<v8::Object> buffer)
+        : z(z0),
+          x(x0),
+          y(y0),
+          data(node::Buffer::Data(buffer), node::Buffer::Length(buffer)),
+          buffer_ref()
+    {
+        buffer_ref.Reset(buffer.As<v8::Object>());
+    }
+
+    // explicitly use the destructor to clean up
+    // the persistent buffer ref by Reset()-ing
+    ~TileObject()
+    {
+        buffer_ref.Reset();
+    }
+
+    // guarantee that objects are not being copied by deleting the
+    // copy and move definitions
+
+    // non-copyable
+    TileObject(TileObject const&) = delete;
+    TileObject& operator=(TileObject const&) = delete;
+
+    // non-movable
+    TileObject(TileObject&&) = delete;
+    TileObject& operator=(TileObject&&) = delete;
+
+    std::uint32_t z;
+    std::uint32_t x;
+    std::uint32_t y;
+    vtzero::data_view data;
+    Nan::Persistent<v8::Object> buffer_ref;
+};
+
+/// the baton of data to be passed from the v8 thread into the cpp threadpool
+struct BatonType
+{
+    explicit BatonType(std::uint32_t num_tiles)
+        : tiles(),
+          layers()
+    {
+        tiles.reserve(num_tiles);
+    }
+
+    // non-copyable
+    BatonType(BatonType const&) = delete;
+    BatonType& operator=(BatonType const&) = delete;
+
+    // non-movable
+    BatonType(BatonType&&) = delete;
+    BatonType& operator=(BatonType&&) = delete;
+
+    // buffers object thing
+    std::vector<std::unique_ptr<TileObject>> tiles;
+    std::vector<std::string> layers;
+};
+
+struct AsyncHelloWorker : Nan::AsyncWorker
+{
+    using Base = Nan::AsyncWorker;
+    // ask carol about const&
+    AsyncHelloWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
+        : Base(cb), baton_data_{std::move(baton_data)} {}
+
+    // The Execute() function is getting called when the worker starts to run.
+    // - You only have access to member variables stored in this worker.
+    // - You do not have access to Javascript v8 objects here.
+    void Execute() override
+    {
+        // The try/catch is critical here: if code was added that could throw an
+        // unhandled error INSIDE the threadpool, it would be disasterous
+        try
+        {
+            // construct vtzero::vector_tile from the buffer
+            // vtzero::vector_tile tile{node::Buffer::Data(composite_baton_.buffer), node::Buffer::Length(composite_baton_.buffer)};
+            // auto layer = tile.next_layer();
+            // {
+            //     std::string name(layer.name());
+            //     std::cerr << "LAYER:" << name << std::endl;
+            // }
+        }
+        catch (const std::exception& e)
+        {
+            SetErrorMessage(e.what());
+        }
+    }
+
+    // The HandleOKCallback() is getting called when Execute() successfully
+    // completed.
+    // - In case Execute() invoked SetErrorMessage("") this function is not
+    // getting called.
+    // - You have access to Javascript v8 objects again
+    // - You have to translate from C++ member variables to Javascript v8 objects
+    // - Finally, you call the user's callback with your results
+    void HandleOKCallback() override
+    {
+        Nan::HandleScope scope;
+
+        const auto argc = 2u;
+        v8::Local<v8::Value> argv[argc] = {
+            // this is where the vector tile buffer will go the "result_"
+            Nan::Null(), Nan::New<v8::String>("result_").ToLocalChecked()};
+
+        // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
+        callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv));
+    }
+
+    const std::unique_ptr<BatonType> baton_data_;
+};
+
 NAN_METHOD(composite)
 {
     // validate callback function
@@ -83,6 +200,8 @@ NAN_METHOD(composite)
         return utils::CallbackError("'tiles' array must be of length greater than 0", callback);
     }
 
+    std::unique_ptr<BatonType> baton_data = std::make_unique<BatonType>(num_tiles);
+
     for (unsigned t = 0; t < num_tiles; ++t)
     {
         v8::Local<v8::Value> tile_val = tiles->Get(t);
@@ -156,23 +275,15 @@ NAN_METHOD(composite)
             return utils::CallbackError("'y' value must not be less than zero", callback);
         }
 
-        try
-        {
-            //// construct vtzero::vector_tile from the buffer
-            vtzero::vector_tile tile{node::Buffer::Data(buffer), node::Buffer::Length(buffer)};
-            auto layer = tile.next_layer();
-            {
-                std::string name(layer.name());
-                std::cerr << "LAYER:" << name << std::endl;
-            }
-            ////
-        }
-        catch (std::exception const& ex)
-        {
-            // const vs reference, ex var
-            return utils::CallbackError(ex.what(), callback);
-        }
+        std::unique_ptr<TileObject> tile{new TileObject{static_cast<std::uint32_t>(z),
+                                                        static_cast<std::uint32_t>(x),
+                                                        static_cast<std::uint32_t>(y),
+                                                        buffer}};
+        baton_data->tiles.push_back(std::move(tile));
     }
+    // enter the threadpool, then done in the callback function call the threadpool
+    auto* worker = new AsyncHelloWorker{std::move(baton_data), new Nan::Callback{callback}};
+    Nan::AsyncQueueWorker(worker);
 }
 
 } // namespace vtile
