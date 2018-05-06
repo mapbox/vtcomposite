@@ -18,10 +18,10 @@ NAN_METHOD(composite)
 
     v8::Local<v8::Function> callback = callback_val.As<v8::Function>();
 
-    //validate zxy maprequest object 
+    //validate zxy maprequest object
     v8::Local<v8::Array> zxy_maprequest = info[1].As<v8::Array>();
 
-    // z value of map request object 
+    // z value of map request object
     if (!zxy_maprequest->Has(Nan::New("z").ToLocalChecked()))
     {
         return utils::CallbackError("item in 'tiles' array does not include a 'z' value", callback);
@@ -53,7 +53,7 @@ NAN_METHOD(composite)
         return utils::CallbackError("'x' value must not be less than zero", callback);
     }
 
-    // y value of maprequest object 
+    // y value of maprequest object
     if (!zxy_maprequest->Has(Nan::New("y").ToLocalChecked()))
     {
         return utils::CallbackError("item in 'tiles' array does not include a 'y' value", callback);
@@ -156,8 +156,8 @@ NAN_METHOD(composite)
             return utils::CallbackError("'y' value must not be less than zero", callback);
         }
 
-
-        try{
+        try
+        {
             //// construct vtzero::vector_tile from the buffer
             vtzero::vector_tile tile{node::Buffer::Data(buffer), node::Buffer::Length(buffer)};
             auto layer = tile.next_layer();
@@ -165,12 +165,13 @@ NAN_METHOD(composite)
                 std::string name(layer.name());
                 std::cerr << "LAYER:" << name << std::endl;
             }
-            //// 
-        }catch (std::exception const & ex) {
-            // const vs reference, ex var 
+            ////
+        }
+        catch (std::exception const& ex)
+        {
+            // const vs reference, ex var
             return utils::CallbackError(ex.what(), callback);
         }
-
     }
 }
 
