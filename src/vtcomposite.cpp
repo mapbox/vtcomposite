@@ -75,7 +75,9 @@ struct CompositeWorker : Nan::AsyncWorker
     using Base = Nan::AsyncWorker;
     // ask carol about const&
     CompositeWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
-        : Base(cb), baton_data_{std::move(baton_data)} {}
+        : Base(cb),
+          baton_data_{std::move(baton_data)},
+          output_buffer_{} {}
 
     // The Execute() function is getting called when the worker starts to run.
     // - You only have access to member variables stored in this worker.
@@ -99,7 +101,7 @@ struct CompositeWorker : Nan::AsyncWorker
                     auto const& lb = result.first->second;
                     if (std::get<1>(result)) std::cerr << "Creating new layer :" << name << "..." << std::endl;
                     else std::cerr << "Appending to :" << name << "..." << std::endl;
-                    layer.for_each_feature([&](vtzero::feature const& feature) {
+                    layer.for_each_feature([&lb](vtzero::feature const& feature) {
                             lb->add_feature(feature);
                             return true;
                         });
