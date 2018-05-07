@@ -17,10 +17,10 @@ test('[composite] composites successfully', function(t) {
   var options = {};
 
   module.composite(vtileSourceBuffers, zxy_ofmaprequest, options, function(err, vtBuffer){
-    console.log('vtbuffer', vtBuffer);
-    // vtBuffer.features.forEach(function(feature) {
-    //   console.log('FEATURE', feature);
-    // });
+    console.log('vtBuffer size:', vtBuffer.length);
+    //vtBuffer.features.forEach(function(feature) {
+    //  console.log('FEATURE', feature);
+    //});
     t.end();
     // t.equal(vtBuffer, 'mocked output buffer', 'returned single buffer');
   });
