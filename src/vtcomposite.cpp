@@ -70,11 +70,11 @@ struct BatonType
     std::vector<std::string> layers;
 };
 
-struct AsyncHelloWorker : Nan::AsyncWorker
+struct CompositeWorker : Nan::AsyncWorker
 {
     using Base = Nan::AsyncWorker;
     // ask carol about const&
-    AsyncHelloWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
+    CompositeWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
         : Base(cb), baton_data_{std::move(baton_data)} {}
 
     // The Execute() function is getting called when the worker starts to run.
@@ -86,15 +86,29 @@ struct AsyncHelloWorker : Nan::AsyncWorker
         // unhandled error INSIDE the threadpool, it would be disasterous
         try
         {
-            // construct vtzero::vector_tile from the buffer
-            // vtzero::vector_tile tile{node::Buffer::Data(composite_baton_.buffer), node::Buffer::Length(composite_baton_.buffer)};
-            // auto layer = tile.next_layer();
-            // {
-            //     std::string name(layer.name());
-            //     std::cerr << "LAYER:" << name << std::endl;
-            // }
+            vtzero::tile_builder builder;
+            std::unordered_map<std::string, std::unique_ptr<vtzero::layer_builder>> builders;
+            for (auto const& tile_obj : baton_data_->tiles)
+            {
+                std::cerr << tile_obj->z << ":" << tile_obj->x << ":" << tile_obj->y << std::endl;
+                vtzero::vector_tile tile{tile_obj->data};
+                while (auto layer = tile.next_layer())
+                {
+                    std::string name{layer.name()};
+                    auto result = builders.emplace(name, std::make_unique<vtzero::layer_builder>(builder, layer));
+                    auto const& lb = result.first->second;
+                    if (std::get<1>(result)) std::cerr << "Creating new layer :" << name << "..." << std::endl;
+                    else std::cerr << "Appending to :" << name << "..." << std::endl;
+                    layer.for_each_feature([&](vtzero::feature const& feature) {
+                            lb->add_feature(feature);
+                            return true;
+                        });
+                }
+            }
+            builder.serialize(output_buffer_);
+            std::cerr << "VT Size:" << output_buffer_.size() << std::endl;
         }
-        catch (const std::exception& e)
+        catch (std::exception const& e)
         {
             SetErrorMessage(e.what());
         }
@@ -110,17 +124,17 @@ struct AsyncHelloWorker : Nan::AsyncWorker
     void HandleOKCallback() override
     {
         Nan::HandleScope scope;
-
         const auto argc = 2u;
         v8::Local<v8::Value> argv[argc] = {
-            // this is where the vector tile buffer will go the "result_"
-            Nan::Null(), Nan::New<v8::String>("result_").ToLocalChecked()};
+            // this is where the vector tile buffer will go the "output_buffer_"
+            Nan::Null(), Nan::New<v8::String>(output_buffer_).ToLocalChecked()};
 
         // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
         callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv));
     }
 
-    const std::unique_ptr<BatonType> baton_data_;
+    std::unique_ptr<BatonType> const baton_data_;
+    std::string output_buffer_;
 };
 
 NAN_METHOD(composite)
@@ -282,7 +296,7 @@ NAN_METHOD(composite)
         baton_data->tiles.push_back(std::move(tile));
     }
     // enter the threadpool, then done in the callback function call the threadpool
-    auto* worker = new AsyncHelloWorker{std::move(baton_data), new Nan::Callback{callback}};
+    auto* worker = new CompositeWorker{std::move(baton_data), new Nan::Callback{callback}};
     Nan::AsyncQueueWorker(worker);
 }
 
