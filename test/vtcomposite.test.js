@@ -4,18 +4,17 @@ var fs = require('fs');
 var path = require('path');
 var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
-
 test('[composite] composites successfully', function(t) {
 
   const buffer = bufferSF;
 
   var vtileSourceBuffers = [
-    {buffer: buffer, z:3, x:1, y:0}
+    {buffer: buffer, z:15, x:5238, y:12666}
   ];
-  
-  var zxy_ofmaprequest = {z:3, x:0, y:1}; 
 
-  var options = {}; 
+  var zxy_ofmaprequest = {z:15, x:5238, y:12666};
+
+  var options = {};
 
   module.composite(vtileSourceBuffers, zxy_ofmaprequest, options, function(err, vtBuffer){
     console.log('vtbuffer', vtBuffer);
@@ -27,7 +26,7 @@ test('[composite] composites successfully', function(t) {
   });
 });
 
-// vtzero has class vector tile - accepts a pointer to a buffer and the actual length of it. 
+// vtzero has class vector tile - accepts a pointer to a buffer and the actual length of it.
 
 test('failure: fails without callback function', assert => {
   try {
@@ -38,7 +37,7 @@ test('failure: fails without callback function', assert => {
   }
 });
 
-// TESTS FOR BUFFER OBJECT! 
+// TESTS FOR BUFFER OBJECT!
 
 test('failure: buffers is not an array', assert => {
   module.composite('i am not an array', {z:3, x:1, y:0}, {}, function(err, result) {
@@ -259,7 +258,7 @@ test('failure: buffer object y value is negative', assert => {
   });
 });
 
-// TESTS FOR ZXY MAP REQUEST! 
+// TESTS FOR ZXY MAP REQUEST!
 
 test('failure: map request zxy missing z value', assert => {
   const buffs = [
@@ -404,4 +403,3 @@ test('failure: map request zxy y value is negative', assert => {
     assert.end();
   });
 });
-
