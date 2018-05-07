@@ -52,7 +52,10 @@ struct BatonType
 {
     explicit BatonType(std::uint32_t num_tiles)
         : tiles(),
-          layers()
+          layers(), 
+          z(), 
+          x(), 
+          y()
     {
         tiles.reserve(num_tiles);
     }
@@ -68,6 +71,10 @@ struct BatonType
     // buffers object thing
     std::vector<std::unique_ptr<TileObject>> tiles;
     std::vector<std::string> layers;
+
+    std::uint32_t z;
+    std::uint32_t x;
+    std::uint32_t y;
 };
 
 struct CompositeWorker : Nan::AsyncWorker
@@ -90,6 +97,10 @@ struct CompositeWorker : Nan::AsyncWorker
         {
             vtzero::tile_builder builder;
             std::unordered_map<std::string, std::unique_ptr<vtzero::layer_builder>> builders;
+            std::clog << baton_data_->z << "z" << std::endl;
+            std::clog << baton_data_->x << "x" << std::endl;
+            std::clog << baton_data_->y << "y" << std::endl;
+
             for (auto const& tile_obj : baton_data_->tiles)
             {
                 std::cerr << tile_obj->z << ":" << tile_obj->x << ":" << tile_obj->y << std::endl;
@@ -150,57 +161,6 @@ NAN_METHOD(composite)
     }
 
     v8::Local<v8::Function> callback = callback_val.As<v8::Function>();
-
-    //validate zxy maprequest object
-    v8::Local<v8::Array> zxy_maprequest = info[1].As<v8::Array>();
-
-    // z value of map request object
-    if (!zxy_maprequest->Has(Nan::New("z").ToLocalChecked()))
-    {
-        return utils::CallbackError("item in 'tiles' array does not include a 'z' value", callback);
-    }
-    v8::Local<v8::Value> z_val_maprequest = zxy_maprequest->Get(Nan::New("z").ToLocalChecked());
-    if (!z_val_maprequest->IsNumber())
-    {
-        return utils::CallbackError("'z' value in 'tiles' array item is not a number", callback);
-    }
-    std::int64_t z_mapquest = z_val_maprequest->IntegerValue();
-    if (z_mapquest < 0)
-    {
-        return utils::CallbackError("'z' value must not be less than zero", callback);
-    }
-
-    // x value of map request object
-    if (!zxy_maprequest->Has(Nan::New("x").ToLocalChecked()))
-    {
-        return utils::CallbackError("item in 'tiles' array does not include a 'x' value", callback);
-    }
-    v8::Local<v8::Value> x_val_maprequest = zxy_maprequest->Get(Nan::New("x").ToLocalChecked());
-    if (!x_val_maprequest->IsNumber())
-    {
-        return utils::CallbackError("'x' value in 'tiles' array item is not a number", callback);
-    }
-    std::int64_t x_maprequest = x_val_maprequest->IntegerValue();
-    if (x_maprequest < 0)
-    {
-        return utils::CallbackError("'x' value must not be less than zero", callback);
-    }
-
-    // y value of maprequest object
-    if (!zxy_maprequest->Has(Nan::New("y").ToLocalChecked()))
-    {
-        return utils::CallbackError("item in 'tiles' array does not include a 'y' value", callback);
-    }
-    v8::Local<v8::Value> y_val_maprequest = zxy_maprequest->Get(Nan::New("y").ToLocalChecked());
-    if (!y_val_maprequest->IsNumber())
-    {
-        return utils::CallbackError("'y' value in 'tiles' array item is not a number", callback);
-    }
-    std::int64_t y_maprequest = y_val_maprequest->IntegerValue();
-    if (y_maprequest < 0)
-    {
-        return utils::CallbackError("'y' value must not be less than zero", callback);
-    }
 
     // validate tiles
     if (!info[0]->IsArray())
@@ -297,6 +257,65 @@ NAN_METHOD(composite)
                                                         buffer}};
         baton_data->tiles.push_back(std::move(tile));
     }
+
+    //validate zxy maprequest object
+
+    v8::Local<v8::Array> zxy_maprequest = info[1].As<v8::Array>();
+
+    // z value of map request object
+    if (!zxy_maprequest->Has(Nan::New("z").ToLocalChecked()))
+    {
+        return utils::CallbackError("item in 'tiles' array does not include a 'z' value", callback);
+    }
+    v8::Local<v8::Value> z_val_maprequest = zxy_maprequest->Get(Nan::New("z").ToLocalChecked());
+    if (!z_val_maprequest->IsNumber())
+    {
+        return utils::CallbackError("'z' value in 'tiles' array item is not a number", callback);
+    }
+    std::int64_t z_maprequest = z_val_maprequest->IntegerValue();
+    if (z_maprequest < 0)
+    {
+        return utils::CallbackError("'z' value must not be less than zero", callback);
+    }
+    baton_data->z = static_cast<std::uint32_t>(z_maprequest);
+
+    // x value of map request object
+    if (!zxy_maprequest->Has(Nan::New("x").ToLocalChecked()))
+    {
+        return utils::CallbackError("item in 'tiles' array does not include a 'x' value", callback);
+    }
+    v8::Local<v8::Value> x_val_maprequest = zxy_maprequest->Get(Nan::New("x").ToLocalChecked());
+    if (!x_val_maprequest->IsNumber())
+    {
+        return utils::CallbackError("'x' value in 'tiles' array item is not a number", callback);
+    }
+    std::int64_t x_maprequest = x_val_maprequest->IntegerValue();
+    if (x_maprequest < 0)
+    {
+        return utils::CallbackError("'x' value must not be less than zero", callback);
+    }
+
+    baton_data->x = static_cast<std::uint32_t>(x_maprequest);
+
+    // y value of maprequest object
+    if (!zxy_maprequest->Has(Nan::New("y").ToLocalChecked()))
+    {
+        return utils::CallbackError("item in 'tiles' array does not include a 'y' value", callback);
+    }
+    v8::Local<v8::Value> y_val_maprequest = zxy_maprequest->Get(Nan::New("y").ToLocalChecked());
+    if (!y_val_maprequest->IsNumber())
+    {
+        return utils::CallbackError("'y' value in 'tiles' array item is not a number", callback);
+    }
+    std::int64_t y_maprequest = y_val_maprequest->IntegerValue();
+    if (y_maprequest < 0)
+    {
+        return utils::CallbackError("'y' value must not be less than zero", callback);
+    }
+
+    baton_data->y = static_cast<std::uint32_t>(y_maprequest);
+
+
     // enter the threadpool, then done in the callback function call the threadpool
     auto* worker = new CompositeWorker{std::move(baton_data), new Nan::Callback{callback}};
     Nan::AsyncQueueWorker(worker);
