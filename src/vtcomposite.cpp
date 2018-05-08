@@ -52,9 +52,9 @@ struct BatonType
 {
     explicit BatonType(std::uint32_t num_tiles)
         : tiles(),
-          layers(), 
-          z(), 
-          x(), 
+          layers(),
+          z(),
+          x(),
           y()
     {
         tiles.reserve(num_tiles);
@@ -109,13 +109,23 @@ struct CompositeWorker : Nan::AsyncWorker
                 {
                     std::string name{layer.name()};
                     auto result = builders.emplace(name, std::make_unique<vtzero::layer_builder>(builder, layer));
-                    auto const& lb = result.first->second;
-                    if (std::get<1>(result)) std::cerr << "Creating new layer :" << name << "..." << std::endl;
-                    else std::cerr << "Appending to :" << name << "..." << std::endl;
-                    layer.for_each_feature([&lb](vtzero::feature const& feature) {
-                            lb->add_feature(feature);
+                    if (std::get<1>(result)) // check if layer (with the same name) exists
+                    {
+                        auto const& lb = std::get<0>(result)->second;
+                        layer.for_each_feature([&lb](vtzero::feature const& feature) {
+                            vtzero::geometry_feature_builder feature_builder{*lb};
+                            if (feature.has_id()) {
+                                feature_builder.set_id(feature.id());
+                            }
+                            feature_builder.set_geometry(feature.geometry());
+                            feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                    feature_builder.add_property(p);
+                                    return true;
+                                });
+                            feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
                             return true;
                         });
+                    }
                 }
             }
             builder.serialize(output_buffer_);
