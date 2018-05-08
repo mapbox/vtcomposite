@@ -114,14 +114,15 @@ struct CompositeWorker : Nan::AsyncWorker
                         auto const& lb = std::get<0>(result)->second;
                         layer.for_each_feature([&lb](vtzero::feature const& feature) {
                             vtzero::geometry_feature_builder feature_builder{*lb};
-                            if (feature.has_id()) {
+                            if (feature.has_id())
+                            {
                                 feature_builder.set_id(feature.id());
                             }
                             feature_builder.set_geometry(feature.geometry());
                             feature.for_each_property([&feature_builder](vtzero::property const& p) {
-                                    feature_builder.add_property(p);
-                                    return true;
-                                });
+                                feature_builder.add_property(p);
+                                return true;
+                            });
                             feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
                             return true;
                         });
@@ -324,7 +325,6 @@ NAN_METHOD(composite)
     }
 
     baton_data->y = static_cast<std::uint32_t>(y_maprequest);
-
 
     // enter the threadpool, then done in the callback function call the threadpool
     auto* worker = new CompositeWorker{std::move(baton_data), new Nan::Callback{callback}};
