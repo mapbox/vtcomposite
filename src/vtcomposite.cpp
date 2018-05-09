@@ -263,6 +263,10 @@ NAN_METHOD(composite)
     }
 
     //validate zxy maprequest object
+    if (!info[1]->IsObject())
+    {
+        return utils::CallbackError("'zxy_maprequest' must be an object", callback);
+    }
     v8::Local<v8::Object> zxy_maprequest = v8::Local<v8::Object>::Cast(info[1]);
 
     // z value of map request object
