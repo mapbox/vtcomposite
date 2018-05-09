@@ -64,10 +64,10 @@ struct BatonType
     BatonType& operator=(BatonType&&) = delete;
 
     // members
-    std::vector<std::unique_ptr<TileObject>> tiles {};
-    std::uint32_t z {};
-    std::uint32_t x {};
-    std::uint32_t y {};
+    std::vector<std::unique_ptr<TileObject>> tiles{};
+    std::uint32_t z{};
+    std::uint32_t x{};
+    std::uint32_t y{};
 };
 
 struct CompositeWorker : Nan::AsyncWorker
@@ -263,8 +263,7 @@ NAN_METHOD(composite)
     }
 
     //validate zxy maprequest object
-
-    v8::Local<v8::Array> zxy_maprequest = info[1].As<v8::Array>();
+    v8::Local<v8::Object> zxy_maprequest = v8::Local<v8::Object>::Cast(info[1]);
 
     // z value of map request object
     if (!zxy_maprequest->Has(Nan::New("z").ToLocalChecked()))
