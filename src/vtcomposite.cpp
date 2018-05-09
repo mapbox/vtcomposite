@@ -13,11 +13,11 @@ struct TileObject
                std::uint32_t x0,
                std::uint32_t y0,
                v8::Local<v8::Object> buffer)
-        : z(z0),
-          x(x0),
-          y(y0),
-          data(node::Buffer::Data(buffer), node::Buffer::Length(buffer)),
-          buffer_ref()
+        : z{z0},
+          x{x0},
+          y{y0},
+          data{node::Buffer::Data(buffer), node::Buffer::Length(buffer)},
+          buffer_ref{}
     {
         buffer_ref.Reset(buffer.As<v8::Object>());
     }
@@ -51,11 +51,6 @@ struct TileObject
 struct BatonType
 {
     explicit BatonType(std::uint32_t num_tiles)
-        : tiles(),
-          layers(),
-          z(),
-          x(),
-          y()
     {
         tiles.reserve(num_tiles);
     }
@@ -68,13 +63,11 @@ struct BatonType
     BatonType(BatonType&&) = delete;
     BatonType& operator=(BatonType&&) = delete;
 
-    // buffers object thing
-    std::vector<std::unique_ptr<TileObject>> tiles;
-    std::vector<std::string> layers;
-
-    std::uint32_t z;
-    std::uint32_t x;
-    std::uint32_t y;
+    // members
+    std::vector<std::unique_ptr<TileObject>> tiles {};
+    std::uint32_t z {};
+    std::uint32_t x {};
+    std::uint32_t y {};
 };
 
 struct CompositeWorker : Nan::AsyncWorker
@@ -82,7 +75,7 @@ struct CompositeWorker : Nan::AsyncWorker
     using Base = Nan::AsyncWorker;
     // ask carol about const&
     CompositeWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
-        : Base(cb),
+        : Base{cb},
           baton_data_{std::move(baton_data)},
           output_buffer_{} {}
 
