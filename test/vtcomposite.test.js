@@ -117,7 +117,7 @@ test('failure: buffer value is not a buffer', assert => {
 test('failure: buffer object missing z value', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       // z: 0,
       x: 0,
       y: 0
@@ -133,7 +133,7 @@ test('failure: buffer object missing z value', assert => {
 test('failure: buffer object missing x value', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       // x: 0,
       y: 0
@@ -149,7 +149,7 @@ test('failure: buffer object missing x value', assert => {
 test('failure: buffer object missing y value', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       // y: 0
@@ -165,7 +165,7 @@ test('failure: buffer object missing y value', assert => {
 test('failure: buffer object z value is not a number', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 'zero',
       x: 0,
       y: 0
@@ -181,7 +181,7 @@ test('failure: buffer object z value is not a number', assert => {
 test('failure: buffer object x value is not a number', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 'zero',
       y: 0
@@ -197,7 +197,7 @@ test('failure: buffer object x value is not a number', assert => {
 test('failure: buffer object y value is not a number', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       y: 'zero'
@@ -213,7 +213,7 @@ test('failure: buffer object y value is not a number', assert => {
 test('failure: buffer object z value is negative', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: -10,
       x: 0,
       y: 0
@@ -229,7 +229,7 @@ test('failure: buffer object z value is negative', assert => {
 test('failure: buffer object x value is negative', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: -5,
       y: 0
@@ -245,7 +245,7 @@ test('failure: buffer object x value is negative', assert => {
 test('failure: buffer object y value is negative', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       y: -4
@@ -263,7 +263,7 @@ test('failure: buffer object y value is negative', assert => {
 test('failure: map request zxy missing z value', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       y: 0
@@ -279,7 +279,7 @@ test('failure: map request zxy missing z value', assert => {
 test('failure: map request zxy missing x value', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       // x: 0,
       y: 0
@@ -295,7 +295,7 @@ test('failure: map request zxy missing x value', assert => {
 test('failure: map request zxy missing y value', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       // y: 0
@@ -311,7 +311,7 @@ test('failure: map request zxy missing y value', assert => {
 test('failure: map request zxy z value is not a number', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       y: 0
@@ -327,7 +327,7 @@ test('failure: map request zxy z value is not a number', assert => {
 test('failure: map request zxy x value is not a number', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       y: 0
@@ -343,7 +343,7 @@ test('failure: map request zxy x value is not a number', assert => {
 test('failure: map request zxy y value is not a number', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       y: 0
@@ -359,7 +359,7 @@ test('failure: map request zxy y value is not a number', assert => {
 test('failure: map request zxy z value is negative', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 10,
       x: 0,
       y: 0
@@ -375,7 +375,7 @@ test('failure: map request zxy z value is negative', assert => {
 test('failure: map request zxy x value is negative', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       y: 0
@@ -391,7 +391,7 @@ test('failure: map request zxy x value is negative', assert => {
 test('failure: map request zxy y value is negative', assert => {
   const buffs = [
     {
-      buffer: new Buffer('hey'),
+      buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
       y: 0
