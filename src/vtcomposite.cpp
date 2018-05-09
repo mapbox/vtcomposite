@@ -154,7 +154,7 @@ struct CompositeWorker : Nan::AsyncWorker
             Nan::Null(), Nan::New<v8::String>(output_buffer_).ToLocalChecked()};
 
         // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
-        callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv));
+        callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv), async_resource);
     }
 
     std::unique_ptr<BatonType> const baton_data_;

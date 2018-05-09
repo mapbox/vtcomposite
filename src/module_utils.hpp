@@ -20,9 +20,11 @@ namespace utils {
 *
 */
 inline void CallbackError(std::string message,
-                          v8::Local<v8::Function> callback)
+                          v8::Local<v8::Function> func)
 {
+    Nan::AsyncResource resource("callback-error");
+    Nan::Callback cb{func};
     v8::Local<v8::Value> argv[1] = {Nan::Error(message.c_str())};
-    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), callback, 1, argv);
+    cb.Call(Nan::GetCurrentContext()->Global(), 1, argv, &resource);
 }
 } // namespace utils
