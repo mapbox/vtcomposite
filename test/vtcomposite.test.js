@@ -2,6 +2,8 @@ var test = require('tape');
 var module = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
+var zlib = require('zlib');
+
 var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
 test('[composite] success: buffer size stays the same when no compositing needed', function(assert) {
@@ -17,6 +19,23 @@ test('[composite] success: buffer size stays the same when no compositing needed
     assert.end();
   });
 });
+
+var gzipped_bufferSF = zlib.gzipSync(bufferSF);
+
+test('[composite] success: compositing single gzipped VT', function(assert) {
+  const tiles = [
+    {buffer: gzipped_bufferSF, z:15, x:5238, y:12666}
+  ];
+
+  const zxy = {z:15, x:5238, y:12666};
+
+  module.composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.equal(vtBuffer.length, zlib.gunzipSync(gzipped_bufferSF).length, 'same size');
+    assert.end();
+  });
+});
+
 
 // vtzero has class vector tile - accepts a pointer to a buffer and the actual length of it.
 

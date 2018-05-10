@@ -4,6 +4,8 @@
 #include <mapbox/geometry/geometry.hpp>
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
+#include <gzip/decompress.hpp>
+#include <gzip/utils.hpp>
 
 namespace vtile {
 
@@ -77,12 +79,25 @@ struct CompositeWorker : Nan::AsyncWorker
     {
         try
         {
+            gzip::Decompressor decompressor;
             vtzero::tile_builder builder;
             std::vector<std::string> names;
+            vtzero::data_view tile_view{};
             for (auto const& tile_obj : baton_data_->tiles)
             {
-                std::cout << "[buffer size] cpp pre vtzero: " << tile_obj->data.size() << std::endl;
-                vtzero::vector_tile tile{tile_obj->data};
+                std::vector<char> buffer;
+                if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
+                {
+                    decompressor.decompress(buffer, tile_obj->data.data(), tile_obj->data.size());
+                    tile_view = protozero::data_view{buffer.data(), buffer.size()};
+                }
+                else
+                {
+                    tile_view = tile_obj->data;
+                }
+
+                std::cout << "[buffer size] cpp pre vtzero: " << tile_view.size() << std::endl;
+                vtzero::vector_tile tile{tile_view};
                 while (auto layer = tile.next_layer())
                 {
                     std::string name{layer.name()};
