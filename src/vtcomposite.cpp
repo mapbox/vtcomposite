@@ -90,13 +90,14 @@ struct CompositeWorker : Nan::AsyncWorker
         {
             vtzero::tile_builder builder;
             std::unordered_map<std::string, std::unique_ptr<vtzero::layer_builder>> builders;
-            std::clog << baton_data_->z << "z" << std::endl;
-            std::clog << baton_data_->x << "x" << std::endl;
-            std::clog << baton_data_->y << "y" << std::endl;
+            // std::clog << baton_data_->z << "z" << std::endl;
+            // std::clog << baton_data_->x << "x" << std::endl;
+            // std::clog << baton_data_->y << "y" << std::endl;
 
             for (auto const& tile_obj : baton_data_->tiles)
             {
-                std::cerr << tile_obj->z << ":" << tile_obj->x << ":" << tile_obj->y << std::endl;
+                // std::cerr << tile_obj->z << ":" << tile_obj->x << ":" << tile_obj->y << std::endl;
+                std::cout << "[buffer size] cpp pre vtzero: " << tile_obj->data.size() << std::endl;
                 vtzero::vector_tile tile{tile_obj->data};
                 while (auto layer = tile.next_layer())
                 {
@@ -123,7 +124,7 @@ struct CompositeWorker : Nan::AsyncWorker
                 }
             }
             builder.serialize(output_buffer_);
-            std::cerr << "VT Size:" << output_buffer_.size() << std::endl;
+            std::cerr << "[buffer size] cpp output:" << output_buffer_.size() << std::endl;
         }
         catch (std::exception const& e)
         {
@@ -144,7 +145,11 @@ struct CompositeWorker : Nan::AsyncWorker
         const auto argc = 2u;
         v8::Local<v8::Value> argv[argc] = {
             // this is where the vector tile buffer will go the "output_buffer_"
-            Nan::Null(), Nan::New<v8::String>(output_buffer_).ToLocalChecked()};
+            Nan::Null(),
+            Nan::NewBuffer(&output_buffer_[0], static_cast<std::uint32_t>(output_buffer_.size())).ToLocalChecked()
+        };
+
+
 
         // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
         callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv), async_resource);
