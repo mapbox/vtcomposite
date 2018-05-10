@@ -1,12 +1,12 @@
 #include "vtcomposite.hpp"
 #include "module_utils.hpp"
+#include <algorithm>
 #include <mapbox/geometry/geometry.hpp>
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
 
 namespace vtile {
 
-/// an intermediate representation of a tile buffer and its necessary components
 struct TileObject
 {
     TileObject(std::uint32_t z0,
@@ -22,15 +22,10 @@ struct TileObject
         buffer_ref.Reset(buffer.As<v8::Object>());
     }
 
-    // explicitly use the destructor to clean up
-    // the persistent buffer ref by Reset()-ing
     ~TileObject()
     {
         buffer_ref.Reset();
     }
-
-    // guarantee that objects are not being copied by deleting the
-    // copy and move definitions
 
     // non-copyable
     TileObject(TileObject const&) = delete;
@@ -47,7 +42,6 @@ struct TileObject
     Nan::Persistent<v8::Object> buffer_ref;
 };
 
-/// the baton of data to be passed from the v8 thread into the cpp threadpool
 struct BatonType
 {
     explicit BatonType(std::uint32_t num_tiles)
@@ -73,41 +67,31 @@ struct BatonType
 struct CompositeWorker : Nan::AsyncWorker
 {
     using Base = Nan::AsyncWorker;
-    // ask carol about const&
+
     CompositeWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
         : Base{cb},
           baton_data_{std::move(baton_data)},
           output_buffer_{} {}
 
-    // The Execute() function is getting called when the worker starts to run.
-    // - You only have access to member variables stored in this worker.
-    // - You do not have access to Javascript v8 objects here.
     void Execute() override
     {
-        // The try/catch is critical here: if code was added that could throw an
-        // unhandled error INSIDE the threadpool, it would be disasterous
         try
         {
             vtzero::tile_builder builder;
-            std::unordered_map<std::string, std::unique_ptr<vtzero::layer_builder>> builders;
-            // std::clog << baton_data_->z << "z" << std::endl;
-            // std::clog << baton_data_->x << "x" << std::endl;
-            // std::clog << baton_data_->y << "y" << std::endl;
-
+            std::vector<std::string> names;
             for (auto const& tile_obj : baton_data_->tiles)
             {
-                // std::cerr << tile_obj->z << ":" << tile_obj->x << ":" << tile_obj->y << std::endl;
                 std::cout << "[buffer size] cpp pre vtzero: " << tile_obj->data.size() << std::endl;
                 vtzero::vector_tile tile{tile_obj->data};
                 while (auto layer = tile.next_layer())
                 {
                     std::string name{layer.name()};
-                    auto result = builders.emplace(name, std::make_unique<vtzero::layer_builder>(builder, layer));
-                    if (std::get<1>(result)) // check if layer (with the same name) exists
+                    if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                     {
-                        auto const& lb = std::get<0>(result)->second;
-                        layer.for_each_feature([&lb](vtzero::feature const& feature) {
-                            vtzero::geometry_feature_builder feature_builder{*lb};
+                        names.push_back(name);
+                        vtzero::layer_builder lb{builder, layer};
+                        layer.for_each_feature([lb](vtzero::feature const& feature) {
+                            vtzero::geometry_feature_builder feature_builder{lb};
                             if (feature.has_id())
                             {
                                 feature_builder.set_id(feature.id());
@@ -132,19 +116,11 @@ struct CompositeWorker : Nan::AsyncWorker
         }
     }
 
-    // The HandleOKCallback() is getting called when Execute() successfully
-    // completed.
-    // - In case Execute() invoked SetErrorMessage("") this function is not
-    // getting called.
-    // - You have access to Javascript v8 objects again
-    // - You have to translate from C++ member variables to Javascript v8 objects
-    // - Finally, you call the user's callback with your results
     void HandleOKCallback() override
     {
         Nan::HandleScope scope;
         const auto argc = 2u;
         v8::Local<v8::Value> argv[argc] = {
-            // this is where the vector tile buffer will go the "output_buffer_"
             Nan::Null(),
             Nan::NewBuffer(&output_buffer_[0], static_cast<std::uint32_t>(output_buffer_.size())).ToLocalChecked()};
 
