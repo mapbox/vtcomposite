@@ -146,10 +146,7 @@ struct CompositeWorker : Nan::AsyncWorker
         v8::Local<v8::Value> argv[argc] = {
             // this is where the vector tile buffer will go the "output_buffer_"
             Nan::Null(),
-            Nan::NewBuffer(&output_buffer_[0], static_cast<std::uint32_t>(output_buffer_.size())).ToLocalChecked()
-        };
-
-
+            Nan::NewBuffer(&output_buffer_[0], static_cast<std::uint32_t>(output_buffer_.size())).ToLocalChecked()};
 
         // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
         callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv), async_resource);
