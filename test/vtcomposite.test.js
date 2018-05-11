@@ -3,6 +3,8 @@ var module = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
 var zlib = require('zlib');
+var vtinfo = require('@mapbox/vtinfo');
+var mvtFixtures = require('@mapbox/mvt-fixtures');
 
 var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
@@ -16,6 +18,74 @@ test('[composite] success: buffer size stays the same when no compositing needed
   module.composite(tiles, zxy, {}, (err, vtBuffer) => {
     assert.notOk(err);
     assert.equal(vtBuffer.length, bufferSF.length, 'same size');
+    assert.end();
+  });
+});
+
+test('[composite] success compositing - same layer name, same features, same zoom', function(assert) {
+  const singlePointBuffer = mvtFixtures.get('017').buffer; 
+
+  const tiles = [
+    {buffer: singlePointBuffer, z:15, x:5238, y:12666}, 
+    {buffer: singlePointBuffer, z:15, x:5238, y:12666}
+  ];
+
+  const expectedLayerName = 'hello';
+
+  const zxy = {z:15, x:5238, y:12666};
+
+  module.composite(tiles, zxy, {}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+
+    assert.equal(outputInfo.layers[0].name, 'hello');
+    assert.equal(outputInfo.layers.length, 1);
+    assert.equal(outputInfo.layers[0].features, 1);
+    assert.notOk(err);
+    assert.end();
+  });
+});
+
+test('[composite] success compositing - same layer name, different features, same zoom', function(assert) {
+  const singlePointBuffer = mvtFixtures.get('017').buffer; 
+  const singleLineStringBuffer = mvtFixtures.get('018').buffer; 
+
+  const tiles = [
+    {buffer: singleLineStringBuffer, z:15, x:5238, y:12666},
+    {buffer: singlePointBuffer, z:15, x:5238, y:12666}
+  ];
+
+  const zxy = {z:15, x:5238, y:12666};
+
+  module.composite(tiles, zxy, {}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+
+    assert.equal(outputInfo.layers[0].name, 'hello', 'returns layer hello');
+    assert.equal(outputInfo.layers.length, 1, 'return 1 layers');
+    assert.equal(outputInfo.layers[0].features, 1, 'returns 1 feature');
+    assert.equal(outputInfo.layers[0].line_features, 1, 'keeps feature from first layer');
+    assert.notOk(err);
+    assert.end();
+  });
+});
+
+test('[composite] success compositing - different layer name, different features, same zoom', function(assert) {
+  const buffer1 = mvtFixtures.get('017').buffer; 
+  const buffer2 = mvtFixtures.get('053').buffer; 
+
+  const tiles = [
+    {buffer: buffer1, z:15, x:5238, y:12666},
+    {buffer: buffer2, z:15, x:5238, y:12666}
+  ];
+
+  const zxy = {z:15, x:5238, y:12666};
+
+  module.composite(tiles, zxy, {}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+
+    assert.equal(outputInfo.layers[0].name, 'hello', 'returns layer hello');
+    assert.equal(outputInfo.layers[1].name, 'clipped-square', 'returns layer hello');
+    assert.equal(outputInfo.layers.length, 2, 'return 2 layers');
+    assert.notOk(err);
     assert.end();
   });
 });
@@ -35,9 +105,6 @@ test('[composite] success: compositing single gzipped VT', function(assert) {
     assert.end();
   });
 });
-
-
-// vtzero has class vector tile - accepts a pointer to a buffer and the actual length of it.
 
 test('failure: fails without callback function', assert => {
   try {

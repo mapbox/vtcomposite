@@ -21,6 +21,15 @@ var assert = require('assert')
 var d3_queue = require('d3-queue');
 var module = require('../lib/index.js');
 var queue = d3_queue.queue();
+var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
+var bufferNepal = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/nepal/13-6036-3426.mvt'));
+
+var tiles = [
+  {buffer: bufferSF, z:15, x:5238, y:12666},
+  {buffer: bufferNepal, z:15, x:5238, y:12666}
+];
+
+var zxy = {z:15, x:5238, y:12666};
 
 var track_mem = argv.mem ? true : false; 
 var runs = 0;
@@ -31,12 +40,14 @@ var memstats = {
 };
 
 function run(cb) {
-  module.helloAsync({ louder: false }, function(err, result) {
+  // running our module
+  module.composite(tiles, zxy, {}, function(err, result) {
       if (err) {
         return cb(err);
       }
       ++runs;
       if (track_mem && runs % 1000) {
+        // returning usage stats and concats into memstats objects 
         var mem = process.memoryUsage();
         if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
         if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;

@@ -96,7 +96,6 @@ struct CompositeWorker : Nan::AsyncWorker
                     tile_view = tile_obj->data;
                 }
 
-                std::cout << "[buffer size] cpp pre vtzero: " << tile_view.size() << std::endl;
                 vtzero::vector_tile tile{tile_view};
                 while (auto layer = tile.next_layer())
                 {
@@ -123,7 +122,6 @@ struct CompositeWorker : Nan::AsyncWorker
                 }
             }
             builder.serialize(output_buffer_);
-            std::cerr << "[buffer size] cpp output:" << output_buffer_.size() << std::endl;
         }
         catch (std::exception const& e)
         {
