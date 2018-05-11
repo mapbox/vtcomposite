@@ -1,5 +1,5 @@
 var test = require('tape');
-var module = require('../lib/index.js');
+var vtcomposite = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
 var zlib = require('zlib');
@@ -13,7 +13,7 @@ test('[composite] success: buffer size stays the same when no compositing needed
 
   const zxy = {z:15, x:5238, y:12666};
 
-  module.composite(tiles, zxy, {}, (err, vtBuffer) => {
+  vtcomposite.composite(tiles, zxy, {}, (err, vtBuffer) => {
     assert.notOk(err);
     assert.equal(vtBuffer.length, bufferSF.length, 'same size');
     assert.end();
@@ -29,7 +29,7 @@ test('[composite] success: compositing single gzipped VT', function(assert) {
 
   const zxy = {z:15, x:5238, y:12666};
 
-  module.composite(tiles, zxy, {}, (err, vtBuffer) => {
+  vtcomposite.composite(tiles, zxy, {}, (err, vtBuffer) => {
     assert.notOk(err);
     assert.equal(vtBuffer.length, zlib.gunzipSync(gzipped_bufferSF).length, 'same size');
     assert.end();
@@ -41,7 +41,7 @@ test('[composite] success: compositing single gzipped VT', function(assert) {
 
 test('failure: fails without callback function', assert => {
   try {
-    module.composite();
+    vtcomposite.composite();
   } catch(err) {
     assert.ok(/last argument must be a callback function/.test(err.message), 'expected error message');
     assert.end();
@@ -51,7 +51,7 @@ test('failure: fails without callback function', assert => {
 // TESTS FOR BUFFER OBJECT!
 
 test('failure: buffers is not an array', assert => {
-  module.composite('i am not an array', {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite('i am not an array', {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'first arg \'tiles\' must be an array of tile objects');
     assert.end();
@@ -60,7 +60,7 @@ test('failure: buffers is not an array', assert => {
 
 test('failure: buffers array is empty', assert => {
   const buffs = [];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'tiles\' array must be of length greater than 0');
     assert.end();
@@ -71,7 +71,7 @@ test('failure: item in buffers array is not an object', assert => {
   const buffs = [
     'not an object'
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'items in \'tiles\' array must be objects');
     assert.end();
@@ -86,7 +86,7 @@ test('failure: buffer value does not exist', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'item in \'tiles\' array does not include a buffer value');
     assert.end();
@@ -102,7 +102,7 @@ test('failure: buffer value is null', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'buffer value in \'tiles\' array item is null or undefined');
     assert.end();
@@ -118,7 +118,7 @@ test('failure: buffer value is not a buffer', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'buffer value in \'tiles\' array item is not a true buffer');
     assert.end();
@@ -134,7 +134,7 @@ test('failure: buffer object missing z value', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'item in \'tiles\' array does not include a \'z\' value');
     assert.end();
@@ -150,7 +150,7 @@ test('failure: buffer object missing x value', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'item in \'tiles\' array does not include a \'x\' value');
     assert.end();
@@ -166,7 +166,7 @@ test('failure: buffer object missing y value', assert => {
       // y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'item in \'tiles\' array does not include a \'y\' value');
     assert.end();
@@ -182,7 +182,7 @@ test('failure: buffer object z value is not a number', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'z\' value in \'tiles\' array item is not a number');
     assert.end();
@@ -198,7 +198,7 @@ test('failure: buffer object x value is not a number', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'x\' value in \'tiles\' array item is not a number');
     assert.end();
@@ -214,7 +214,7 @@ test('failure: buffer object y value is not a number', assert => {
       y: 'zero'
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'y\' value in \'tiles\' array item is not a number');
     assert.end();
@@ -230,7 +230,7 @@ test('failure: buffer object z value is negative', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'z\' value must not be less than zero');
     assert.end();
@@ -246,7 +246,7 @@ test('failure: buffer object x value is negative', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'x\' value must not be less than zero');
     assert.end();
@@ -262,7 +262,7 @@ test('failure: buffer object y value is negative', assert => {
       y: -4
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'y\' value must not be less than zero');
     assert.end();
@@ -280,7 +280,7 @@ test('failure: map request zxy missing z value', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'item in \'tiles\' array does not include a \'z\' value');
     assert.end();
@@ -296,7 +296,7 @@ test('failure: map request zxy missing x value', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'item in \'tiles\' array does not include a \'x\' value');
     assert.end();
@@ -312,7 +312,7 @@ test('failure: map request zxy missing y value', assert => {
       // y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'item in \'tiles\' array does not include a \'y\' value');
     assert.end();
@@ -328,7 +328,7 @@ test('failure: map request zxy z value is not a number', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:'zero', x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:'zero', x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'z\' value in \'tiles\' array item is not a number');
     assert.end();
@@ -344,7 +344,7 @@ test('failure: map request zxy x value is not a number', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:'zero', y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:'zero', y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'x\' value in \'tiles\' array item is not a number');
     assert.end();
@@ -360,7 +360,7 @@ test('failure: map request zxy y value is not a number', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:'zero'}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:'zero'}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'y\' value in \'tiles\' array item is not a number');
     assert.end();
@@ -376,7 +376,7 @@ test('failure: map request zxy z value is negative', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:-3, x:1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:-3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'z\' value must not be less than zero');
     assert.end();
@@ -392,7 +392,7 @@ test('failure: map request zxy x value is negative', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:-1, y:0}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:-1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'x\' value must not be less than zero');
     assert.end();
@@ -408,7 +408,7 @@ test('failure: map request zxy y value is negative', assert => {
       y: 0
     }
   ];
-  module.composite(buffs, {z:3, x:1, y:-4}, {}, function(err, result) {
+  vtcomposite.composite(buffs, {z:3, x:1, y:-4}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'y\' value must not be less than zero');
     assert.end();

@@ -33,7 +33,7 @@
     "bytes": "^2.4.0"
   },
   "binary": {
-    "module_name": "module",
+    "module_name": "vtcomposite",
     "module_path": "./lib/binding/",
     "host": "https://mapbox-node-binary.s3.amazonaws.com",
     "remote_path": "./{name}/v{version}/{configuration}/{toolset}/",
