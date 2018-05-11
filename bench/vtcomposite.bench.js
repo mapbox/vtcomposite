@@ -3,7 +3,7 @@
 var argv = require('minimist')(process.argv.slice(2));
 if (!argv.iterations || !argv.concurrency) {
   console.error('Please provide desired iterations, concurrency');
-  console.error('Example: \n\tnode bench/hello_async.bench.js --iterations 50 --concurrency 10');
+  console.error('Example: \n\tnode bench/vtcomposite.bench.js --iterations 50 --concurrency 10');
   console.error('Optional args: \n\t--mem (reports memory stats)');
   process.exit(1);
 }
@@ -47,7 +47,6 @@ function run(cb) {
       }
       ++runs;
       if (track_mem && runs % 1000) {
-        // returning usage stats and concats into memstats objects 
         var mem = process.memoryUsage();
         if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
         if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
