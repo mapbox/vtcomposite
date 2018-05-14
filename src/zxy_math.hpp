@@ -4,6 +4,7 @@
 #include <mapbox/geometry/point.hpp>
 // stl
 #include <cmath>
+#include <tuple>
 #include <ostream>
 
 namespace vtile {
