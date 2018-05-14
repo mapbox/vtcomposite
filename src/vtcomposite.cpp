@@ -1,5 +1,6 @@
 #include "vtcomposite.hpp"
 #include "module_utils.hpp"
+#include "zxy_extent.hpp"
 #include <algorithm>
 #include <mapbox/geometry/geometry.hpp>
 #include <vtzero/builder.hpp>
@@ -83,42 +84,52 @@ struct CompositeWorker : Nan::AsyncWorker
             vtzero::tile_builder builder;
             std::vector<std::string> names;
             vtzero::data_view tile_view{};
+
+            std::uint32_t const target_z = baton_data_->z;
+            std::uint32_t const target_x = baton_data_->x;
+            std::uint32_t const target_y = baton_data_->y;
+            std::cerr << "TARGET:" << target_z << ":" << target_x << ":" << target_y << std::endl;
+            auto target_extent = vtile::mercator_extent(target_z, target_x, target_y);
+            std::cerr << "TARGET EXT:" << target_extent << std::endl;
             for (auto const& tile_obj : baton_data_->tiles)
             {
-                std::vector<char> buffer;
-                if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
+                if (vtile::same_zxy(*tile_obj, target_z, target_x, target_y))
                 {
-                    decompressor.decompress(buffer, tile_obj->data.data(), tile_obj->data.size());
-                    tile_view = protozero::data_view{buffer.data(), buffer.size()};
-                }
-                else
-                {
-                    tile_view = tile_obj->data;
-                }
-
-                std::cout << "[buffer size] cpp pre vtzero: " << tile_view.size() << std::endl;
-                vtzero::vector_tile tile{tile_view};
-                while (auto layer = tile.next_layer())
-                {
-                    std::string name{layer.name()};
-                    if (std::find(std::begin(names), std::end(names), name) == std::end(names))
+                    std::vector<char> buffer;
+                    if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
-                        names.push_back(name);
-                        vtzero::layer_builder lb{builder, layer};
-                        layer.for_each_feature([lb](vtzero::feature const& feature) {
-                            vtzero::geometry_feature_builder feature_builder{lb};
-                            if (feature.has_id())
-                            {
-                                feature_builder.set_id(feature.id());
-                            }
-                            feature_builder.set_geometry(feature.geometry());
-                            feature.for_each_property([&feature_builder](vtzero::property const& p) {
-                                feature_builder.add_property(p);
-                                return true;
-                            });
-                            feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
-                            return true;
-                        });
+                        decompressor.decompress(buffer, tile_obj->data.data(), tile_obj->data.size());
+                        tile_view = protozero::data_view{buffer.data(), buffer.size()};
+                    }
+                    else
+                    {
+                        tile_view = tile_obj->data;
+                    }
+
+                    std::cout << "[buffer size] cpp pre vtzero: " << tile_view.size() << std::endl;
+                    vtzero::vector_tile tile{tile_view};
+                    while (auto layer = tile.next_layer())
+                    {
+                        std::string name{layer.name()};
+                        if (std::find(std::begin(names), std::end(names), name) == std::end(names))
+                        {
+                            names.push_back(name);
+                            vtzero::layer_builder lb{builder, layer};
+                            layer.for_each_feature([lb](vtzero::feature const& feature) {
+                                    vtzero::geometry_feature_builder feature_builder{lb};
+                                    if (feature.has_id())
+                                    {
+                                        feature_builder.set_id(feature.id());
+                                    }
+                                    feature_builder.set_geometry(feature.geometry());
+                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                            feature_builder.add_property(p);
+                                            return true;
+                                        });
+                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
+                                    return true;
+                                });
+                        }
                     }
                 }
             }
