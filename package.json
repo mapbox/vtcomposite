@@ -17,8 +17,6 @@
   "author": "Mapbox",
   "license": "ISC",
   "dependencies": {
-    "@mapbox/mvt-fixtures": "^3.3.1",
-    "@mapbox/vtinfo": "^0.1.2",
     "mason-js-sdk": "~0.1.4",
     "nan": "~2.10.0",
     "node-pre-gyp": "~0.6.32"
@@ -27,6 +25,8 @@
     "node-pre-gyp"
   ],
   "devDependencies": {
+    "@mapbox/mvt-fixtures": "^3.3.1",
+    "@mapbox/vtinfo": "^0.1.2",
     "aws-sdk": "^2.4.7",
     "bytes": "^2.4.0",
     "d3-queue": "^3.0.1",
