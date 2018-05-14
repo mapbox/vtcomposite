@@ -3,8 +3,25 @@ var module = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
 var zlib = require('zlib');
-var vtinfo = require('@mapbox/vtinfo');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
+var vt = require('@mapbox/vector-tile').VectorTile;
+var pbf = require('pbf');
+
+function vtinfo(buffer) {
+  var tile = new vt(new pbf(buffer));
+  var info = {
+    layers : []
+  };
+  Object.keys(tile.layers).forEach(function(k) {
+    var lay = tile.layers[k];
+    info.layers.push({
+      name:k,
+      features:lay.length
+    })
+  });
+  return info;
+}
+
 
 var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
