@@ -37,6 +37,33 @@ test('[composite] success: compositing single gzipped VT', function(assert) {
 });
 
 
+test('[composite] success: overzooming single VT', function(assert) {
+  const tiles = [
+    {buffer: bufferSF, z:15, x:5238, y:12666}
+  ];
+
+  // target
+  const zxy = {z:16, x:(5238 << 1) + 1, y:12666 << 1}; // valid over-zoom request
+  vtcomposite.composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.end();
+  });
+});
+
+test('[composite] fail: overzooming single VT', function(assert) {
+  const tiles = [
+    {buffer: bufferSF, z:15, x:5238, y:12666}
+  ];
+
+  // target
+  const zxy = {z:16, x:(5238 << 1) + 2, y:12666 << 1}; // invalid over-zoom request
+  vtcomposite.composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.end();
+  });
+});
+
+
 // vtzero has class vector tile - accepts a pointer to a buffer and the actual length of it.
 
 test('failure: fails without callback function', assert => {
