@@ -1,8 +1,9 @@
 #pragma once
-
-#include <cmath>
+// geometry
 #include <mapbox/geometry/box.hpp>
 #include <mapbox/geometry/point.hpp>
+// stl
+#include <cmath>
 #include <ostream>
 
 namespace vtile {
