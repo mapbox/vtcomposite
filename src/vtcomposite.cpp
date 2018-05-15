@@ -115,25 +115,25 @@ struct CompositeWorker : Nan::AsyncWorker
                             names.push_back(name);
                             vtzero::layer_builder layer_builder{builder, layer};
                             layer.for_each_feature([&layer_builder, zoom_factor](vtzero::feature const& feature) {
-                                    vtzero::geometry_feature_builder feature_builder{layer_builder};
-                                    if (feature.has_id()) feature_builder.set_id(feature.id());
-                                    if (zoom_factor == 1) // no-zoom
-                                    {
-                                        feature_builder.set_geometry(feature.geometry());
-                                    }
-                                    else
-                                    {
-                                        //FIXME: implement over-zooming
-                                        feature_builder.set_geometry(feature.geometry());
-                                    }
+                                vtzero::geometry_feature_builder feature_builder{layer_builder};
+                                if (feature.has_id()) feature_builder.set_id(feature.id());
+                                if (zoom_factor == 1) // no-zoom
+                                {
+                                    feature_builder.set_geometry(feature.geometry());
+                                }
+                                else
+                                {
+                                    //FIXME: implement over-zooming
+                                    feature_builder.set_geometry(feature.geometry());
+                                }
 
-                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
-                                            feature_builder.add_property(p);
-                                            return true;
-                                        });
-                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
+                                feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                    feature_builder.add_property(p);
                                     return true;
                                 });
+                                feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
+                                return true;
+                            });
                         }
                     }
                 }
