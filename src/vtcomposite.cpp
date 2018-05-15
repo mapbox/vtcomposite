@@ -1,12 +1,22 @@
+// vtcomposite
 #include "vtcomposite.hpp"
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
-#include <algorithm>
+#include "extract_geometry.hpp"
+#include "zoom_coordinates.hpp"
+// gzip-hpp
 #include <gzip/decompress.hpp>
 #include <gzip/utils.hpp>
-#include <mapbox/geometry/geometry.hpp>
+// vtzero
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
+// geometry.hpp
+#include <mapbox/geometry/geometry.hpp>
+#include <mapbox/geometry/box.hpp>
+#include <mapbox/geometry/algorithms/intersection.hpp>
+#include <mapbox/geometry/algorithms/detail/boost_adapters.hpp>
+// stl
+#include <algorithm>
 
 namespace vtile {
 
@@ -105,7 +115,7 @@ struct CompositeWorker : Nan::AsyncWorker
                     }
 
                     std::cout << "[buffer size] cpp pre vtzero: " << tile_view.size() << std::endl;
-                    unsigned zoom_factor = 1 << (target_z - tile_obj->z);
+                    int zoom_factor = 1 << (target_z - tile_obj->z);
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
@@ -124,6 +134,12 @@ struct CompositeWorker : Nan::AsyncWorker
                                 else
                                 {
                                     //FIXME: implement over-zooming
+                                    auto geom = vtile::extract_geometry<int>(feature);
+                                    // zoom
+                                    mapbox::geometry::for_each_point(geom, vtile::detail::zoom_coordinates<mapbox::geometry::point<int>>(zoom_factor));
+                                    // clip
+                                    //mapbox::geometry::box<int> b{{0,0},{2048,2048}};
+                                    //auto result = mapbox::geometry::algorithms::intersection(b, geom);
                                     feature_builder.set_geometry(feature.geometry());
                                 }
 
