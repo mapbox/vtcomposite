@@ -88,9 +88,10 @@ struct CompositeWorker : Nan::AsyncWorker
             std::uint32_t const target_z = baton_data_->z;
             std::uint32_t const target_x = baton_data_->x;
             std::uint32_t const target_y = baton_data_->y;
+
             for (auto const& tile_obj : baton_data_->tiles)
             {
-                if (vtile::same_zxy(*tile_obj, target_z, target_x, target_y))
+                if (vtile::within_target(*tile_obj, target_z, target_x, target_y))
                 {
                     std::vector<char> buffer;
                     if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
@@ -104,6 +105,7 @@ struct CompositeWorker : Nan::AsyncWorker
                     }
 
                     std::cout << "[buffer size] cpp pre vtzero: " << tile_view.size() << std::endl;
+                    unsigned zoom_factor = 1 << (target_z - tile_obj->z);
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
@@ -111,33 +113,29 @@ struct CompositeWorker : Nan::AsyncWorker
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
-                            vtzero::layer_builder lb{builder, layer};
-                            layer.for_each_feature([lb](vtzero::feature const& feature) {
-                                vtzero::geometry_feature_builder feature_builder{lb};
-                                if (feature.has_id())
-                                {
-                                    feature_builder.set_id(feature.id());
-                                }
-                                feature_builder.set_geometry(feature.geometry());
-                                feature.for_each_property([&feature_builder](vtzero::property const& p) {
-                                    feature_builder.add_property(p);
+                            vtzero::layer_builder layer_builder{builder, layer};
+                            layer.for_each_feature([&layer_builder, zoom_factor](vtzero::feature const& feature) {
+                                    vtzero::geometry_feature_builder feature_builder{layer_builder};
+                                    if (feature.has_id()) feature_builder.set_id(feature.id());
+                                    if (zoom_factor == 1) // no-zoom
+                                    {
+                                        feature_builder.set_geometry(feature.geometry());
+                                    }
+                                    else
+                                    {
+                                        //FIXME: implement over-zooming
+                                        feature_builder.set_geometry(feature.geometry());
+                                    }
+
+                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                            feature_builder.add_property(p);
+                                            return true;
+                                        });
+                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
                                     return true;
                                 });
-                                feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
-                                return true;
-                            });
                         }
                     }
-                }
-                else if (vtile::within_target(*tile_obj, target_z, target_x, target_y))
-                {
-                    // over-zoom
-                    std::cerr << "TARGET:" << target_z << ":" << target_x << ":" << target_y << std::endl;
-                    auto source_extent = vtile::mercator_extent(tile_obj->z, tile_obj->x, tile_obj->y);
-                    auto target_extent = vtile::mercator_extent(target_z, target_x, target_y);
-                    std::cerr << "SOURCE EXT:" << source_extent << std::endl;
-                    std::cerr << "TARGET EXT:" << target_extent << std::endl;
-                    std::cerr << "FIXME:implement over-zooming" << std::endl;
                 }
                 else
                 {
