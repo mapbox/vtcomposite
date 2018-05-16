@@ -9,18 +9,22 @@
 #include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
 
+BOOST_GEOMETRY_REGISTER_POINT_2D (mapbox::geometry::point<std::int32_t>, std::int32_t, boost::geometry::cs::cartesian, x, y)
+
 namespace vtile {
 
+template <typename CoordinateType>
 struct feature_builder
 {
+    using coordinate_type = CoordinateType;
     feature_builder(vtzero::layer_builder& layer_builder,
-                     mapbox::geometry::box<std::int64_t> const& bbox,
+                     mapbox::geometry::box<coordinate_type> const& bbox,
                      vtzero::feature const& feature)
         : layer_builder_{layer_builder},
           bbox_{bbox},
           feature_{feature} {}
 
-    void operator() (mapbox::geometry::point<std::int64_t> const& pt)
+    void operator() (mapbox::geometry::point<coordinate_type> const& pt)
     {
         vtzero::point_feature_builder feature_builder{layer_builder_};
         if (feature_.has_id()) feature_builder.set_id(feature_.id());
@@ -28,7 +32,8 @@ struct feature_builder
         if (boost::geometry::intersects(pt, bbox_))
         {
             empty = false;
-            feature_builder.add_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+            feature_builder.add_point(static_cast<int>(pt.x),
+                                      static_cast<int>(pt.y));
         }
         if (!empty)
         {
@@ -45,9 +50,9 @@ struct feature_builder
         }
     }
 
-    void operator() (mapbox::geometry::multi_point<std::int64_t> const& mpt)
+    void operator() (mapbox::geometry::multi_point<coordinate_type> const& mpt)
     {
-        std::vector<mapbox::geometry::point<std::int64_t>> result;
+        std::vector<mapbox::geometry::point<coordinate_type>> result;
         vtzero::point_feature_builder feature_builder{layer_builder_};
         if (feature_.has_id()) feature_builder.set_id(feature_.id());
         bool empty = true;
@@ -56,7 +61,8 @@ struct feature_builder
             if (boost::geometry::intersects(pt, bbox_))
             {
                 empty = false;
-                feature_builder.add_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                feature_builder.add_point(static_cast<int>(pt.x),
+                                          static_cast<int>(pt.y));
             }
         }
 
@@ -75,9 +81,9 @@ struct feature_builder
         }
     }
 
-    void operator() (mapbox::geometry::line_string<std::int64_t> const& line)
+    void operator() (mapbox::geometry::line_string<coordinate_type> const& line)
     {
-        std::vector<mapbox::geometry::line_string<std::int64_t>> result;
+        std::vector<mapbox::geometry::line_string<coordinate_type>> result;
         boost::geometry::intersection(line, bbox_, result);
         if (!result.empty())
         {
@@ -88,7 +94,8 @@ struct feature_builder
                 feature_builder.add_linestring(static_cast<unsigned>(l.size()));
                 for (auto const& pt : l)
                 {
-                    feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                    feature_builder.set_point(static_cast<int>(pt.x),
+                                              static_cast<int>(pt.y));
                 }
             }
             // add properties
@@ -100,9 +107,9 @@ struct feature_builder
         }
     }
 
-    void operator() (mapbox::geometry::multi_line_string<std::int64_t> const& line)
+    void operator() (mapbox::geometry::multi_line_string<coordinate_type> const& line)
     {
-        std::vector<mapbox::geometry::line_string<std::int64_t>> result;
+        std::vector<mapbox::geometry::line_string<coordinate_type>> result;
         boost::geometry::intersection(line, bbox_, result);
         if (!result.empty())
         {
@@ -124,9 +131,9 @@ struct feature_builder
             feature_builder.commit();
         }
     }
-    void operator() (mapbox::geometry::polygon<std::int64_t> const& poly)
+    void operator() (mapbox::geometry::polygon<coordinate_type> const& poly)
     {
-        std::vector<mapbox::geometry::polygon<std::int64_t>> result;
+        std::vector<mapbox::geometry::polygon<coordinate_type>> result;
         boost::geometry::intersection(poly, bbox_, result);
         //for_each(result.begin(), result.end(), [](auto const& p) {
         //        std::cerr << boost::geometry::wkt(p) << std::endl;
@@ -155,10 +162,10 @@ struct feature_builder
         }
     }
 
-    void operator() (mapbox::geometry::multi_polygon<std::int64_t> const& mpoly)
+    void operator() (mapbox::geometry::multi_polygon<coordinate_type> const& mpoly)
     {
 
-        std::vector<mapbox::geometry::polygon<std::int64_t>> result;
+        std::vector<mapbox::geometry::polygon<coordinate_type>> result;
         boost::geometry::intersection(mpoly, bbox_, result);
         if (!result.empty())
         {
@@ -191,7 +198,7 @@ struct feature_builder
     }
 
     vtzero::layer_builder & layer_builder_;
-    mapbox::geometry::box<std::int64_t> const& bbox_;
+    mapbox::geometry::box<coordinate_type> const& bbox_;
     vtzero::feature const& feature_;
 
 

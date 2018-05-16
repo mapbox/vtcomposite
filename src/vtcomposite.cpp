@@ -139,14 +139,14 @@ struct CompositeWorker : Nan::AsyncWorker
                                 else
                                 {
                                     //FIXME: implement over-zooming
-                                    auto geom = vtile::extract_geometry<std::int64_t>(feature);
+                                    auto geom = vtile::extract_geometry<std::int32_t>(feature);
                                     // zoom
                                     mapbox::geometry::for_each_point
                                         (geom,
-                                         vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int64_t>>(zoom_factor));
+                                         vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor));
                                     // clip bbox (FIXME)
-                                    mapbox::geometry::box<std::int64_t> bbox{{0,0},{4096,4096}};
-                                    mapbox::util::apply_visitor(vtile::feature_builder{layer_builder, bbox, feature}, geom);
+                                    mapbox::geometry::box<std::int32_t> bbox{{0,0},{4096,4096}};
+                                    mapbox::util::apply_visitor(vtile::feature_builder<std::int32_t>{layer_builder, bbox, feature}, geom);
                                 }
 
                                 return true;
