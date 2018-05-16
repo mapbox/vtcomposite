@@ -26,7 +26,7 @@
     "node-pre-gyp"
   ],
   "devDependencies": {
-    "@mapbox/mvt-fixtures": "^3.3.1",
+    "@mapbox/mvt-fixtures": "^3.4.0",
     "@mapbox/vector-tile": "^1.3.1",
     "@mapbox/vtinfo": "^0.1.2",
     "aws-sdk": "^2.4.7",
