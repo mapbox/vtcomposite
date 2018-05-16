@@ -7,7 +7,8 @@
 //#include <mapbox/geometry/algorithms/detail/boost_adapters.hpp>
 //#include <boost/geometry/algorithms/for_each.hpp>
 
-namespace vtile { namespace detail {
+namespace vtile {
+namespace detail {
 
 template <typename Point>
 struct zoom_coordinates
@@ -16,13 +17,13 @@ struct zoom_coordinates
     explicit zoom_coordinates(coordinate_type factor)
         : factor_(factor) {}
 
-    inline void operator()(Point & p) const
+    inline void operator()(Point& p) const
     {
         p.x *= factor_;
         p.y *= factor_;
     }
     coordinate_type factor_;
 };
-}
+} // namespace detail
 
-}
+} // namespace vtile

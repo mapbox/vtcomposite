@@ -3,7 +3,8 @@
 #include <mapbox/geometry.hpp>
 #include <vtzero/vector_tile.hpp>
 
-namespace vtile { namespace detail {
+namespace vtile {
+namespace detail {
 
 template <typename CoordinateType>
 struct point_geometry_handler

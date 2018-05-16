@@ -157,7 +157,7 @@ struct CompositeWorker : Nan::AsyncWorker
                     std::cerr << "Invalid tile composite request" << std::endl;
                 }
             }
-            std::string & tile_buffer = *output_buffer_.get();
+            std::string& tile_buffer = *output_buffer_.get();
             builder.serialize(tile_buffer);
         }
         catch (std::exception const& e)
@@ -168,18 +168,18 @@ struct CompositeWorker : Nan::AsyncWorker
 
     void HandleOKCallback() override
     {
-        std::string & tile_buffer = *output_buffer_.get();
+        std::string& tile_buffer = *output_buffer_.get();
         Nan::HandleScope scope;
         const auto argc = 2u;
         v8::Local<v8::Value> argv[argc] = {
             Nan::Null(),
             Nan::NewBuffer(&tile_buffer[0],
                            static_cast<std::uint32_t>(tile_buffer.size()),
-                           [](char *, void * hint) {
-                              delete reinterpret_cast<std::string*>(hint);
+                           [](char*, void* hint) {
+                               delete reinterpret_cast<std::string*>(hint);
                            },
-                           output_buffer_.release()
-                          ).ToLocalChecked()};
+                           output_buffer_.release())
+                .ToLocalChecked()};
 
         // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
         callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv), async_resource);
