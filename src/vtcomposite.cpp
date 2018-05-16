@@ -4,6 +4,7 @@
 #include "zxy_math.hpp"
 #include "extract_geometry.hpp"
 #include "zoom_coordinates.hpp"
+#include "feature_builder.hpp"
 // gzip-hpp
 #include <gzip/decompress.hpp>
 #include <gzip/utils.hpp>
@@ -13,8 +14,6 @@
 // geometry.hpp
 #include <mapbox/geometry/geometry.hpp>
 #include <mapbox/geometry/box.hpp>
-#include <mapbox/geometry/algorithms/intersection.hpp>
-#include <mapbox/geometry/algorithms/detail/boost_adapters.hpp>
 // stl
 #include <algorithm>
 
@@ -124,29 +123,28 @@ struct CompositeWorker : Nan::AsyncWorker
                             names.push_back(name);
                             vtzero::layer_builder layer_builder{builder, layer};
                             layer.for_each_feature([&layer_builder, zoom_factor](vtzero::feature const& feature) {
-                                vtzero::geometry_feature_builder feature_builder{layer_builder};
-                                if (feature.has_id()) feature_builder.set_id(feature.id());
                                 if (zoom_factor == 1) // no-zoom
                                 {
+                                    vtzero::geometry_feature_builder feature_builder{layer_builder};
+                                    if (feature.has_id()) feature_builder.set_id(feature.id());
                                     feature_builder.set_geometry(feature.geometry());
+                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                            feature_builder.add_property(p);
+                                            return true;
+                                        });
+                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
                                 }
                                 else
                                 {
-                                    //FIXME: implement over-zooming
-                                    auto geom = vtile::extract_geometry<int>(feature);
+                                    auto geom = vtile::extract_geometry<std::int32_t>(feature);
                                     // zoom
-                                    mapbox::geometry::for_each_point(geom, vtile::detail::zoom_coordinates<mapbox::geometry::point<int>>(zoom_factor));
-                                    // clip
-                                    //mapbox::geometry::box<int> b{{0,0},{2048,2048}};
-                                    //auto result = mapbox::geometry::algorithms::intersection(b, geom);
-                                    feature_builder.set_geometry(feature.geometry());
+                                    mapbox::geometry::for_each_point
+                                        (geom,
+                                         vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor));
+                                    // clip bbox (TODO: calculate bbox displacement based on target z,x,y)
+                                    mapbox::geometry::box<std::int32_t> bbox{{0, 0}, {4096, 4096}};
+                                    mapbox::util::apply_visitor(vtile::feature_builder<std::int32_t>{layer_builder, bbox, feature}, geom);
                                 }
-
-                                feature.for_each_property([&feature_builder](vtzero::property const& p) {
-                                    feature_builder.add_property(p);
-                                    return true;
-                                });
-                                feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
                                 return true;
                             });
                         }
