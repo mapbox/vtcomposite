@@ -9,19 +9,8 @@ var pbf = require('pbf');
 
 function vtinfo(buffer) {
   var tile = new vt(new pbf(buffer));
-  var info = {
-    layers : []
-  };
-  Object.keys(tile.layers).forEach(function(k) {
-    var lay = tile.layers[k];
-    info.layers.push({
-      name:k,
-      features:lay.length
-    })
-  });
-  return info;
+  return tile;
 }
-
 
 var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
@@ -40,10 +29,10 @@ test('[composite] success: buffer size stays the same when no compositing needed
 });
 
 test('[composite] success compositing - same layer name, same features, same zoom', function(assert) {
-  const singlePointBuffer = mvtFixtures.get('017').buffer; 
+  const singlePointBuffer = mvtFixtures.get('017').buffer;
 
   const tiles = [
-    {buffer: singlePointBuffer, z:15, x:5238, y:12666}, 
+    {buffer: singlePointBuffer, z:15, x:5238, y:12666},
     {buffer: singlePointBuffer, z:15, x:5238, y:12666}
   ];
 
@@ -54,21 +43,21 @@ test('[composite] success compositing - same layer name, same features, same zoo
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
 
-    assert.equal(outputInfo.layers[0].name, 'hello');
-    assert.equal(outputInfo.layers.length, 1);
-    assert.equal(outputInfo.layers[0].features, 1);
+    assert.ok(outputInfo.layers.hello, 'hello', 'expected layer name');
+    assert.equal(Object.keys(outputInfo.layers).length, 1, 'expected number of layers');
+    assert.equal(outputInfo.layers.hello.length, 1, 'expected number of features');
     assert.notOk(err);
     assert.end();
   });
 });
 
 test('[composite] success compositing - same layer name, different features, same zoom', function(assert) {
-  const singlePointBuffer = mvtFixtures.get('017').buffer; 
-  const singleLineStringBuffer = mvtFixtures.get('018').buffer; 
+  const buffer1 = mvtFixtures.get('059').buffer; // mud lake
+  const buffer2 = mvtFixtures.get('060').buffer; // crater lake
 
   const tiles = [
-    {buffer: singleLineStringBuffer, z:15, x:5238, y:12666},
-    {buffer: singlePointBuffer, z:15, x:5238, y:12666}
+    {buffer: buffer1, z:15, x:5238, y:12666}, // this layer wins
+    {buffer: buffer2, z:15, x:5238, y:12666}
   ];
 
   const zxy = {z:15, x:5238, y:12666};
@@ -76,18 +65,18 @@ test('[composite] success compositing - same layer name, different features, sam
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
 
-    assert.equal(outputInfo.layers[0].name, 'hello', 'returns layer hello');
-    assert.equal(outputInfo.layers.length, 1, 'return 1 layers');
-    assert.equal(outputInfo.layers[0].features, 1, 'returns 1 feature');
-    assert.equal(outputInfo.layers[0].line_features, 1, 'keeps feature from first layer');
+    assert.ok(outputInfo.layers.water, 'returns layer water');
+    assert.equal(Object.keys(outputInfo.layers).length, 1, 'return 1 layers');
+    assert.equal(outputInfo.layers.water.length, 1, 'only has one feature');
+    assert.equal(outputInfo.layers.water.feature(0).properties.name, 'mud lake', 'expected feature');
     assert.notOk(err);
     assert.end();
   });
 });
 
 test('[composite] success compositing - different layer name, different features, same zoom', function(assert) {
-  const buffer1 = mvtFixtures.get('017').buffer; 
-  const buffer2 = mvtFixtures.get('053').buffer; 
+  const buffer1 = mvtFixtures.get('017').buffer;
+  const buffer2 = mvtFixtures.get('053').buffer;
 
   const tiles = [
     {buffer: buffer1, z:15, x:5238, y:12666},
@@ -99,9 +88,9 @@ test('[composite] success compositing - different layer name, different features
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
 
-    assert.equal(outputInfo.layers[0].name, 'hello', 'returns layer hello');
-    assert.equal(outputInfo.layers[1].name, 'clipped-square', 'returns layer hello');
-    assert.equal(outputInfo.layers.length, 2, 'return 2 layers');
+    assert.ok(outputInfo.layers.hello, 'expected layer name');
+    assert.ok(outputInfo.layers['clipped-square'], 'expected layer name');
+    assert.equal(Object.keys(outputInfo.layers).length, 2, 'expected number of layers');
     assert.notOk(err);
     assert.end();
   });
@@ -123,12 +112,12 @@ test('[composite] success: compositing single gzipped VT', function(assert) {
   });
 });
 
-// TEST - check vt is within target 
+// TEST - check vt is within target
 
 test('[composite] failure? discards layer that is not within target', function(assert) {
   // TBD whether it's a failure or silently discards the tile that isn't in the target
-  const buffer1 = mvtFixtures.get('017').buffer; 
-  const buffer2 = mvtFixtures.get('053').buffer; 
+  const buffer1 = mvtFixtures.get('017').buffer;
+  const buffer2 = mvtFixtures.get('053').buffer;
 
   const tiles = [
     {buffer: buffer1, z:15, x:5238, y:12666},
@@ -139,8 +128,8 @@ test('[composite] failure? discards layer that is not within target', function(a
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const info = vtinfo(vtBuffer)
-    assert.equal(info.layers.length, 1, 'discards layer that is not within target');
-    assert.equal(info.layers[0].name, 'hello', 'layer within target created into output buffer');
+    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
+    assert.ok(info.layers.hello, 'layer within target created into output buffer');
     assert.notOk(err);
     assert.end();
   });
@@ -148,20 +137,20 @@ test('[composite] failure? discards layer that is not within target', function(a
 
 test('[composite] failure? tile does not intersect target zoom level ', function(assert) {
   // TBD whether it's a failure or silently discards the tile that isn't in the target
-  const buffer1 = mvtFixtures.get('017').buffer; 
-  const buffer2 = mvtFixtures.get('053').buffer; 
+  const buffer1 = mvtFixtures.get('017').buffer;
+  const buffer2 = mvtFixtures.get('053').buffer;
 
   const tiles = [
     {buffer: buffer1, z:7, x:19, y:44},
-    {buffer: buffer2, z:6, x:10, y:22} //this tile does not intersect target zoom level 
+    {buffer: buffer2, z:6, x:10, y:22} //this tile does not intersect target zoom level
   ];
 
   const zxy = {z:7, x:19, y:44};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const info = vtinfo(vtBuffer)
-    assert.equal(info.layers.length, 1, 'discards layer that is not within target');
-    assert.equal(info.layers[0].name, 'hello', 'layer within target created into output buffer');
+    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
+    assert.ok(info.layers.hello, 'layer within target created into output buffer');
     assert.notOk(err);
     assert.end();
   });
@@ -169,20 +158,20 @@ test('[composite] failure? tile does not intersect target zoom level ', function
 
 test('[composite] failure? tile with zoom level higher than requested zoom is discarded', function(assert) {
   // TBD whether it's a failure or silently discards the tile that isn't in the target
-  const buffer1 = mvtFixtures.get('017').buffer; 
-  const buffer2 = mvtFixtures.get('053').buffer; 
+  const buffer1 = mvtFixtures.get('017').buffer;
+  const buffer2 = mvtFixtures.get('053').buffer;
 
   const tiles = [
-    {buffer: buffer2, z:7, x:10, y:22}, 
-    {buffer: buffer2, z:6, x:10, y:22} 
+    {buffer: buffer2, z:7, x:10, y:22},
+    {buffer: buffer2, z:6, x:10, y:22}
   ];
 
   const zxy = {z:6, x:10, y:22};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const info = vtinfo(vtBuffer)
-    assert.equal(info.layers.length, 1, 'discards layer that is not within target');
-    assert.equal(info.layers[0].name, 'clipped-square', 'layer within target created into output buffer');
+    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
+    assert.ok(info.layers['clipped-square'], 'layer within target created into output buffer');
     assert.notOk(err);
     assert.end();
   });
@@ -192,7 +181,7 @@ test('[composite] failure? tile with zoom level higher than requested zoom is di
 
 test('failure: fails without callback function', assert => {
   try {
-    
+
 composite();
   } catch(err) {
     assert.ok(/last argument must be a callback function/.test(err.message), 'expected error message');
