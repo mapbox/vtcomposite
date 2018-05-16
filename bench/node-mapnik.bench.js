@@ -3,7 +3,7 @@
 var argv = require('minimist')(process.argv.slice(2));
 if (!argv.iterations || !argv.concurrency) {
   console.error('Please provide desired iterations, concurrency');
-  console.error('Example: \n\tnode bench/hello_async.bench.js --iterations 50 --concurrency 10');
+  console.error('Example: \n\tnode bench/node-mapnik.bench.js --iterations 50 --concurrency 10');
   console.error('Optional args: \n\t--mem (reports memory stats)');
   process.exit(1);
 }
@@ -21,6 +21,9 @@ var assert = require('assert')
 var d3_queue = require('d3-queue');
 var module = require('../lib/index.js');
 var queue = d3_queue.queue();
+var mapnik = require('mapnik');
+var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
+var bufferNepal = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/nepal/13-6036-3426.mvt'));
 
 var track_mem = argv.mem ? true : false; 
 var runs = 0;
@@ -31,7 +34,13 @@ var memstats = {
 };
 
 function run(cb) {
-  module.helloAsync({ louder: false }, function(err, result) {
+  var vt1 = new mapnik.VectorTile(15,5238,12666);
+  vt1.addDataSync(bufferSF);
+  var vt2 = new mapnik.VectorTile(15,5238,12666);
+  vt2.addDataSync(bufferNepal);
+
+  // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
+  vt1.composite([vt2], {}, function(err, result) {
       if (err) {
         return cb(err);
       }

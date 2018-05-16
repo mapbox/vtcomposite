@@ -83,7 +83,7 @@ struct CompositeWorker : Nan::AsyncWorker
     CompositeWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
         : Base{cb},
           baton_data_{std::move(baton_data)},
-          output_buffer_{} {}
+          output_buffer_{std::make_unique<std::string>()} {}
 
     void Execute() override
     {
@@ -113,7 +113,6 @@ struct CompositeWorker : Nan::AsyncWorker
                         tile_view = tile_obj->data;
                     }
 
-                    std::cout << "[buffer size] cpp pre vtzero: " << tile_view.size() << std::endl;
                     int zoom_factor = 1 << (target_z - tile_obj->z);
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
@@ -156,8 +155,8 @@ struct CompositeWorker : Nan::AsyncWorker
                     std::cerr << "Invalid tile composite request" << std::endl;
                 }
             }
-            builder.serialize(output_buffer_);
-            std::cerr << "[buffer size] cpp output:" << output_buffer_.size() << std::endl;
+            std::string& tile_buffer = *output_buffer_.get();
+            builder.serialize(tile_buffer);
         }
         catch (std::exception const& e)
         {
@@ -167,18 +166,25 @@ struct CompositeWorker : Nan::AsyncWorker
 
     void HandleOKCallback() override
     {
+        std::string& tile_buffer = *output_buffer_.get();
         Nan::HandleScope scope;
         const auto argc = 2u;
         v8::Local<v8::Value> argv[argc] = {
             Nan::Null(),
-            Nan::NewBuffer(&output_buffer_[0], static_cast<std::uint32_t>(output_buffer_.size())).ToLocalChecked()};
+            Nan::NewBuffer(&tile_buffer[0],
+                           static_cast<std::uint32_t>(tile_buffer.size()),
+                           [](char*, void* hint) {
+                               delete reinterpret_cast<std::string*>(hint);
+                           },
+                           output_buffer_.release())
+                .ToLocalChecked()};
 
         // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
         callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv), async_resource);
     }
 
     std::unique_ptr<BatonType> const baton_data_;
-    std::string output_buffer_;
+    std::unique_ptr<std::string> output_buffer_;
 };
 
 NAN_METHOD(composite)
