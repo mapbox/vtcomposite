@@ -14,7 +14,6 @@
 // geometry.hpp
 #include <mapbox/geometry/geometry.hpp>
 #include <mapbox/geometry/box.hpp>
-//#include <mapbox/geometry/algorithms/detail/boost_adapters.hpp>
 // stl
 #include <algorithm>
 
@@ -138,17 +137,15 @@ struct CompositeWorker : Nan::AsyncWorker
                                 }
                                 else
                                 {
-                                    //FIXME: implement over-zooming
                                     auto geom = vtile::extract_geometry<std::int32_t>(feature);
                                     // zoom
                                     mapbox::geometry::for_each_point
                                         (geom,
                                          vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor));
-                                    // clip bbox (FIXME)
-                                    mapbox::geometry::box<std::int32_t> bbox{{0,0},{4096,4096}};
+                                    // clip bbox (TODO: calculate bbox displacement based on target z,x,y)
+                                    mapbox::geometry::box<std::int32_t> bbox{{0, 0}, {4096, 4096}};
                                     mapbox::util::apply_visitor(vtile::feature_builder<std::int32_t>{layer_builder, bbox, feature}, geom);
                                 }
-
                                 return true;
                             });
                         }
