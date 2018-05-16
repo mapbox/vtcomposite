@@ -16,10 +16,10 @@ process.env.UV_THREADPOOL_SIZE = argv.concurrency;
 
 var fs = require('fs');
 var path = require('path');
-var bytes = require('bytes');  
+var bytes = require('bytes');
 var assert = require('assert')
 var d3_queue = require('d3-queue');
-var module = require('../lib/index.js');
+var composite = require('../lib/index.js');
 var queue = d3_queue.queue();
 var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 var bufferNepal = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/nepal/13-6036-3426.mvt'));
@@ -31,7 +31,7 @@ var tiles = [
 
 var zxy = {z:15, x:5238, y:12666};
 
-var track_mem = argv.mem ? true : false; 
+var track_mem = argv.mem ? true : false;
 var runs = 0;
 var memstats = {
   max_rss:0,
@@ -41,7 +41,7 @@ var memstats = {
 
 function run(cb) {
   // running our module
-  module.composite(tiles, zxy, {}, function(err, result) {
+  composite(tiles, zxy, {}, function(err, result) {
       if (err) {
         return cb(err);
       }
@@ -57,7 +57,7 @@ function run(cb) {
 }
 
 // Start monitoring time before async work begins within the defer iterator below.
-// AsyncWorkers will kick off actual work before the defer iterator is finished, 
+// AsyncWorkers will kick off actual work before the defer iterator is finished,
 // and we want to make sure we capture the time of the work of that initial cycle.
 var time = +(new Date());
 
@@ -79,7 +79,7 @@ queue.awaitAll(function(error) {
   // number of milliseconds per iteration
     var rate = runs/(time/1000);
     console.log('Benchmark speed: ' + rate.toFixed(0) + ' runs/s (runs:' + runs + ' ms:' + time + ' )');
-  
+
     if (track_mem) {
       console.log('Benchmark peak mem (max_rss, max_heap, max_heap_total): ', bytes(memstats.max_rss), bytes(memstats.max_heap), bytes(memstats.max_heap_total));
     } else {
