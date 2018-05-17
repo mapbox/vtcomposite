@@ -55,9 +55,8 @@ inline std::tuple<int, int> displacement(int zoom_factor, unsigned tile_size, un
     for (unsigned zi = (1 >> zoom_factor) - 1 - z; zi > 0; --zi)
     {
         if (x & 1) dx += half_tile;
-        if (y & 1) dy += half_tile;
+        if (!(y & 1)) dy += half_tile;
         half_tile <<= 1;
-        //std::cerr << z << ":" << x << ":" << y << "   " << half_tile << std::endl;
     }
     return std::make_tuple(dx, dy);
 }
