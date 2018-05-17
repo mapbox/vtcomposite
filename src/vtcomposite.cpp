@@ -101,7 +101,7 @@ struct CompositeWorker : Nan::AsyncWorker
                 if (vtile::within_target(*tile_obj, target_z, target_x, target_y))
                 {
                     std::vector<char> buffer;
-		    vtzero::data_view tile_view{};
+                    vtzero::data_view tile_view{};
 
                     if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
@@ -122,20 +122,20 @@ struct CompositeWorker : Nan::AsyncWorker
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
-			    if (zoom_factor == 1)
-			    {
-				vtzero::layer_builder layer_builder{builder, layer};
-				layer.for_each_feature([&](vtzero::feature const& feature) {
-				    vtzero::geometry_feature_builder feature_builder{layer_builder};
-				    if (feature.has_id()) feature_builder.set_id(feature.id());
-				    feature_builder.set_geometry(feature.geometry());
-				    feature.for_each_property([&feature_builder](vtzero::property const& p) {
-					    feature_builder.add_property(p);
-					    return true;
-					});
-				    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
-				    return true;
-				});
+                            if (zoom_factor == 1)
+                            {
+                                vtzero::layer_builder layer_builder{builder, layer};
+                                layer.for_each_feature([&](vtzero::feature const& feature) {
+                                    vtzero::geometry_feature_builder feature_builder{layer_builder};
+                                    if (feature.has_id()) feature_builder.set_id(feature.id());
+                                    feature_builder.set_geometry(feature.geometry());
+                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                            feature_builder.add_property(p);
+                                            return true;
+                                        });
+                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
+                                    return true;
+                                });
                             }
                             else
                             {
@@ -181,7 +181,7 @@ struct CompositeWorker : Nan::AsyncWorker
             Nan::NewBuffer(&tile_buffer[0],
                            static_cast<std::uint32_t>(tile_buffer.size()),
                            [](char*, void* hint) {
-                                delete reinterpret_cast<std::string*>(hint);
+                               delete reinterpret_cast<std::string*>(hint);
                            },
                            output_buffer_.release())
                 .ToLocalChecked()};
