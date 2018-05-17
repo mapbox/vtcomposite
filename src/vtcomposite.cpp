@@ -130,9 +130,9 @@ struct CompositeWorker : Nan::AsyncWorker
                                     if (feature.has_id()) feature_builder.set_id(feature.id());
                                     feature_builder.set_geometry(feature.geometry());
                                     feature.for_each_property([&feature_builder](vtzero::property const& p) {
-                                            feature_builder.add_property(p);
-                                            return true;
-                                        });
+                                        feature_builder.add_property(p);
+                                        return true;
+                                    });
                                     feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
                                     return true;
                                 });
