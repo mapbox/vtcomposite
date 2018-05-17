@@ -130,13 +130,14 @@ struct CompositeWorker : Nan::AsyncWorker
                                 vtzero::layer_builder layer_builder{builder, layer};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
                                     auto geom = vtile::extract_geometry<std::int32_t>(feature);
-                                    // scale by zoom_factor
-                                    mapbox::geometry::for_each_point(geom,
-                                                                     vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor));
                                     int const tile_size = 4096u;
                                     int dx, dy;
-                                    std::tie(dx, dy) = vtile::displacement(zoom_factor, tile_size, target_z, target_x, target_y);
-                                    mapbox::geometry::box<std::int32_t> bbox{{dx, dy}, {dx + tile_size, dy + tile_size}};
+                                    std::tie(dx, dy) = vtile::displacement(tile_obj->z, tile_size, target_z, target_x, target_y);
+                                    std::cerr << dx << ":" << dy << std::endl;
+                                    // scale by zoom_factor and apply displacement
+                                    mapbox::geometry::for_each_point(geom,
+                                                                     vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor, dx, dy));
+                                    mapbox::geometry::box<std::int32_t> bbox{{0, 0}, {tile_size, tile_size}};
                                     mapbox::util::apply_visitor(vtile::feature_builder_visitor<std::int32_t>{layer_builder, bbox, feature}, geom);
                                     return true;
                                 });
