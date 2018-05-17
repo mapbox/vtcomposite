@@ -122,7 +122,7 @@ struct CompositeWorker : Nan::AsyncWorker
                         {
                             names.push_back(name);
                             vtzero::layer_builder layer_builder{builder, layer};
-                            layer.for_each_feature([&layer_builder, zoom_factor](vtzero::feature const& feature) {
+                            layer.for_each_feature([&](vtzero::feature const& feature) {
                                 if (zoom_factor == 1) // no-zoom
                                 {
                                     vtzero::geometry_feature_builder feature_builder{layer_builder};
@@ -142,7 +142,11 @@ struct CompositeWorker : Nan::AsyncWorker
                                         (geom,
                                          vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor));
                                     // clip bbox (TODO: calculate bbox displacement based on target z,x,y)
-                                    mapbox::geometry::box<std::int32_t> bbox{{0, 0}, {4096, 4096}};
+                                    int const tile_size = 4096u;
+                                    int dx, dy;
+                                    std::tie(dx, dy) = vtile::displacement(zoom_factor, tile_size, target_z, target_x, target_y);
+
+                                    mapbox::geometry::box<std::int32_t> bbox{{dx, dy}, {dx + tile_size, dy + tile_size}};
                                     mapbox::util::apply_visitor(vtile::feature_builder<std::int32_t>{layer_builder, bbox, feature}, geom);
                                 }
                                 return true;
