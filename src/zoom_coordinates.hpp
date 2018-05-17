@@ -3,9 +3,6 @@
 // geometry.hpp
 #include <mapbox/geometry/geometry.hpp>
 #include <mapbox/geometry/for_each_point.hpp>
-// boost
-//#include <mapbox/geometry/algorithms/detail/boost_adapters.hpp>
-//#include <boost/geometry/algorithms/for_each.hpp>
 
 namespace vtile {
 namespace detail {
