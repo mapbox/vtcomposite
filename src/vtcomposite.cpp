@@ -121,36 +121,27 @@ struct CompositeWorker : Nan::AsyncWorker
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
-                            vtzero::layer_builder layer_builder{builder, layer};
-                            layer.for_each_feature([&](vtzero::feature const& feature) {
-                                if (zoom_factor == 1) // no-zoom
-                                {
-                                    vtzero::geometry_feature_builder feature_builder{layer_builder};
-                                    if (feature.has_id()) feature_builder.set_id(feature.id());
-                                    feature_builder.set_geometry(feature.geometry());
-                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
-                                            feature_builder.add_property(p);
-                                            return true;
-                                        });
-                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
-                                }
-                                else
-                                {
-                                    auto geom = vtile::extract_geometry<std::int32_t>(feature);
-                                    // zoom
-                                    mapbox::geometry::for_each_point
-                                        (geom,
-                                         vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor));
-                                    // clip bbox (TODO: calculate bbox displacement based on target z,x,y)
-                                    int const tile_size = 4096u;
-                                    int dx, dy;
-                                    std::tie(dx, dy) = vtile::displacement(zoom_factor, tile_size, target_z, target_x, target_y);
-
-                                    mapbox::geometry::box<std::int32_t> bbox{{dx, dy}, {dx + tile_size, dy + tile_size}};
-                                    mapbox::util::apply_visitor(vtile::feature_builder<std::int32_t>{layer_builder, bbox, feature}, geom);
-                                }
-                                return true;
-                            });
+                            if (zoom_factor == 1)
+                            {
+                                builder.add_existing_layer(layer);
+                            }
+                            else
+                            {
+                                vtzero::layer_builder layer_builder{builder, layer};
+                                layer.for_each_feature([&](vtzero::feature const& feature) {
+                                        auto geom = vtile::extract_geometry<std::int32_t>(feature);
+                                        // scale by zoom_factor
+                                        mapbox::geometry::for_each_point
+                                            (geom,
+                                             vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor));
+                                        int const tile_size = 4096u;
+                                        int dx, dy;
+                                        std::tie(dx, dy) = vtile::displacement(zoom_factor, tile_size, target_z, target_x, target_y);
+                                        mapbox::geometry::box<std::int32_t> bbox{{dx, dy}, {dx + tile_size, dy + tile_size}};
+                                        mapbox::util::apply_visitor(vtile::feature_builder<std::int32_t>{layer_builder, bbox, feature}, geom);
+                                        return true;
+                                    });
+                            }
                         }
                     }
                 }
