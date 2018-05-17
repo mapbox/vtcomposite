@@ -14,12 +14,12 @@ BOOST_GEOMETRY_REGISTER_POINT_2D(mapbox::geometry::point<std::int32_t>, std::int
 namespace vtile {
 
 template <typename CoordinateType>
-struct feature_builder
+struct feature_builder_visitor
 {
     using coordinate_type = CoordinateType;
-    feature_builder(vtzero::layer_builder& layer_builder,
-                    mapbox::geometry::box<coordinate_type> const& bbox,
-                    vtzero::feature const& feature)
+    feature_builder_visitor(vtzero::layer_builder& layer_builder,
+                            mapbox::geometry::box<coordinate_type> const& bbox,
+                            vtzero::feature const& feature)
         : layer_builder_{layer_builder},
           bbox_{bbox},
           feature_{feature} {}

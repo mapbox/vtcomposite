@@ -137,7 +137,7 @@ struct CompositeWorker : Nan::AsyncWorker
                                     int dx, dy;
                                     std::tie(dx, dy) = vtile::displacement(zoom_factor, tile_size, target_z, target_x, target_y);
                                     mapbox::geometry::box<std::int32_t> bbox{{dx, dy}, {dx + tile_size, dy + tile_size}};
-                                    mapbox::util::apply_visitor(vtile::feature_builder<std::int32_t>{layer_builder, bbox, feature}, geom);
+                                    mapbox::util::apply_visitor(vtile::feature_builder_visitor<std::int32_t>{layer_builder, bbox, feature}, geom);
                                     return true;
                                 });
                             }
