@@ -83,16 +83,14 @@ struct CompositeWorker : Nan::AsyncWorker
     CompositeWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
         : Base{cb},
           baton_data_{std::move(baton_data)},
-          output_buffer_{std::make_unique<std::string>()} {}
+          output_buffer_{std::string()} {}
 
     void Execute() override
     {
         try
         {
-            gzip::Decompressor decompressor;
             vtzero::tile_builder builder;
             std::vector<std::string> names;
-            vtzero::data_view tile_view{};
 
             std::uint32_t const target_z = baton_data_->z;
             std::uint32_t const target_x = baton_data_->x;
@@ -103,8 +101,11 @@ struct CompositeWorker : Nan::AsyncWorker
                 if (vtile::within_target(*tile_obj, target_z, target_x, target_y))
                 {
                     std::vector<char> buffer;
+		    vtzero::data_view tile_view{};
+
                     if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
+                        gzip::Decompressor decompressor;
                         decompressor.decompress(buffer, tile_obj->data.data(), tile_obj->data.size());
                         tile_view = protozero::data_view{buffer.data(), buffer.size()};
                     }
@@ -121,9 +122,20 @@ struct CompositeWorker : Nan::AsyncWorker
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
-                            if (zoom_factor == 1)
-                            {
-                                builder.add_existing_layer(layer);
+			    if (zoom_factor == 1)
+			    {
+				vtzero::layer_builder layer_builder{builder, layer};
+				layer.for_each_feature([&](vtzero::feature const& feature) {
+				    vtzero::geometry_feature_builder feature_builder{layer_builder};
+				    if (feature.has_id()) feature_builder.set_id(feature.id());
+				    feature_builder.set_geometry(feature.geometry());
+				    feature.for_each_property([&feature_builder](vtzero::property const& p) {
+					    feature_builder.add_property(p);
+					    return true;
+					});
+				    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
+				    return true;
+				});
                             }
                             else
                             {
@@ -150,7 +162,7 @@ struct CompositeWorker : Nan::AsyncWorker
                     std::cerr << "Invalid tile composite request" << std::endl;
                 }
             }
-            std::string& tile_buffer = *output_buffer_.get();
+            std::string& tile_buffer = output_buffer_;
             builder.serialize(tile_buffer);
         }
         catch (std::exception const& e)
@@ -161,17 +173,13 @@ struct CompositeWorker : Nan::AsyncWorker
 
     void HandleOKCallback() override
     {
-        std::string& tile_buffer = *output_buffer_.get();
+        std::string& tile_buffer = output_buffer_;
         Nan::HandleScope scope;
         const auto argc = 2u;
         v8::Local<v8::Value> argv[argc] = {
             Nan::Null(),
-            Nan::NewBuffer(&tile_buffer[0],
-                           static_cast<std::uint32_t>(tile_buffer.size()),
-                           [](char*, void* hint) {
-                               delete reinterpret_cast<std::string*>(hint);
-                           },
-                           output_buffer_.release())
+            Nan::CopyBuffer(tile_buffer.c_str(),
+                           static_cast<std::uint32_t>(tile_buffer.size()))
                 .ToLocalChecked()};
 
         // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
@@ -179,7 +187,7 @@ struct CompositeWorker : Nan::AsyncWorker
     }
 
     std::unique_ptr<BatonType> const baton_data_;
-    std::unique_ptr<std::string> output_buffer_;
+    std::string output_buffer_;
 };
 
 NAN_METHOD(composite)
