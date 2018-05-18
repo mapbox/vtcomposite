@@ -89,10 +89,8 @@ struct CompositeWorker : Nan::AsyncWorker
     {
         try
         {
-            gzip::Decompressor decompressor;
             vtzero::tile_builder builder;
             std::vector<std::string> names;
-            vtzero::data_view tile_view{};
 
             std::uint32_t const target_z = baton_data_->z;
             std::uint32_t const target_x = baton_data_->x;
@@ -103,8 +101,11 @@ struct CompositeWorker : Nan::AsyncWorker
                 if (vtile::within_target(*tile_obj, target_z, target_x, target_y))
                 {
                     std::vector<char> buffer;
+                    vtzero::data_view tile_view{};
+
                     if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
+                        gzip::Decompressor decompressor;
                         decompressor.decompress(buffer, tile_obj->data.data(), tile_obj->data.size());
                         tile_view = protozero::data_view{buffer.data(), buffer.size()};
                     }
@@ -123,7 +124,18 @@ struct CompositeWorker : Nan::AsyncWorker
                             names.push_back(name);
                             if (zoom_factor == 1)
                             {
-                                builder.add_existing_layer(layer);
+                                vtzero::layer_builder layer_builder{builder, layer};
+                                layer.for_each_feature([&](vtzero::feature const& feature) {
+                                    vtzero::geometry_feature_builder feature_builder{layer_builder};
+                                    if (feature.has_id()) feature_builder.set_id(feature.id());
+                                    feature_builder.set_geometry(feature.geometry());
+                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                        feature_builder.add_property(p);
+                                        return true;
+                                    });
+                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
+                                    return true;
+                                });
                             }
                             else
                             {
