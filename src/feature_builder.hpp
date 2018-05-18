@@ -2,10 +2,12 @@
 
 // geometry.hpp
 #include <mapbox/geometry.hpp>
+#include <mapbox/geometry/algorithms/detail/boost_adapters.hpp>
 // vtzero
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
-#include <mapbox/geometry/algorithms/detail/boost_adapters.hpp>
+// boost
+#include <boost/core/ignore_unused.hpp>
 #include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
 
@@ -28,56 +30,48 @@ struct feature_builder_visitor
     {
         vtzero::point_feature_builder feature_builder{layer_builder_};
         if (feature_.has_id()) feature_builder.set_id(feature_.id());
-        bool empty = true;
         if (boost::geometry::intersects(pt, bbox_))
         {
-            empty = false;
             feature_builder.add_point(static_cast<int>(pt.x),
                                       static_cast<int>(pt.y));
-        }
-        if (!empty)
-        {
             // add properties
             feature_.for_each_property([&feature_builder](vtzero::property const& p) {
                 feature_builder.add_property(p);
                 return true;
             });
             feature_builder.commit();
-        }
-        else
-        {
-            feature_builder.rollback();
         }
     }
 
     void operator()(mapbox::geometry::multi_point<coordinate_type> const& mpt)
     {
-        std::vector<mapbox::geometry::point<coordinate_type>> result;
         vtzero::point_feature_builder feature_builder{layer_builder_};
         if (feature_.has_id()) feature_builder.set_id(feature_.id());
-        bool empty = true;
+        std::vector<mapbox::geometry::point<coordinate_type>> result;
         for (auto const& pt : mpt)
         {
             if (boost::geometry::intersects(pt, bbox_))
             {
-                empty = false;
-                feature_builder.add_point(static_cast<int>(pt.x),
-                                          static_cast<int>(pt.y));
+                result.push_back(pt);
             }
         }
 
-        if (!empty)
+        if (!result.empty())
         {
+            // add points
+            feature_builder.add_points(static_cast<unsigned>(result.size()));
+            for (auto const& pt : result)
+            {
+                feature_builder.set_point(static_cast<int>(pt.x),
+                                          static_cast<int>(pt.y));
+            }
             // add properties
             feature_.for_each_property([&feature_builder](vtzero::property const& p) {
+
                 feature_builder.add_property(p);
                 return true;
             });
             feature_builder.commit();
-        }
-        else
-        {
-            feature_builder.rollback();
         }
     }
 
@@ -85,19 +79,24 @@ struct feature_builder_visitor
     {
         std::vector<mapbox::geometry::line_string<coordinate_type>> result;
         boost::geometry::intersection(line, bbox_, result);
-        if (!result.empty())
+        vtzero::linestring_feature_builder feature_builder{layer_builder_};
+        bool valid = false;
+        if (feature_.has_id()) feature_builder.set_id(feature_.id());
+        for (auto const& l : result)
         {
-            vtzero::linestring_feature_builder feature_builder{layer_builder_};
-            if (feature_.has_id()) feature_builder.set_id(feature_.id());
-            for (auto const& l : result)
+            if (l.size() > 1)
             {
                 feature_builder.add_linestring(static_cast<unsigned>(l.size()));
                 for (auto const& pt : l)
                 {
+                    valid = true;
                     feature_builder.set_point(static_cast<int>(pt.x),
                                               static_cast<int>(pt.y));
                 }
             }
+        }
+        if (valid)
+        {
             // add properties
             feature_.for_each_property([&feature_builder](vtzero::property const& p) {
                 feature_builder.add_property(p);
@@ -111,18 +110,24 @@ struct feature_builder_visitor
     {
         std::vector<mapbox::geometry::line_string<coordinate_type>> result;
         boost::geometry::intersection(line, bbox_, result);
-        if (!result.empty())
+        bool valid = false;
+
+        vtzero::linestring_feature_builder feature_builder{layer_builder_};
+        if (feature_.has_id()) feature_builder.set_id(feature_.id());
+        for (auto const& l : result)
         {
-            vtzero::linestring_feature_builder feature_builder{layer_builder_};
-            if (feature_.has_id()) feature_builder.set_id(feature_.id());
-            for (auto const& l : result)
+            if (l.size() > 1)
             {
+                valid = true;
                 feature_builder.add_linestring(static_cast<unsigned>(l.size()));
                 for (auto const& pt : l)
                 {
                     feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
                 }
             }
+        }
+        if (valid)
+        {
             // add properties
             feature_.for_each_property([&feature_builder](vtzero::property const& p) {
                 feature_builder.add_property(p);
@@ -131,21 +136,22 @@ struct feature_builder_visitor
             feature_builder.commit();
         }
     }
+
     void operator()(mapbox::geometry::polygon<coordinate_type> const& poly)
     {
         std::vector<mapbox::geometry::polygon<coordinate_type>> result;
         boost::geometry::intersection(poly, bbox_, result);
-        //for_each(result.begin(), result.end(), [](auto const& p) {
-        //        std::cerr << boost::geometry::wkt(p) << std::endl;
-        //   });
-        if (!result.empty())
+
+        vtzero::polygon_feature_builder feature_builder{layer_builder_};
+        if (feature_.has_id()) feature_builder.set_id(feature_.id());
+        bool valid = false;
+        for (auto const& p : result)
         {
-            vtzero::polygon_feature_builder feature_builder{layer_builder_};
-            if (feature_.has_id()) feature_builder.set_id(feature_.id());
-            for (auto const& p : result)
+            for (auto const& ring : p)
             {
-                for (auto const& ring : p)
+                if (ring.size() > 3)
                 {
+                    valid = true;
                     feature_builder.add_ring(static_cast<unsigned>(ring.size()));
                     for (auto const& pt : ring)
                     {
@@ -153,6 +159,9 @@ struct feature_builder_visitor
                     }
                 }
             }
+        }
+        if (valid)
+        {
             // add properties
             feature_.for_each_property([&feature_builder](vtzero::property const& p) {
                 feature_builder.add_property(p);
@@ -164,17 +173,18 @@ struct feature_builder_visitor
 
     void operator()(mapbox::geometry::multi_polygon<coordinate_type> const& mpoly)
     {
-
         std::vector<mapbox::geometry::polygon<coordinate_type>> result;
         boost::geometry::intersection(mpoly, bbox_, result);
-        if (!result.empty())
+        vtzero::polygon_feature_builder feature_builder{layer_builder_};
+        if (feature_.has_id()) feature_builder.set_id(feature_.id());
+        bool valid = false;
+        for (auto const& p : result)
         {
-            vtzero::polygon_feature_builder feature_builder{layer_builder_};
-            if (feature_.has_id()) feature_builder.set_id(feature_.id());
-            for (auto const& p : result)
+            for (auto const& ring : p)
             {
-                for (auto const& ring : p)
+                if (ring.size() > 3)
                 {
+                    valid = true;
                     feature_builder.add_ring(static_cast<unsigned>(ring.size()));
                     for (auto const& pt : ring)
                     {
@@ -182,6 +192,9 @@ struct feature_builder_visitor
                     }
                 }
             }
+        }
+        if (valid)
+        {
             // add properties
             feature_.for_each_property([&feature_builder](vtzero::property const& p) {
                 feature_builder.add_property(p);
@@ -194,7 +207,7 @@ struct feature_builder_visitor
     template <typename T>
     void operator()(T const& geom)
     {
-        std::cerr << "FIXME:" << typeid(geom).name() << std::endl;
+        boost::ignore_unused(geom);
     }
 
     vtzero::layer_builder& layer_builder_;

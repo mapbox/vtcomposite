@@ -145,7 +145,6 @@ struct CompositeWorker : Nan::AsyncWorker
                                     int const tile_size = 4096u;
                                     int dx, dy;
                                     std::tie(dx, dy) = vtile::displacement(tile_obj->z, tile_size, target_z, target_x, target_y);
-                                    std::cerr << dx << ":" << dy << std::endl;
                                     // scale by zoom_factor and apply displacement
                                     mapbox::geometry::for_each_point(geom,
                                                                      vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor, dx, dy));
