@@ -122,6 +122,7 @@ struct CompositeWorker : Nan::AsyncWorker
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
+
                             if (zoom_factor == 1)
                             {
                                 vtzero::layer_builder layer_builder{builder, layer};
