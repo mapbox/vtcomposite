@@ -28,7 +28,7 @@ test('[composite] success: buffer size stays the same when no compositing needed
   });
 });
 
-test.only('[composite] success compositing - same layer name, same features, same zoom', function(assert) {
+test('[composite] success compositing - same layer name, same features, same zoom', function(assert) {
   const singlePointBuffer = mvtFixtures.get('017').buffer;
 
   const tiles = [
