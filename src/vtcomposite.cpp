@@ -122,6 +122,7 @@ struct CompositeWorker : Nan::AsyncWorker
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
+
                             if (zoom_factor == 1)
                             {
                                 vtzero::layer_builder layer_builder{builder, layer};
@@ -164,10 +165,12 @@ struct CompositeWorker : Nan::AsyncWorker
             std::string& tile_buffer = *output_buffer_.get();
             builder.serialize(tile_buffer);
         }
+        // LCOV_EXCL_START
         catch (std::exception const& e)
         {
             SetErrorMessage(e.what());
         }
+        // LCOV_EXCL_STOP
     }
 
     void HandleOKCallback() override
