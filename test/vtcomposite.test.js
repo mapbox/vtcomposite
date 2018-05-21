@@ -556,10 +556,10 @@ test('failure: map request zxy y value is negative', assert => {
   });
 });
 
-// TEST OVERZOOMING 
+// TEST OVERZOOMING
 
 // TEST 1
-// overzooming success test - different zooms between two tiles. use a single buffer - don't need to composite two buffers at all. 
+// overzooming success test - different zooms between two tiles. use a single buffer - don't need to composite two buffers at all.
 //pass one in - put in 0/0/0 tile and ask for 1/0/0 --> assume got rid of 3/4 of data, have one point in each quadrant -- assert output has a single point
 
 
@@ -578,23 +578,19 @@ test('[composite] overzooming success - different zooms between two tiles', func
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
-    // at some point in the future, we will be doing clipping - until then, the test is failing 
-
-    // assert.equal(info.layers.quadrants.length, 1,'clips all but one feature when overzooming');
-
+    assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
     assert.deepEqual(
-      outputInfo.layers.quadrants.feature(0).loadGeometry(), 
-      [ [ { x: 1280, y: 1664 } ] ], 
+      outputInfo.layers.quadrants.feature(0).loadGeometry(),
+      [ [ { x: 1280, y: 1664 } ] ],
       'first feature scales as expected'
     );
 
     assert.deepEqual(
-      {x:originalGeometry.x *2, y:originalGeometry.y *2}, 
+      {x:originalGeometry.x *2, y:originalGeometry.y *2},
       outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
       'check that new coordinates are 2x original coordinates (since zoom factor is 2)'
-    ); 
+    );
 
     assert.end();
   });
 });
-
