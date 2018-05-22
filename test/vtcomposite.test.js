@@ -114,8 +114,8 @@ test('[composite] success: compositing single gzipped VT', function(assert) {
 
 // TEST - check vt is within target
 
-test('[composite] failure? discards layer that is not within target', function(assert) {
-  // TBD whether it's a failure or silently discards the tile that isn't in the target
+test('[composite] failure: discards layer that is not within target', function(assert) {
+
   const buffer1 = mvtFixtures.get('017').buffer;
   const buffer2 = mvtFixtures.get('053').buffer;
 
@@ -127,15 +127,13 @@ test('[composite] failure? discards layer that is not within target', function(a
   const zxy = {z:15, x:5238, y:12666};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const info = vtinfo(vtBuffer)
-    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
-    assert.ok(info.layers.hello, 'layer within target created into output buffer');
-    assert.notOk(err);
+    assert.ok(err);
+    assert.equal(err.message, 'Invalid tile composite request: SOURCE(15,5239,12666) TARGET(15,5238,12666)');
     assert.end();
   });
 });
 
-test('[composite] failure? tile does not intersect target zoom level ', function(assert) {
+test('[composite] failure: tile does not intersect target zoom level ', function(assert) {
   // TBD whether it's a failure or silently discards the tile that isn't in the target
   const buffer1 = mvtFixtures.get('017').buffer;
   const buffer2 = mvtFixtures.get('053').buffer;
@@ -148,16 +146,13 @@ test('[composite] failure? tile does not intersect target zoom level ', function
   const zxy = {z:7, x:19, y:44};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const info = vtinfo(vtBuffer)
-    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
-    assert.ok(info.layers.hello, 'layer within target created into output buffer');
-    assert.notOk(err);
+    assert.ok(err);
+    assert.equal(err.message, 'Invalid tile composite request: SOURCE(6,10,22) TARGET(7,19,44)');
     assert.end();
   });
 });
 
-test('[composite] failure? tile with zoom level higher than requested zoom is discarded', function(assert) {
-  // TBD whether it's a failure or silently discards the tile that isn't in the target
+test('[composite] failure: tile with zoom level higher than requested zoom is discarded', function(assert) {
   const buffer1 = mvtFixtures.get('017').buffer;
   const buffer2 = mvtFixtures.get('053').buffer;
 
@@ -169,10 +164,8 @@ test('[composite] failure? tile with zoom level higher than requested zoom is di
   const zxy = {z:6, x:10, y:22};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const info = vtinfo(vtBuffer)
-    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
-    assert.ok(info.layers['clipped-square'], 'layer within target created into output buffer');
-    assert.notOk(err);
+    assert.ok(err);
+    assert.equal(err.message, 'Invalid tile composite request: SOURCE(7,10,22) TARGET(6,10,22)');
     assert.end();
   });
 });
