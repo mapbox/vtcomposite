@@ -3,6 +3,8 @@
 #include <mapbox/geometry.hpp>
 #include <vtzero/vector_tile.hpp>
 
+// extracting points lines and polygons --> have fixtures with all geometry types 
+
 namespace vtile {
 namespace detail {
 

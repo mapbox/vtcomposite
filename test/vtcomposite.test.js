@@ -6,6 +6,16 @@ var zlib = require('zlib');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
 var vt = require('@mapbox/vector-tile').VectorTile;
 var pbf = require('pbf');
+var geoData = require('./fixtures/four-points.js');
+
+
+function long2tile(lon,zoom) { 
+  return (((lon+180)/360*Math.pow(2,zoom))); 
+}
+
+function lat2tile(lat,zoom)  { 
+  return (((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom))); 
+}
 
 function vtinfo(buffer) {
   var tile = new vt(new pbf(buffer));
@@ -559,15 +569,12 @@ test('failure: map request zxy y value is negative', assert => {
 // TEST OVERZOOMING 
 
 // TEST 1
-// overzooming success test - different zooms between two tiles. use a single buffer - don't need to composite two buffers at all. 
-//pass one in - put in 0/0/0 tile and ask for 1/0/0 --> assume got rid of 3/4 of data, have one point in each quadrant -- assert output has a single point
 
-
-test('[composite] overzooming success - different zooms between two tiles', function(assert) {
-  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-quadrants.mvt');
-
+test('[composite] overzooming success points - overzooming zoom factor of 2 between two tiles', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
+  
   const originalGeometry = info.layers.quadrants.feature(0).loadGeometry()[0][0];
 
   const tiles = [
@@ -576,12 +583,16 @@ test('[composite] overzooming success - different zooms between two tiles', func
 
   const zxy = {z:1, x:0, y:0};
 
+  const long = geoData.features[0].geometry.coordinates[0];
+  const lat = geoData.features[0].geometry.coordinates[1];
+  const longInt = Math.round(parseFloat('.' + (long2tile(long,zxy.z)).toString().split('.')[1])*4096);
+  const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
+
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
-    // at some point in the future, we will be doing clipping - until then, the test is failing 
 
-    // assert.equal(info.layers.quadrants.length, 1,'clips all but one feature when overzooming');
-
+    assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
+      
     assert.deepEqual(
       outputInfo.layers.quadrants.feature(0).loadGeometry(), 
       [ [ { x: 1280, y: 1664 } ] ], 
@@ -589,9 +600,47 @@ test('[composite] overzooming success - different zooms between two tiles', func
     );
 
     assert.deepEqual(
-      {x:originalGeometry.x *2, y:originalGeometry.y *2}, 
+      {x:longInt, y:latInt}, 
       outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
-      'check that new coordinates are 2x original coordinates (since zoom factor is 2)'
+      'check that new coordinates shifted properly (zoom factor is 2)'
+    ); 
+
+    assert.end();
+  });
+});
+
+test('[composite] overzooming success points - overzooming zoom factor of 3 between two tiles', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
+  const info = vtinfo(buffer1);
+  assert.equal(info.layers.quadrants.length, 4);
+  
+  const originalGeometry = info.layers.quadrants.feature(0).loadGeometry()[0][0];
+  const tiles = [
+    {buffer: buffer1, z:0, x:0, y:0}
+  ];
+
+  const zxy = {z:2, x:0, y:0};
+
+  const long = geoData.features[0].geometry.coordinates[0];
+  const lat = geoData.features[0].geometry.coordinates[1];
+  const longInt = Math.round(parseFloat('.' + (long2tile(long,zxy.z)).toString().split('.')[1])*4096);
+  const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+
+    assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
+
+    assert.deepEqual(
+      outputInfo.layers.quadrants.feature(0).loadGeometry(), 
+      [ [ { x: 2560, y: 3328 } ] ], 
+      'first feature scales as expected'
+    );
+
+    assert.deepEqual(
+      {x:longInt, y:latInt}, 
+      outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
+      'check that new coordinates shifted properly (since zoom factor is 3)'
     ); 
 
     assert.end();
