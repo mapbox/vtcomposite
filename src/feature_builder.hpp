@@ -27,13 +27,13 @@ struct feature_builder_visitor
           feature_{feature} {}
 
     template <typename FeatureBuilder>
-    void finalize(FeatureBuilder & builder)
+    void finalize(FeatureBuilder& builder)
     {
         // add properties
         feature_.for_each_property([&builder](vtzero::property const& p) {
-                builder.add_property(p);
-                return true;
-            });
+            builder.add_property(p);
+            return true;
+        });
         builder.commit();
     }
 
