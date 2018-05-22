@@ -26,6 +26,17 @@ struct feature_builder_visitor
           bbox_{bbox},
           feature_{feature} {}
 
+    template <typename FeatureBuilder>
+    void finalize(FeatureBuilder & builder)
+    {
+        // add properties
+        feature_.for_each_property([&builder](vtzero::property const& p) {
+                builder.add_property(p);
+                return true;
+            });
+        builder.commit();
+    }
+
     void operator()(mapbox::geometry::point<coordinate_type> const& pt)
     {
         vtzero::point_feature_builder feature_builder{layer_builder_};
@@ -34,12 +45,7 @@ struct feature_builder_visitor
         {
             feature_builder.add_point(static_cast<int>(pt.x),
                                       static_cast<int>(pt.y));
-            // add properties
-            feature_.for_each_property([&feature_builder](vtzero::property const& p) {
-                feature_builder.add_property(p);
-                return true;
-            });
-            feature_builder.commit();
+            finalize(feature_builder);
         }
     }
 
@@ -55,24 +61,7 @@ struct feature_builder_visitor
                 result.push_back(pt);
             }
         }
-
-        if (!result.empty())
-        {
-            // add points
-            feature_builder.add_points(static_cast<unsigned>(result.size()));
-            for (auto const& pt : result)
-            {
-                feature_builder.set_point(static_cast<int>(pt.x),
-                                          static_cast<int>(pt.y));
-            }
-            // add properties
-            feature_.for_each_property([&feature_builder](vtzero::property const& p) {
-
-                feature_builder.add_property(p);
-                return true;
-            });
-            feature_builder.commit();
-        }
+        if (!result.empty()) finalize(feature_builder);
     }
 
     void operator()(mapbox::geometry::line_string<coordinate_type> const& line)
@@ -95,15 +84,8 @@ struct feature_builder_visitor
                 }
             }
         }
-        if (valid)
-        {
-            // add properties
-            feature_.for_each_property([&feature_builder](vtzero::property const& p) {
-                feature_builder.add_property(p);
-                return true;
-            });
-            feature_builder.commit();
-        }
+
+        if (valid) finalize(feature_builder);
     }
 
     void operator()(mapbox::geometry::multi_line_string<coordinate_type> const& line)
@@ -126,15 +108,7 @@ struct feature_builder_visitor
                 }
             }
         }
-        if (valid)
-        {
-            // add properties
-            feature_.for_each_property([&feature_builder](vtzero::property const& p) {
-                feature_builder.add_property(p);
-                return true;
-            });
-            feature_builder.commit();
-        }
+        if (valid) finalize(feature_builder);
     }
 
     void operator()(mapbox::geometry::polygon<coordinate_type> const& poly)
@@ -160,15 +134,7 @@ struct feature_builder_visitor
                 }
             }
         }
-        if (valid)
-        {
-            // add properties
-            feature_.for_each_property([&feature_builder](vtzero::property const& p) {
-                feature_builder.add_property(p);
-                return true;
-            });
-            feature_builder.commit();
-        }
+        if (valid) finalize(feature_builder);
     }
 
     void operator()(mapbox::geometry::multi_polygon<coordinate_type> const& mpoly)
@@ -193,15 +159,7 @@ struct feature_builder_visitor
                 }
             }
         }
-        if (valid)
-        {
-            // add properties
-            feature_.for_each_property([&feature_builder](vtzero::property const& p) {
-                feature_builder.add_property(p);
-                return true;
-            });
-            feature_builder.commit();
-        }
+        if (valid) finalize(feature_builder);
     }
 
     template <typename T>
