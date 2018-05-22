@@ -159,7 +159,11 @@ struct CompositeWorker : Nan::AsyncWorker
                 }
                 else
                 {
-                    std::cerr << "Invalid tile composite request" << std::endl;
+                    std::ostringstream os;
+                    os << "Invalid tile composite request: SOURCE("
+                       << tile_obj->z << "," << tile_obj->x << "," << tile_obj->y << ")"
+                       << " TARGET(" << target_z << "," << target_x << "," << target_y << ")";
+                    throw std::invalid_argument(os.str());
                 }
             }
             std::string& tile_buffer = *output_buffer_.get();

@@ -646,4 +646,3 @@ test('[composite] overzooming success points - overzooming zoom factor of 3 betw
     assert.end();
   });
 });
-
