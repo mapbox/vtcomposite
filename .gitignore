@@ -7,3 +7,4 @@ mason_packages
 code.*
 script.js
 *.profraw
+convert.js

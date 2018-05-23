@@ -646,3 +646,41 @@ test('[composite] overzooming success points - overzooming zoom factor of 3 betw
     assert.end();
   });
 });
+
+test('[composite] overzooming success points - overzooming zoom factor of 4 between two tiles', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
+  const info = vtinfo(buffer1);
+  assert.equal(info.layers.quadrants.length, 4);
+  
+  const originalGeometry = info.layers.quadrants.feature(0).loadGeometry()[0][0];
+  const tiles = [
+    {buffer: buffer1, z:0, x:0, y:0}
+  ];
+
+  const zxy = {z:3, x:1, y:1};
+
+  const long = geoData.features[0].geometry.coordinates[0];
+  const lat = geoData.features[0].geometry.coordinates[1];
+  const longInt = Math.round(parseFloat('.' + (long2tile(long,zxy.z)).toString().split('.')[1])*4096);
+  const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+
+    assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
+
+    assert.deepEqual(
+      outputInfo.layers.quadrants.feature(0).loadGeometry(), 
+      [ [ { x: 1024, y: 2560  } ] ], 
+      'first feature scales as expected'
+    );
+
+    assert.deepEqual(
+      {x:longInt, y:latInt}, 
+      outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
+      'check that new coordinates shifted properly (since zoom factor is 3)'
+    ); 
+
+    assert.end();
+  });
+});
