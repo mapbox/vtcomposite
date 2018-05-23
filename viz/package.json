@@ -1,0 +1,11 @@
+{
+  "name": "viz",
+  "version": "1.0.0",
+  "description": "tile server",
+  "main": "index.js",
+  "scripts": {
+    "test": ""
+  },
+  "author": "",
+  "license": "ISC"
+}
