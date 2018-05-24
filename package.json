@@ -17,7 +17,7 @@
   "author": "Mapbox",
   "license": "ISC",
   "dependencies": {
-    "mason-js-sdk": "~0.1.4",
+    "mason-js-sdk": "^0.1.4",
     "nan": "~2.10.0",
     "node-pre-gyp": "~0.6.32",
     "pbf": "^3.1.0"
