@@ -74,6 +74,7 @@ struct BatonType
     std::uint32_t z{};
     std::uint32_t x{};
     std::uint32_t y{};
+    int buffer_size = 0;
 };
 
 struct CompositeWorker : Nan::AsyncWorker
@@ -143,13 +144,14 @@ struct CompositeWorker : Nan::AsyncWorker
                                 vtzero::layer_builder layer_builder{builder, layer};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
                                     auto geom = vtile::extract_geometry<std::int32_t>(feature);
-                                    int const tile_size = 4096u;
+                                    int const tile_size = 4096;
+                                    int buffer_size = baton_data_->buffer_size;
                                     int dx, dy;
                                     std::tie(dx, dy) = vtile::displacement(tile_obj->z, tile_size, target_z, target_x, target_y);
                                     // scale by zoom_factor and apply displacement
                                     mapbox::geometry::for_each_point(geom,
                                                                      vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor, dx, dy));
-                                    mapbox::geometry::box<std::int32_t> bbox{{0, 0}, {tile_size, tile_size}};
+                                    mapbox::geometry::box<std::int32_t> bbox{{-buffer_size, -buffer_size}, {tile_size + buffer_size, tile_size + buffer_size}};
                                     mapbox::util::apply_visitor(vtile::feature_builder_visitor<std::int32_t>{layer_builder, bbox, feature}, geom);
                                     return true;
                                 });
@@ -368,6 +370,29 @@ NAN_METHOD(composite)
 
     baton_data->y = static_cast<std::uint32_t>(y_maprequest);
 
+    if (info.Length() > 3) // options
+    {
+        if (!info[2]->IsObject())
+        {
+            return utils::CallbackError("'options' arg must be an object", callback);
+        }
+        v8::Local<v8::Object> options = info[2]->ToObject();
+        if (options->Has(Nan::New("buffer_size").ToLocalChecked()))
+        {
+            v8::Local<v8::Value> bs_value = options->Get(Nan::New("buffer_size").ToLocalChecked());
+            if (!bs_value->IsNumber())
+            {
+                return utils::CallbackError("'buffer_size' must be a number", callback);
+            }
+
+            int buffer_size = bs_value->Int32Value();
+            if (buffer_size < 0)
+            {
+                return utils::CallbackError("'buffer_size' must be a positive number", callback);
+            }
+            baton_data->buffer_size = buffer_size;
+        }
+    }
     // enter the threadpool, then done in the callback function call the threadpool
     auto* worker = new CompositeWorker{std::move(baton_data), new Nan::Callback{callback}};
     Nan::AsyncQueueWorker(worker);
