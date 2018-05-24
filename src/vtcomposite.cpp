@@ -2,7 +2,6 @@
 #include "vtcomposite.hpp"
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
-#include "extract_geometry.hpp"
 #include "zoom_coordinates.hpp"
 #include "feature_builder.hpp"
 // gzip-hpp
@@ -16,6 +15,8 @@
 #include <mapbox/geometry/box.hpp>
 // stl
 #include <algorithm>
+#include <mapbox/vector_tile.hpp>
+
 
 namespace vtile {
 
@@ -143,7 +144,7 @@ struct CompositeWorker : Nan::AsyncWorker
                             {
                                 vtzero::layer_builder layer_builder{builder, layer};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
-                                    auto geom = vtile::extract_geometry<std::int32_t>(feature);
+                                    auto geom = mapbox::vector_tile::extract_geometry<int32_t>(feature);
                                     int const tile_size = 4096;
                                     int buffer_size = baton_data_->buffer_size;
                                     int dx, dy;
