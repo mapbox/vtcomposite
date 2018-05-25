@@ -3,7 +3,7 @@
 const argv = require('minimist')(process.argv.slice(2));
 if (!argv.iterations || !argv.concurrency) {
   console.error('Please provide desired iterations, concurrency');
-  console.error('Example: \nnode bench/vtquery.bench.js --iterations 50 --concurrency 10');
+  console.error('Example: \nnode bench/vtcomposite.bench.js --iterations 50 --concurrency 10');
   process.exit(1);
 }
 
@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const Queue = require('d3-queue').queue;
-const vtquery = require('../lib/index.js');
+const composite = require('../lib/index.js');
 const rules = require('./rules');
 let ruleCount = 1;
 
@@ -40,7 +40,7 @@ function runRule(rule, ruleCallback) {
   let runsQueue = Queue();
 
   function run(cb) {
-    vtquery(rule.tiles, rule.zxy, rule.options, function(err, result) {
+    composite(rule.tiles, rule.zxy, rule.options, function(err, result) {
       if (err) {
         return cb(err);
       }
