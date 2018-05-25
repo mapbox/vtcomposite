@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <mapbox/vector_tile.hpp>
 
-
 namespace vtile {
 
 struct TileObject
