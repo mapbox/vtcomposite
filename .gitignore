@@ -6,4 +6,5 @@ mason_packages
 *tgz
 code.*
 script.js
+*.profraw
 convert.js
