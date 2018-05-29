@@ -93,6 +93,8 @@ struct CompositeWorker : Nan::AsyncWorker
             vtzero::tile_builder builder;
             std::vector<std::string> names;
 
+            int const tile_size = 4096;
+            int buffer_size = baton_data_->buffer_size;
             std::uint32_t const target_z = baton_data_->z;
             std::uint32_t const target_x = baton_data_->x;
             std::uint32_t const target_y = baton_data_->y;
@@ -144,8 +146,6 @@ struct CompositeWorker : Nan::AsyncWorker
                                 vtzero::layer_builder layer_builder{builder, layer};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
                                     auto geom = mapbox::vector_tile::extract_geometry<int32_t>(feature);
-                                    int const tile_size = 4096;
-                                    int buffer_size = baton_data_->buffer_size;
                                     int dx, dy;
                                     std::tie(dx, dy) = vtile::displacement(tile_obj->z, tile_size, target_z, target_x, target_y);
                                     // scale by zoom_factor and apply displacement
