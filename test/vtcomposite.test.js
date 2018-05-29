@@ -24,6 +24,7 @@ function vtinfo(buffer) {
 
 var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
+
 test('[composite] success: buffer size stays the same when no compositing needed', function(assert) {
   const tiles = [
     {buffer: bufferSF, z:15, x:5238, y:12666}
@@ -138,8 +139,8 @@ test('[composite] success: gzipped output', function(assert) {
 
 // TEST - check vt is within target
 
-test('[composite] failure? discards layer that is not within target', function(assert) {
-  // TBD whether it's a failure or silently discards the tile that isn't in the target
+test('[composite] failure: discards layer that is not within target', function(assert) {
+
   const buffer1 = mvtFixtures.get('017').buffer;
   const buffer2 = mvtFixtures.get('053').buffer;
 
@@ -151,15 +152,13 @@ test('[composite] failure? discards layer that is not within target', function(a
   const zxy = {z:15, x:5238, y:12666};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const info = vtinfo(vtBuffer)
-    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
-    assert.ok(info.layers.hello, 'layer within target created into output buffer');
-    assert.notOk(err);
+    assert.ok(err);
+    assert.equal(err.message, 'Invalid tile composite request: SOURCE(15,5239,12666) TARGET(15,5238,12666)');
     assert.end();
   });
 });
 
-test('[composite] failure? tile does not intersect target zoom level ', function(assert) {
+test('[composite] failure: tile does not intersect target zoom level ', function(assert) {
   // TBD whether it's a failure or silently discards the tile that isn't in the target
   const buffer1 = mvtFixtures.get('017').buffer;
   const buffer2 = mvtFixtures.get('053').buffer;
@@ -172,16 +171,13 @@ test('[composite] failure? tile does not intersect target zoom level ', function
   const zxy = {z:7, x:19, y:44};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const info = vtinfo(vtBuffer)
-    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
-    assert.ok(info.layers.hello, 'layer within target created into output buffer');
-    assert.notOk(err);
+    assert.ok(err);
+    assert.equal(err.message, 'Invalid tile composite request: SOURCE(6,10,22) TARGET(7,19,44)');
     assert.end();
   });
 });
 
-test('[composite] failure? tile with zoom level higher than requested zoom is discarded', function(assert) {
-  // TBD whether it's a failure or silently discards the tile that isn't in the target
+test('[composite] failure: tile with zoom level higher than requested zoom is discarded', function(assert) {
   const buffer1 = mvtFixtures.get('017').buffer;
   const buffer2 = mvtFixtures.get('053').buffer;
 
@@ -193,10 +189,8 @@ test('[composite] failure? tile with zoom level higher than requested zoom is di
   const zxy = {z:6, x:10, y:22};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const info = vtinfo(vtBuffer)
-    assert.equal(Object.keys(info.layers).length, 1, 'discards layer that is not within target');
-    assert.ok(info.layers['clipped-square'], 'layer within target created into output buffer');
-    assert.notOk(err);
+    assert.ok(err);
+    assert.equal(err.message, 'Invalid tile composite request: SOURCE(7,10,22) TARGET(6,10,22)');
     assert.end();
   });
 });
@@ -580,15 +574,18 @@ test('failure: map request zxy y value is negative', assert => {
   });
 });
 
-// TEST OVERZOOMING 
+// TEST OVERZOOMING
 
 // TEST 1
+// overzooming success test - different zooms between two tiles. use a single buffer - don't need to composite two buffers at all.
+//pass one in - put in 0/0/0 tile and ask for 1/0/0 --> assume got rid of 3/4 of data, have one point in each quadrant -- assert output has a single point
 
-test('[composite] overzooming success points - overzooming zoom factor of 2 between two tiles', function(assert) {
+
+test('[composite] overzooming success - different zooms between two tiles', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
+
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
-  
   const originalGeometry = info.layers.quadrants.feature(0).loadGeometry()[0][0];
 
   const tiles = [
@@ -597,65 +594,20 @@ test('[composite] overzooming success points - overzooming zoom factor of 2 betw
 
   const zxy = {z:1, x:0, y:0};
 
-  const long = geoData.features[0].geometry.coordinates[0];
-  const lat = geoData.features[0].geometry.coordinates[1];
-  const longInt = Math.round(parseFloat('.' + (long2tile(long,zxy.z)).toString().split('.')[1])*4096);
-  const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
-
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
-
     assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
-      
     assert.deepEqual(
-      outputInfo.layers.quadrants.feature(0).loadGeometry(), 
-      [ [ { x: 1280, y: 1664 } ] ], 
+      outputInfo.layers.quadrants.feature(0).loadGeometry(),
+      [ [ { x: 1280, y: 1664 } ] ],
       'first feature scales as expected'
     );
 
     assert.deepEqual(
-      {x:longInt, y:latInt}, 
+      {x:originalGeometry.x *2, y:originalGeometry.y *2},
       outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
-      'check that new coordinates shifted properly (zoom factor is 2)'
-    ); 
-
-    assert.end();
-  });
-});
-
-test('[composite] overzooming success points - overzooming zoom factor of 3 between two tiles', function(assert) {
-  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
-  const info = vtinfo(buffer1);
-  assert.equal(info.layers.quadrants.length, 4);
-  
-  const originalGeometry = info.layers.quadrants.feature(0).loadGeometry()[0][0];
-  const tiles = [
-    {buffer: buffer1, z:0, x:0, y:0}
-  ];
-
-  const zxy = {z:2, x:0, y:0};
-
-  const long = geoData.features[0].geometry.coordinates[0];
-  const lat = geoData.features[0].geometry.coordinates[1];
-  const longInt = Math.round(parseFloat('.' + (long2tile(long,zxy.z)).toString().split('.')[1])*4096);
-  const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
-
-  composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const outputInfo = vtinfo(vtBuffer);
-
-    assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
-
-    assert.deepEqual(
-      outputInfo.layers.quadrants.feature(0).loadGeometry(), 
-      [ [ { x: 2560, y: 3328 } ] ], 
-      'first feature scales as expected'
+      'check that new coordinates are 2x original coordinates (since zoom factor is 2)'
     );
-
-    assert.deepEqual(
-      {x:longInt, y:latInt}, 
-      outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
-      'check that new coordinates shifted properly (since zoom factor is 3)'
-    ); 
 
     assert.end();
   });
