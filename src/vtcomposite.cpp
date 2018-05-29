@@ -147,14 +147,15 @@ struct CompositeWorker : Nan::AsyncWorker
                             {
                                 vtzero::layer_builder layer_builder{builder, layer};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
-                                    auto geom = mapbox::vector_tile::extract_geometry<int32_t>(feature);
+                                    using coordinate_type = std::int64_t;
+                                    auto geom = mapbox::vector_tile::extract_geometry<coordinate_type>(feature);
                                     int dx, dy;
                                     std::tie(dx, dy) = vtile::displacement(tile_obj->z, tile_size, target_z, target_x, target_y);
                                     // scale by zoom_factor and apply displacement
                                     mapbox::geometry::for_each_point(geom,
-                                                                     vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor, dx, dy));
-                                    mapbox::geometry::box<std::int32_t> bbox{{-buffer_size, -buffer_size}, {tile_size + buffer_size, tile_size + buffer_size}};
-                                    mapbox::util::apply_visitor(vtile::feature_builder_visitor<std::int32_t>{layer_builder, bbox, feature}, geom);
+                                                                     vtile::detail::zoom_coordinates<mapbox::geometry::point<coordinate_type>>(zoom_factor, dx, dy));
+                                    mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size}, {tile_size + buffer_size, tile_size + buffer_size}};
+                                    mapbox::util::apply_visitor(vtile::feature_builder_visitor<coordinate_type>{layer_builder, bbox, feature}, geom);
                                     return true;
                                 });
                             }
