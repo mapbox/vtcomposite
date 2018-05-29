@@ -122,6 +122,20 @@ test('[composite] success: compositing single gzipped VT', function(assert) {
   });
 });
 
+test('[composite] success: gzipped output', function(assert) {
+  const tiles = [
+    {buffer: bufferSF, z:15, x:5238, y:12666}
+  ];
+
+  const zxy = {z:15, x:5238, y:12666};
+
+  composite(tiles, zxy, {compress:true}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.equal(zlib.gunzipSync(vtBuffer).length, bufferSF.length, 'same size');
+    assert.end();
+  });
+});
+
 // TEST - check vt is within target
 
 test('[composite] failure? discards layer that is not within target', function(assert) {
