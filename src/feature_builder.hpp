@@ -11,7 +11,8 @@
 #include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
 
-BOOST_GEOMETRY_REGISTER_POINT_2D(mapbox::geometry::point<std::int32_t>, std::int32_t, boost::geometry::cs::cartesian, x, y)
+//BOOST_GEOMETRY_REGISTER_POINT_2D(mapbox::geometry::point<std::int32_t>, std::int32_t, boost::geometry::cs::cartesian, x, y)
+// ^ Uncomment to enable coordinate_type = std::int32_t ^
 
 namespace vtile {
 

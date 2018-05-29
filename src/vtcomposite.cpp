@@ -2,10 +2,10 @@
 #include "vtcomposite.hpp"
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
-#include "extract_geometry.hpp"
 #include "zoom_coordinates.hpp"
 #include "feature_builder.hpp"
 // gzip-hpp
+#include <gzip/compress.hpp>
 #include <gzip/decompress.hpp>
 #include <gzip/utils.hpp>
 // vtzero
@@ -16,6 +16,7 @@
 #include <mapbox/geometry/box.hpp>
 // stl
 #include <algorithm>
+#include <mapbox/vector_tile.hpp>
 
 namespace vtile {
 
@@ -74,6 +75,8 @@ struct BatonType
     std::uint32_t z{};
     std::uint32_t x{};
     std::uint32_t y{};
+    int buffer_size = 0;
+    bool compress = false;
 };
 
 struct CompositeWorker : Nan::AsyncWorker
@@ -92,6 +95,8 @@ struct CompositeWorker : Nan::AsyncWorker
             vtzero::tile_builder builder;
             std::vector<std::string> names;
 
+            int const tile_size = 4096;
+            int buffer_size = baton_data_->buffer_size;
             std::uint32_t const target_z = baton_data_->z;
             std::uint32_t const target_x = baton_data_->x;
             std::uint32_t const target_y = baton_data_->y;
@@ -142,15 +147,15 @@ struct CompositeWorker : Nan::AsyncWorker
                             {
                                 vtzero::layer_builder layer_builder{builder, layer};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
-                                    auto geom = vtile::extract_geometry<std::int32_t>(feature);
-                                    int const tile_size = 4096u;
+                                    using coordinate_type = std::int64_t;
+                                    auto geom = mapbox::vector_tile::extract_geometry<coordinate_type>(feature);
                                     int dx, dy;
                                     std::tie(dx, dy) = vtile::displacement(tile_obj->z, tile_size, target_z, target_x, target_y);
                                     // scale by zoom_factor and apply displacement
                                     mapbox::geometry::for_each_point(geom,
-                                                                     vtile::detail::zoom_coordinates<mapbox::geometry::point<std::int32_t>>(zoom_factor, dx, dy));
-                                    mapbox::geometry::box<std::int32_t> bbox{{0, 0}, {tile_size, tile_size}};
-                                    mapbox::util::apply_visitor(vtile::feature_builder_visitor<std::int32_t>{layer_builder, bbox, feature}, geom);
+                                                                     vtile::detail::zoom_coordinates<mapbox::geometry::point<coordinate_type>>(zoom_factor, dx, dy));
+                                    mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size}, {tile_size + buffer_size, tile_size + buffer_size}};
+                                    mapbox::util::apply_visitor(vtile::feature_builder_visitor<coordinate_type>{layer_builder, bbox, feature}, geom);
                                     return true;
                                 });
                             }
@@ -167,7 +172,16 @@ struct CompositeWorker : Nan::AsyncWorker
                 }
             }
             std::string& tile_buffer = *output_buffer_.get();
-            builder.serialize(tile_buffer);
+            if (baton_data_->compress)
+            {
+                std::string temp;
+                builder.serialize(temp);
+                tile_buffer = gzip::compress(temp.data(), temp.size());
+            }
+            else
+            {
+                builder.serialize(tile_buffer);
+            }
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -368,6 +382,38 @@ NAN_METHOD(composite)
 
     baton_data->y = static_cast<std::uint32_t>(y_maprequest);
 
+    if (info.Length() > 3) // options
+    {
+        if (!info[2]->IsObject())
+        {
+            return utils::CallbackError("'options' arg must be an object", callback);
+        }
+        v8::Local<v8::Object> options = info[2]->ToObject();
+        if (options->Has(Nan::New("buffer_size").ToLocalChecked()))
+        {
+            v8::Local<v8::Value> bs_value = options->Get(Nan::New("buffer_size").ToLocalChecked());
+            if (!bs_value->IsNumber())
+            {
+                return utils::CallbackError("'buffer_size' must be a number", callback);
+            }
+
+            int buffer_size = bs_value->Int32Value();
+            if (buffer_size < 0)
+            {
+                return utils::CallbackError("'buffer_size' must be a positive number", callback);
+            }
+            baton_data->buffer_size = buffer_size;
+        }
+        if (options->Has(Nan::New("compress").ToLocalChecked()))
+        {
+            v8::Local<v8::Value> comp_value = options->Get(Nan::New("compress").ToLocalChecked());
+            if (!comp_value->IsBoolean())
+            {
+                return utils::CallbackError("'compress' must be a boolean", callback);
+            }
+            baton_data->compress = comp_value->BooleanValue();
+        }
+    }
     // enter the threadpool, then done in the callback function call the threadpool
     auto* worker = new CompositeWorker{std::move(baton_data), new Nan::Callback{callback}};
     Nan::AsyncQueueWorker(worker);
