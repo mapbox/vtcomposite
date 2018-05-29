@@ -5,6 +5,7 @@
 #include "zoom_coordinates.hpp"
 #include "feature_builder.hpp"
 // gzip-hpp
+#include <gzip/compress.hpp>
 #include <gzip/decompress.hpp>
 #include <gzip/utils.hpp>
 // vtzero
@@ -75,6 +76,7 @@ struct BatonType
     std::uint32_t x{};
     std::uint32_t y{};
     int buffer_size = 0;
+    bool compress = false;
 };
 
 struct CompositeWorker : Nan::AsyncWorker
@@ -169,7 +171,16 @@ struct CompositeWorker : Nan::AsyncWorker
                 }
             }
             std::string& tile_buffer = *output_buffer_.get();
-            builder.serialize(tile_buffer);
+            if (baton_data_->compress)
+            {
+                std::string temp;
+                builder.serialize(temp);
+                tile_buffer = gzip::compress(temp.data(), temp.size());
+            }
+            else
+            {
+                builder.serialize(tile_buffer);
+            }
         }
         // LCOV_EXCL_START
         catch (std::exception const& e)
@@ -391,6 +402,15 @@ NAN_METHOD(composite)
                 return utils::CallbackError("'buffer_size' must be a positive number", callback);
             }
             baton_data->buffer_size = buffer_size;
+        }
+        if (options->Has(Nan::New("compress").ToLocalChecked()))
+        {
+            v8::Local<v8::Value> comp_value = options->Get(Nan::New("compress").ToLocalChecked());
+            if (!comp_value->IsBoolean())
+            {
+                return utils::CallbackError("'compress' must be a boolean", callback);
+            }
+            baton_data->compress = comp_value->BooleanValue();
         }
     }
     // enter the threadpool, then done in the callback function call the threadpool
