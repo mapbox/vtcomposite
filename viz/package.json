@@ -9,6 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@mapbox/vt_shaver": "^1.1.0",
+    "body-parser": "^1.18.3",
+    "crypto": "^1.0.1",
+    "ejs": "^2.6.1",
     "express": "^4.16.3"
   }
 }

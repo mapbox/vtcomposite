@@ -12,7 +12,6 @@
     </style>
 </head>
 <body>
-
 <div id='map'></div>
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiYW1pbGx6cGF1Z2giLCJhIjoiY2o0YTdoZm90MHl0ejMzcXE1Y3JudDdjeiJ9.zqXrv4aYQFpAHIesVK7J1w';
@@ -23,52 +22,38 @@
         center: [-121.1024, 47.7301]
     });
 
+
     map.on('load', function() {
         map.showTileBoundaries = true; 
 
         map.addLayer({
             "id": "composite-test",
-            "type": "line",
             "source": {
                 "type": "vector",
-                // returns the same thing no matter where you are 
-                "tiles": ["http://localhost:3000/tiles/{z}/{x}/{y}.mvt"],
+                "tiles": ["http://localhost:3000/<%= type %>/{z}/{x}/{y}.mvt"],
                 "minzoom": 4,
                 "maxzoom": 6
             },
-            "source-layer": "road",
-            "layout": {
-                "line-cap": "round",
-                "line-join": "round"
-            },
-            "paint": {
-                "line-opacity": 0.6,
-                "line-color": "rgb(53, 175, 109)",
-                "line-width": 2
-            }
+            "source-layer": "<%= layer %>",
+            "layout": <%- layout %>,
+            "paint": <%- paintStyling %>,
+            "type": "<%= typeStyling %>"
         });
 
 
         map.addLayer({
             "id": "composite-test-z7",
-            "type": "line",
             "source": {
                 "type": "vector",
-                // returns the same thing no matter where you are 
-                "tiles": ["http://localhost:3000/tiles/{z}/{x}/{y}.mvt"],
+                "tiles": ["http://localhost:3000/<%= type %>/{z}/{x}/{y}.mvt"],
                 "minzoom": 7,
                 "maxzoom": 14
             },
-            "source-layer": "road",
-            "layout": {
-                "line-cap": "round",
-                "line-join": "round"
-            },
-            "paint": {
-                "line-opacity": 0.6,
-                "line-color": "rgb(0, 0, 255)",
-                "line-width": 2
-            }
+            "source-layer": "<%= layer %>",
+            "source-layer": "<%= layer %>",
+            "layout": <%- layout %>,
+            "paint": <%- paintStylingCopy %>,
+            "type": "<%= typeStyling %>"
         });
     });
 
