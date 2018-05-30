@@ -75,6 +75,7 @@ struct BatonType
     std::uint32_t z{};
     std::uint32_t x{};
     std::uint32_t y{};
+    int tile_size = 4096;
     int buffer_size = 0;
     bool compress = false;
 };
@@ -95,8 +96,8 @@ struct CompositeWorker : Nan::AsyncWorker
             vtzero::tile_builder builder;
             std::vector<std::string> names;
 
-            int const tile_size = 4096;
-            int buffer_size = baton_data_->buffer_size;
+            int const tile_size = baton_data_->tile_size;
+            int const buffer_size = baton_data_->buffer_size;
             std::uint32_t const target_z = baton_data_->z;
             std::uint32_t const target_x = baton_data_->x;
             std::uint32_t const target_y = baton_data_->y;
@@ -389,6 +390,21 @@ NAN_METHOD(composite)
             return utils::CallbackError("'options' arg must be an object", callback);
         }
         v8::Local<v8::Object> options = info[2]->ToObject();
+        if (options->Has(Nan::New("tile_size").ToLocalChecked()))
+        {
+            v8::Local<v8::Value> ts_value = options->Get(Nan::New("tile_size").ToLocalChecked());
+            if (!ts_value->IsNumber())
+            {
+                return utils::CallbackError("'tile_size' must be a number", callback);
+            }
+
+            int tile_size = ts_value->Int32Value();
+            if (tile_size < 256 || tile_size > 4096)
+            {
+                return utils::CallbackError("'tile_size' must be between 256 and 4096", callback);
+            }
+            baton_data->tile_size = tile_size;
+        }
         if (options->Has(Nan::New("buffer_size").ToLocalChecked()))
         {
             v8::Local<v8::Value> bs_value = options->Get(Nan::New("buffer_size").ToLocalChecked());
