@@ -25,7 +25,7 @@ struct TileObject
     TileObject(std::uint32_t z0,
                std::uint32_t x0,
                std::uint32_t y0,
-               v8::Local<v8::Object> buffer)
+               v8::Local<v8::Object> const& buffer)
         : z{z0},
           x{x0},
           y{y0},
