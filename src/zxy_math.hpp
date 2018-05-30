@@ -9,7 +9,7 @@
 
 namespace vtile {
 
-inline mapbox::geometry::box<double> mercator_extent(unsigned z, unsigned x, unsigned y)
+inline mapbox::geometry::box<double> mercator_extent(int z, int x, int y)
 {
     static constexpr double EARTH_RADIUS = 6378137.0;
     static constexpr double half_of_equator = M_PI * EARTH_RADIUS;
@@ -29,31 +29,31 @@ inline bool same(T const& a, T const& b)
 }
 
 template <typename T>
-inline bool same_zxy(T const& vt, unsigned z, unsigned x, unsigned y)
+inline bool same_zxy(T const& vt, int z, int x, int y)
 {
     return (vt.z == z) && (vt.x == x) && (vt.y == y);
 }
 
-inline std::tuple<unsigned, unsigned, unsigned> zoom_out(unsigned z, unsigned x, unsigned y)
+inline std::tuple<int, int, int> zoom_out(int z, int x, int y)
 {
     return std::make_tuple(z - 1, x >> 1, y >> 1);
 }
 
 template <typename T>
-inline bool within_target(T const& vt, unsigned z, unsigned x, unsigned y)
+inline bool within_target(T const& vt, int z, int x, int y)
 {
     if (vt.z > z) return false;
-    unsigned dz = z - vt.z;
+    int dz = z - vt.z;
     return ((x >> dz) == vt.x) && ((y >> dz) == vt.y);
 }
 
-inline std::tuple<int, int> displacement(unsigned source_z, int tile_size, unsigned z, unsigned x, unsigned y)
+inline std::tuple<int, int> displacement(int source_z, int tile_size, int z, int x, int y)
 {
     int half_tile = tile_size >> 1;
     int dx = 0;
     int dy = 0;
-    unsigned delta_z = z - source_z;
-    for (unsigned zi = delta_z; zi > 0; --zi)
+    int delta_z = z - source_z;
+    for (int zi = delta_z; zi > 0; --zi)
     {
         half_tile <<= 1;
         if (x & 1) dx += half_tile;
