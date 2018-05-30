@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Display a map</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+    </style>
+</head>
+<body>
+<div id='map'></div>
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYW1pbGx6cGF1Z2giLCJhIjoiY2o0YTdoZm90MHl0ejMzcXE1Y3JudDdjeiJ9.zqXrv4aYQFpAHIesVK7J1w';
+    var map = new mapboxgl.Map({
+        container: 'map', // container id
+        style: 'mapbox://styles/mapsam/cjhjocuth1koa2rlo3xxtk4su', // stylesheet location
+        zoom: 7,
+        center: [-121.1024, 47.7301]
+    });
+
+
+    map.on('load', function() {
+        map.showTileBoundaries = true; 
+
+        map.addLayer({
+            "id": "composite-test",
+            "source": {
+                "type": "vector",
+                "tiles": ["http://localhost:3000/<%= type %>/{z}/{x}/{y}.mvt"],
+                "minzoom": 4,
+                "maxzoom": 6
+            },
+            "source-layer": "<%= layer %>",
+            "layout": <%- layout %>,
+            "paint": <%- paintStyling %>,
+            "type": "<%= typeStyling %>"
+        });
+
+
+        map.addLayer({
+            "id": "composite-test-z7",
+            "source": {
+                "type": "vector",
+                "tiles": ["http://localhost:3000/<%= type %>/{z}/{x}/{y}.mvt"],
+                "minzoom": 7,
+                "maxzoom": 14
+            },
+            "source-layer": "<%= layer %>",
+            "source-layer": "<%= layer %>",
+            "layout": <%- layout %>,
+            "paint": <%- paintStylingCopy %>,
+            "type": "<%= typeStyling %>"
+        });
+    });
+
+    map.addControl(new mapboxgl.NavigationControl());
+
+</script>
+
+</body>
+</html>
