@@ -12,8 +12,6 @@ app.engine('html', require('ejs').renderFile);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
-
 app.get('/', (req, res) => {
   let layer;
   let typeStyling = 'line';
@@ -98,13 +96,7 @@ app.get('/:type/:z(\\d+)/:x(\\d+)/:y(\\d+).mvt', (req, res) => {
   }else{
     return res.status(404).send("Sorry can't find that!");
   }
-
-
-  // you can make your tile server available on a network - everyone going to a webpage requesting from a single IP
 }); 
 
-function getTile(name, file) {
-  return fs.readFileSync(path.join(__dirname, '..', 'node_modules', '@mapbox', 'mvt-fixtures', 'real-world', name, file))
-}
-
-app.listen(3000, () => console.log('Example app listening on port 3000!')); 
+app.listen(3000, () => console.log('Example app listening on port 3000!'));
+ 
