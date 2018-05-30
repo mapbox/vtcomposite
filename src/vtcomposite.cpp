@@ -315,9 +315,7 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'y' value must not be less than zero", callback);
         }
-
-        std::unique_ptr<TileObject> tile{new TileObject{z, x, y, buffer}};
-        baton_data->tiles.push_back(std::move(tile));
+        baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer));
     }
 
     //validate zxy maprequest object
