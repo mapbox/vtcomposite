@@ -47,9 +47,9 @@ inline bool within_target(T const& vt, unsigned z, unsigned x, unsigned y)
     return ((x >> dz) == vt.x) && ((y >> dz) == vt.y);
 }
 
-inline std::tuple<int, int> displacement(unsigned source_z, unsigned tile_size, unsigned z, unsigned x, unsigned y)
+inline std::tuple<int, int> displacement(unsigned source_z, int tile_size, unsigned z, unsigned x, unsigned y)
 {
-    unsigned half_tile = tile_size >> 1;
+    int half_tile = tile_size >> 1;
     int dx = 0;
     int dy = 0;
     unsigned delta_z = z - source_z;
