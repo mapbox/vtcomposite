@@ -131,7 +131,18 @@ struct CompositeWorker : Nan::AsyncWorker
 
                             if (zoom_factor == 1)
                             {
-                                builder.add_existing_layer(layer);
+                                vtzero::layer_builder layer_builder{builder, layer};
+                                layer.for_each_feature([&](vtzero::feature const& feature) {
+                                    vtzero::geometry_feature_builder feature_builder{layer_builder};
+                                    if (feature.has_id()) feature_builder.set_id(feature.id());
+                                    feature_builder.set_geometry(feature.geometry());
+                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                        feature_builder.add_property(p);
+                                        return true;
+                                    });
+                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
+                                    return true;
+                                });
                             }
                             else
                             {
