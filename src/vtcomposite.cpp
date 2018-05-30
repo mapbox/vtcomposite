@@ -95,7 +95,7 @@ struct CompositeWorker : Nan::AsyncWorker
         {
             vtzero::tile_builder builder;
             std::vector<std::string> names;
-
+            std::vector<vtzero::data_view> layer_data_cache;
             int const tile_size = baton_data_->tile_size;
             int const buffer_size = baton_data_->buffer_size;
             std::uint32_t const target_z = baton_data_->z;
@@ -131,6 +131,8 @@ struct CompositeWorker : Nan::AsyncWorker
 
                             if (zoom_factor == 1)
                             {
+                                layer_data_cache.push_back(layer.data());
+                                // ^ cache data_views as it has to be available until serialize() method is called
                                 builder.add_existing_layer(layer);
                             }
                             else
