@@ -6,7 +6,9 @@ mason_packages
 *tgz
 code.*
 script.js
+convert.js
 *.profraw
 convert.js
 npm-debug.log
 shave.js
+
