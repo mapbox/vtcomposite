@@ -7,3 +7,7 @@ mason_packages
 code.*
 script.js
 convert.js
+*.profraw
+convert.js
+npm-debug.log
+shave.js

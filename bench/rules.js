@@ -4,15 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const mvtFixtures = require('@mapbox/mvt-fixtures');
 
-module.exports = [
-  // {
-  //   description: 'single tile in/out',
-  //   options: { },
-  //   tiles: [
-  //     { z: 15, x: 5239, y: 12666, buffer: getTile('sanfrancisco', '15-5239-12666.mvt')}
-  //   ], 
-  //   zxy: { z: 15, x: 5239, y: 12666}
-  // },  
+module.exports = [ 
   {
     description: 'two different tiles at the same zoom level, zero buffer',
     options: { },
