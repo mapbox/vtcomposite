@@ -22,10 +22,10 @@ namespace vtile {
 
 struct TileObject
 {
-    TileObject(std::uint32_t z0,
-               std::uint32_t x0,
-               std::uint32_t y0,
-               v8::Local<v8::Object> buffer)
+    TileObject(int z0,
+               int x0,
+               int y0,
+               v8::Local<v8::Object>& buffer)
         : z{z0},
           x{x0},
           y{y0},
@@ -48,16 +48,16 @@ struct TileObject
     TileObject(TileObject&&) = delete;
     TileObject& operator=(TileObject&&) = delete;
 
-    std::uint32_t z;
-    std::uint32_t x;
-    std::uint32_t y;
+    int z;
+    int x;
+    int y;
     vtzero::data_view data;
     Nan::Persistent<v8::Object> buffer_ref;
 };
 
 struct BatonType
 {
-    explicit BatonType(std::uint32_t num_tiles)
+    explicit BatonType(std::size_t num_tiles)
     {
         tiles.reserve(num_tiles);
     }
@@ -72,9 +72,10 @@ struct BatonType
 
     // members
     std::vector<std::unique_ptr<TileObject>> tiles{};
-    std::uint32_t z{};
-    std::uint32_t x{};
-    std::uint32_t y{};
+    int z{};
+    int x{};
+    int y{};
+    int tile_size = 4096;
     int buffer_size = 0;
     bool compress = false;
 };
@@ -83,7 +84,7 @@ struct CompositeWorker : Nan::AsyncWorker
 {
     using Base = Nan::AsyncWorker;
 
-    CompositeWorker(std::unique_ptr<BatonType> baton_data, Nan::Callback* cb)
+    CompositeWorker(std::unique_ptr<BatonType>&& baton_data, Nan::Callback* cb)
         : Base{cb},
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
@@ -95,24 +96,25 @@ struct CompositeWorker : Nan::AsyncWorker
             vtzero::tile_builder builder;
             std::vector<std::string> names;
 
-            int const tile_size = 4096;
-            int buffer_size = baton_data_->buffer_size;
-            std::uint32_t const target_z = baton_data_->z;
-            std::uint32_t const target_x = baton_data_->x;
-            std::uint32_t const target_y = baton_data_->y;
+            int const tile_size = baton_data_->tile_size;
+            int const buffer_size = baton_data_->buffer_size;
+            int const target_z = baton_data_->z;
+            int const target_x = baton_data_->x;
+            int const target_y = baton_data_->y;
+
+            std::vector<std::unique_ptr<std::vector<char>>> buffer_cache;
 
             for (auto const& tile_obj : baton_data_->tiles)
             {
                 if (vtile::within_target(*tile_obj, target_z, target_x, target_y))
                 {
-                    std::vector<char> buffer;
                     vtzero::data_view tile_view{};
-
                     if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
+                        buffer_cache.push_back(std::make_unique<std::vector<char>>());
                         gzip::Decompressor decompressor;
-                        decompressor.decompress(buffer, tile_obj->data.data(), tile_obj->data.size());
-                        tile_view = protozero::data_view{buffer.data(), buffer.size()};
+                        decompressor.decompress(*buffer_cache.back(), tile_obj->data.data(), tile_obj->data.size());
+                        tile_view = protozero::data_view{buffer_cache.back()->data(), buffer_cache.back()->size()};
                     }
                     else
                     {
@@ -130,18 +132,7 @@ struct CompositeWorker : Nan::AsyncWorker
 
                             if (zoom_factor == 1)
                             {
-                                vtzero::layer_builder layer_builder{builder, layer};
-                                layer.for_each_feature([&](vtzero::feature const& feature) {
-                                    vtzero::geometry_feature_builder feature_builder{layer_builder};
-                                    if (feature.has_id()) feature_builder.set_id(feature.id());
-                                    feature_builder.set_geometry(feature.geometry());
-                                    feature.for_each_property([&feature_builder](vtzero::property const& p) {
-                                        feature_builder.add_property(p);
-                                        return true;
-                                    });
-                                    feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
-                                    return true;
-                                });
+                                builder.add_existing_layer(layer);
                             }
                             else
                             {
@@ -199,7 +190,7 @@ struct CompositeWorker : Nan::AsyncWorker
         v8::Local<v8::Value> argv[argc] = {
             Nan::Null(),
             Nan::NewBuffer(&tile_buffer[0],
-                           static_cast<std::uint32_t>(tile_buffer.size()),
+                           static_cast<unsigned int>(tile_buffer.size()),
                            [](char*, void* hint) {
                                delete reinterpret_cast<std::string*>(hint);
                            },
@@ -277,7 +268,7 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'z' value in 'tiles' array item is not a number", callback);
         }
-        std::int64_t z = z_val->IntegerValue();
+        int z = z_val->Int32Value();
         if (z < 0)
         {
             return utils::CallbackError("'z' value must not be less than zero", callback);
@@ -293,7 +284,7 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'x' value in 'tiles' array item is not a number", callback);
         }
-        std::int64_t x = x_val->IntegerValue();
+        int x = x_val->Int32Value();
         if (x < 0)
         {
             return utils::CallbackError("'x' value must not be less than zero", callback);
@@ -309,17 +300,12 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'y' value in 'tiles' array item is not a number", callback);
         }
-        std::int64_t y = y_val->IntegerValue();
+        int y = y_val->Int32Value();
         if (y < 0)
         {
             return utils::CallbackError("'y' value must not be less than zero", callback);
         }
-
-        std::unique_ptr<TileObject> tile{new TileObject{static_cast<std::uint32_t>(z),
-                                                        static_cast<std::uint32_t>(x),
-                                                        static_cast<std::uint32_t>(y),
-                                                        buffer}};
-        baton_data->tiles.push_back(std::move(tile));
+        baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer));
     }
 
     //validate zxy maprequest object
@@ -339,12 +325,12 @@ NAN_METHOD(composite)
     {
         return utils::CallbackError("'z' value in 'tiles' array item is not a number", callback);
     }
-    std::int64_t z_maprequest = z_val_maprequest->IntegerValue();
+    int z_maprequest = z_val_maprequest->Int32Value();
     if (z_maprequest < 0)
     {
         return utils::CallbackError("'z' value must not be less than zero", callback);
     }
-    baton_data->z = static_cast<std::uint32_t>(z_maprequest);
+    baton_data->z = z_maprequest;
 
     // x value of map request object
     if (!zxy_maprequest->Has(Nan::New("x").ToLocalChecked()))
@@ -356,13 +342,13 @@ NAN_METHOD(composite)
     {
         return utils::CallbackError("'x' value in 'tiles' array item is not a number", callback);
     }
-    std::int64_t x_maprequest = x_val_maprequest->IntegerValue();
+    int x_maprequest = x_val_maprequest->Int32Value();
     if (x_maprequest < 0)
     {
         return utils::CallbackError("'x' value must not be less than zero", callback);
     }
 
-    baton_data->x = static_cast<std::uint32_t>(x_maprequest);
+    baton_data->x = x_maprequest;
 
     // y value of maprequest object
     if (!zxy_maprequest->Has(Nan::New("y").ToLocalChecked()))
@@ -374,13 +360,13 @@ NAN_METHOD(composite)
     {
         return utils::CallbackError("'y' value in 'tiles' array item is not a number", callback);
     }
-    std::int64_t y_maprequest = y_val_maprequest->IntegerValue();
+    int y_maprequest = y_val_maprequest->Int32Value();
     if (y_maprequest < 0)
     {
         return utils::CallbackError("'y' value must not be less than zero", callback);
     }
 
-    baton_data->y = static_cast<std::uint32_t>(y_maprequest);
+    baton_data->y = y_maprequest;
 
     if (info.Length() > 3) // options
     {
@@ -389,6 +375,21 @@ NAN_METHOD(composite)
             return utils::CallbackError("'options' arg must be an object", callback);
         }
         v8::Local<v8::Object> options = info[2]->ToObject();
+        if (options->Has(Nan::New("tile_size").ToLocalChecked()))
+        {
+            v8::Local<v8::Value> ts_value = options->Get(Nan::New("tile_size").ToLocalChecked());
+            if (!ts_value->IsNumber())
+            {
+                return utils::CallbackError("'tile_size' must be a number", callback);
+            }
+
+            int tile_size = ts_value->Int32Value();
+            if (tile_size < 256 || tile_size > 4096)
+            {
+                return utils::CallbackError("'tile_size' must be between 256 and 4096", callback);
+            }
+            baton_data->tile_size = tile_size;
+        }
         if (options->Has(Nan::New("buffer_size").ToLocalChecked()))
         {
             v8::Local<v8::Value> bs_value = options->Get(Nan::New("buffer_size").ToLocalChecked());
