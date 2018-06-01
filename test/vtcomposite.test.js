@@ -574,13 +574,6 @@ test('failure: map request zxy y value is negative', assert => {
   });
 });
 
-// TEST OVERZOOMING
-
-// TEST 1
-// overzooming success test - different zooms between two tiles. use a single buffer - don't need to composite two buffers at all.
-//pass one in - put in 0/0/0 tile and ask for 1/0/0 --> assume got rid of 3/4 of data, have one point in each quadrant -- assert output has a single point
-
-
 test('[composite] overzooming success - different zooms between two tiles', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
 
@@ -612,6 +605,69 @@ test('[composite] overzooming success - different zooms between two tiles', func
     assert.end();
   });
 });
+
+test.only('[composite] overzooming success and return compressed tile - different zooms between two tiles', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
+
+  const tiles = [
+    {buffer: buffer1, z:0, x:0, y:0}
+  ];
+
+  const zxy = {z:1, x:0, y:0};
+
+  composite(tiles, zxy, {compress:true}, (err, vtBuffer) => {
+    assert.equal(vtBuffer.length,71)
+    console.log('compressed buffer', vtBuffer.length)
+
+    composite(tiles, zxy, {}, (err, vtBuffer2) => {
+      assert.notEqual(vtBuffer.length, vtBuffer2.length)
+      assert.equal(vtBuffer2.length,57)
+      console.log('uncompressed buffer', vtBuffer2.length)
+      assert.end();
+    });
+  });
+});
+
+// test.only('[composite] overzooming success and buffer_size is 128 - different zooms between two tiles', function(assert) {
+//   const buffer1 = fs.readFileSync(__dirname + '/fixtures/simple-line.mvt');
+//   const info = vtinfo(buffer1);
+//   assert.equal(info.layers.quadrants.length, 1);
+//   console.log('info', info);
+//   const originalGeometryLineStringPoint1 = info.layers.quadrants.feature(0).loadGeometry()[0][0];
+//   const originalGeometryLineStringPoint2 = info.layers.quadrants.feature(0).loadGeometry()[0][1];
+
+//   const tiles = [
+//     {buffer: buffer1, z:0, x:0, y:0}
+//   ];
+
+//   const zxy = {z:1, x:0, y:0};
+
+//   const long = geoData.features[0].geometry.coordinates[0];
+//   const lat = geoData.features[0].geometry.coordinates[1];
+//   const longInt = Math.round(parseFloat('.' + (long2tile(long,zxy.z)).toString().split('.')[1])*4096);
+//   const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
+
+//   composite(tiles, zxy, {}, (err, vtBuffer) => {
+//     const outputInfo = vtinfo(vtBuffer);
+//     console.log('overzoomed output!', outputInfo.layers.quadrants.feature(0).loadGeometry())
+    
+//     assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
+
+//     // assert.deepEqual(
+//     //   outputInfo.layers.quadrants.feature(0).loadGeometry(), 
+//     //   [ [ { x: 1024, y: 2560  } ] ], 
+//     //   'first feature scales as expected'
+//     // );
+
+//     // assert.deepEqual(
+//     //   {x:longInt, y:latInt}, 
+//     //   outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
+//     //   'check that new coordinates shifted properly (since zoom factor is 3)'
+//     // ); 
+
+//     assert.end();
+//   });
+// });
 
 test('[composite] overzooming success points - overzooming zoom factor of 4 between two tiles', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
@@ -650,3 +706,7 @@ test('[composite] overzooming success points - overzooming zoom factor of 4 betw
     assert.end();
   });
 });
+
+
+
+
