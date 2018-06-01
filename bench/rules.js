@@ -108,7 +108,7 @@ module.exports = [
     options: { },
     tiles: [
       { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/polygons-buildings-sf-15-5239-12666.mvt')},
-      { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-water-sf-15-5239-12666.mvt')}
+      { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-hillshade-sf-15-5239-12666.mvt')}
     ], 
     zxy: { z: 16, x: 10478, y: 25332}
   }
