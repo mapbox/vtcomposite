@@ -93,6 +93,42 @@ module.exports = [
       { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/polygons-properties-16-10498-22872.mvt')}
     ],
     zxy: { z: 1, x: 0, y: 0}
+  }, 
+  { 
+    description: 'tiles completely made of points and linestrings, overzooming and lots of properties',
+    options: { },
+    tiles: [
+      { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/points-poi-sf-15-5239-12666.mvt')},
+      { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/linestrings-sf-15-5239-12666.mvt')}
+    ], 
+    zxy: { z: 16, x: 10478, y: 25332}
+  },  
+  { 
+    description: 'tiles completely made of points and linestrings, overzooming (2x) and lots of properties',
+    options: { },
+    tiles: [
+      { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/points-poi-sf-15-5239-12666.mvt')},
+      { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/linestrings-sf-15-5239-12666.mvt')}
+    ], 
+    zxy: { z: 17, x: 20956, y: 50664}
+  }, 
+  { 
+    description: 'tiles completely made of polygons, overzooming and lots of properties',
+    options: { },
+    tiles: [
+      { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/polygons-buildings-sf-15-5239-12666.mvt')},
+      { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-hillshade-sf-15-5239-12666.mvt')}
+    ], 
+    zxy: { z: 16, x: 10478, y: 25332}
+  }, 
+  { 
+    description: 'tiles completely made of polygons, overzooming (2x) and lots of properties',
+    options: { },
+    tiles: [
+      { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/polygons-buildings-sf-15-5239-12666.mvt')},
+      { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-hillshade-sf-15-5239-12666.mvt')}
+    ], 
+    zxy: { z: 17, x: 20956, y: 50664}
   }
 ];
 
