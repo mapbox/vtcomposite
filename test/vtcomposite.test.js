@@ -1,12 +1,12 @@
-var test = require('tape');
-var composite = require('../lib/index.js');
-var fs = require('fs');
-var path = require('path');
-var zlib = require('zlib');
-var mvtFixtures = require('@mapbox/mvt-fixtures');
-var vt = require('@mapbox/vector-tile').VectorTile;
-var pbf = require('pbf');
-var geoData = require('./fixtures/four-points.js');
+const test = require('tape');
+const composite = require('../lib/index.js');
+const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
+const mvtFixtures = require('@mapbox/mvt-fixtures');
+const vt = require('@mapbox/vector-tile').VectorTile;
+const pbf = require('pbf');
+const geoData = require('./fixtures/four-points.js');
 
 
 function long2tile(lon,zoom) { 
@@ -18,11 +18,11 @@ function lat2tile(lat,zoom)  {
 }
 
 function vtinfo(buffer) {
-  var tile = new vt(new pbf(buffer));
+  const tile = new vt(new pbf(buffer));
   return tile;
 }
 
-var bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
+const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
 
 test('[composite] success: buffer size stays the same when no compositing needed', function(assert) {
@@ -107,7 +107,7 @@ test('[composite] success compositing - different layer name, different features
   });
 });
 
-var gzipped_bufferSF = zlib.gzipSync(bufferSF);
+const gzipped_bufferSF = zlib.gzipSync(bufferSF);
 
 test('[composite] success: compositing single gzipped VT', function(assert) {
   const tiles = [
@@ -630,6 +630,38 @@ test('[composite] overzooming success and return compressed tile - different zoo
   });
 });
 
+// test.only('[composite] success (linestring) and buffer_size is 128 - same zooms between two tiles', function(assert) {
+//   const buffer1 = fs.readFileSync(__dirname + '/fixtures/simple-line.mvt');
+//   const info = vtinfo(buffer1);
+//   // assert.equal(info.layers.quadrants.length, 1);
+//   const originalGeometryLineStringPoint1 = info.layers.quadrants.feature(0).loadGeometry()[0][0];
+//   const originalGeometryLineStringPoint2 = info.layers.quadrants.feature(0).loadGeometry()[0][1];
+
+//   const tiles = [
+//     {buffer: buffer1, z:1, x:0, y:0}
+//   ];
+
+//   const zxy = {z:1, x:0, y:0};
+
+//   composite(tiles, zxy, {buffer_size:128}, (err, vtBuffer) => {
+//     const outputInfo = vtinfo(vtBuffer);
+//     console.log('outputinfo', outputInfo)
+//     assert.deepEqual(
+//       outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0], 
+//       originalGeometryLineStringPoint1,
+//       'first feature as expected'
+//     );
+
+//     assert.deepEqual(
+//       outputInfo.layers.quadrants.feature(0).loadGeometry()[0][1],
+//       { x: 4224, y: 3398 },
+//       'check that new coordinates shifted properly (since zoom factor is 3)'
+//     ); 
+
+//     assert.end();
+//   });
+// });
+
 test('[composite] overzooming success (linestring) and buffer_size is 128 - different zooms between two tiles', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/simple-line.mvt');
   const info = vtinfo(buffer1);
@@ -642,11 +674,6 @@ test('[composite] overzooming success (linestring) and buffer_size is 128 - diff
   ];
 
   const zxy = {z:1, x:0, y:0};
-
-  const long = geoData.features[0].geometry.coordinates[0];
-  const lat = geoData.features[0].geometry.coordinates[1];
-  const longInt = Math.round(parseFloat('.' + (long2tile(long,zxy.z)).toString().split('.')[1])*4096);
-  const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
 
   composite(tiles, zxy, {buffer_size:128}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
@@ -705,7 +732,7 @@ test('[composite] overzooming success points - overzooming zoom factor of 4 betw
   });
 });
 
-test('[composite] composite and overzooming success polygons - overzooming zoom factor of 2 between two tiles', function(assert) {
+test('[composite] composite and overzooming success polygons - overzooming zoom factor of 2 between two tiles, buffer_size & no buffer_size', function(assert) {
   const tiles = [
     { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/polygons-buildings-sf-15-5239-12666.mvt')},
     { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-hillshade-sf-15-5239-12666.mvt')},
@@ -726,7 +753,13 @@ test('[composite] composite and overzooming success polygons - overzooming zoom 
     assert.equal(outputInfo.layers.building.length, 238);
     assert.equal(outputInfo.layers.hillshade.length, 11);
     assert.equal(outputInfo.layers.poi_label.length, 14);
-    assert.end();
+
+    composite(tiles, zxy, {buffer_size:128}, (err, vtBuffer) => {
+      const outputInfoWithBuffer = vtinfo(vtBuffer);
+
+      assert.equal(outputInfoWithBuffer.layers.building.length, 275);
+      assert.end();
+    });
   });
 });
 
