@@ -1,12 +1,12 @@
 {
-  "name": "@mapbox/node-cpp-skel",
+  "name": "@mapbox/vtcomposite",
   "version": "0.1.0-alpha",
   "description": "Skeleton for bindings to C++ libraries for Node.js using NAN",
-  "url": "http://github.com/mapbox/node-cpp-skel",
+  "url": "http://github.com/mapbox/vtcomposite",
   "main": "./lib/index.js",
   "repository": {
     "type": "git",
-    "url": "git@github.com:mapbox/node-cpp-skel.git"
+    "url": "git@github.com:mapbox/vtcomposite.git"
   },
   "scripts": {
     "test": "tape test/*.test.js",
