@@ -33,7 +33,7 @@ module.exports = {
                 {
                   Action: ['s3:DeleteObject', 's3:GetObject', 's3:GetObjectAcl', 's3:PutObject', 's3:PutObjectAcl'],
                   Effect: 'Allow',
-                  Resource: 'arn:aws:s3:::mapbox-node-binary/' + package_json.name + '/*'
+                  Resource: 'arn:aws:s3:::mapbox-node-binary/@mapbox/' + package_json.name + '/*'
                 }
               ]
             }
