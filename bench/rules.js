@@ -114,7 +114,7 @@ module.exports = [
   },  
   { 
     description: 'returns compressed buffer - tiles completely made of points and linestrings, overzooming and lots of properties',
-    options: { compressed:true },
+    options: { compress:true },
     tiles: [
       { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/points-poi-sf-15-5239-12666.mvt')},
       { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/linestrings-sf-15-5239-12666.mvt')}
@@ -159,7 +159,7 @@ module.exports = [
   }, 
   { 
     description: 'return compressed buffer - tiles completely made of polygons, overzooming (2x) and lots of properties',
-    options: {compressed:true},
+    options: {compress:true},
     tiles: [
       { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/polygons-buildings-sf-15-5239-12666.mvt')},
       { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-hillshade-sf-15-5239-12666.mvt')}
