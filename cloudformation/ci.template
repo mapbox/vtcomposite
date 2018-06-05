@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "user for publishing to s3://mapbox-node-binary/@mapbox/node-cpp-skel",
+    "Description": "user for publishing to s3://mapbox-node-binary/@mapbox/vtcomposite",
     "Resources": {
         "User": {
             "Type": "AWS::IAM::User",
@@ -19,7 +19,7 @@
                                     "Condition": {
                                         "StringLike": {
                                             "s3:prefix": [
-                                                "@mapbox/node-cpp-skel/*"
+                                                "@mapbox/vtcomposite/*"
                                             ]
                                         }
                                     }
@@ -40,7 +40,7 @@
                                         "s3:PutObjectAcl"
                                     ],
                                     "Effect": "Allow",
-                                    "Resource": "arn:aws:s3:::mapbox-node-binary/@mapbox/node-cpp-skel/*"
+                                    "Resource": "arn:aws:s3:::mapbox-node-binary/@mapbox/vtcomposite/*"
                                 }
                             ]
                         }
