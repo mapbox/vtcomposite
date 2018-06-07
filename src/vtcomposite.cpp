@@ -20,6 +20,8 @@
 
 namespace vtile {
 
+static constexpr unsigned version = 2u;
+
 struct TileObject
 {
     TileObject(int z0,
@@ -136,7 +138,7 @@ struct CompositeWorker : Nan::AsyncWorker
                             }
                             else
                             {
-                                vtzero::layer_builder layer_builder{builder, layer};
+                                vtzero::layer_builder layer_builder{builder, name, version, static_cast<unsigned>(tile_size)};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
                                     using coordinate_type = std::int64_t;
                                     auto geom = mapbox::vector_tile::extract_geometry<coordinate_type>(feature);
