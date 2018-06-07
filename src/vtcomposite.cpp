@@ -77,7 +77,6 @@ struct BatonType
     int z{};
     int x{};
     int y{};
-    int tile_size = 4096;
     int buffer_size = 0;
     bool compress = false;
 };
@@ -98,7 +97,6 @@ struct CompositeWorker : Nan::AsyncWorker
             vtzero::tile_builder builder;
             std::vector<std::string> names;
 
-            int const tile_size = baton_data_->tile_size;
             int const buffer_size = baton_data_->buffer_size;
             int const target_z = baton_data_->z;
             int const target_x = baton_data_->x;
@@ -138,16 +136,18 @@ struct CompositeWorker : Nan::AsyncWorker
                             }
                             else
                             {
-                                vtzero::layer_builder layer_builder{builder, name, version, static_cast<unsigned>(tile_size)};
+                                unsigned extent = layer.extent();
+                                vtzero::layer_builder layer_builder{builder, name, version, extent};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
                                     using coordinate_type = std::int64_t;
                                     auto geom = mapbox::vector_tile::extract_geometry<coordinate_type>(feature);
                                     int dx, dy;
-                                    std::tie(dx, dy) = vtile::displacement(tile_obj->z, tile_size, target_z, target_x, target_y);
+                                    std::tie(dx, dy) = vtile::displacement(tile_obj->z, static_cast<int>(extent), target_z, target_x, target_y);
                                     // scale by zoom_factor and apply displacement
                                     mapbox::geometry::for_each_point(geom,
                                                                      vtile::detail::zoom_coordinates<mapbox::geometry::point<coordinate_type>>(zoom_factor, dx, dy));
-                                    mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size}, {tile_size + buffer_size, tile_size + buffer_size}};
+                                    mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
+                                                                                {static_cast<int>(extent) + buffer_size, static_cast<int>(extent) + buffer_size}};
                                     mapbox::util::apply_visitor(vtile::feature_builder_visitor<coordinate_type>{layer_builder, bbox, feature}, geom);
                                     return true;
                                 });
@@ -377,21 +377,6 @@ NAN_METHOD(composite)
             return utils::CallbackError("'options' arg must be an object", callback);
         }
         v8::Local<v8::Object> options = info[2]->ToObject();
-        if (options->Has(Nan::New("tile_size").ToLocalChecked()))
-        {
-            v8::Local<v8::Value> ts_value = options->Get(Nan::New("tile_size").ToLocalChecked());
-            if (!ts_value->IsNumber())
-            {
-                return utils::CallbackError("'tile_size' must be a number", callback);
-            }
-
-            int tile_size = ts_value->Int32Value();
-            if (tile_size < 256 || tile_size > 4096)
-            {
-                return utils::CallbackError("'tile_size' must be between 256 and 4096", callback);
-            }
-            baton_data->tile_size = tile_size;
-        }
         if (options->Has(Nan::New("buffer_size").ToLocalChecked()))
         {
             v8::Local<v8::Value> bs_value = options->Get(Nan::New("buffer_size").ToLocalChecked());
