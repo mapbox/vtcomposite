@@ -20,7 +20,7 @@
 
 namespace vtile {
 
-static constexpr unsigned version = 2u;
+static constexpr unsigned MVT_VERSION_2 = 2u;
 
 struct TileObject
 {
@@ -129,15 +129,30 @@ struct CompositeWorker : Nan::AsyncWorker
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
-
+                            unsigned extent = layer.extent();
                             if (zoom_factor == 1)
                             {
-                                builder.add_existing_layer(layer);
+                                if (layer.version() == MVT_VERSION_2) builder.add_existing_layer(layer);
+                                else
+                                {
+                                    // force v2
+                                    vtzero::layer_builder layer_builder{builder, name , MVT_VERSION_2, extent};
+                                    layer.for_each_feature([&](vtzero::feature const& feature) {
+                                            vtzero::geometry_feature_builder feature_builder{layer_builder};
+                                            if (feature.has_id()) feature_builder.set_id(feature.id());
+                                            feature_builder.set_geometry(feature.geometry());
+                                            feature.for_each_property([&feature_builder](vtzero::property const& p) {
+                                                    feature_builder.add_property(p);
+                                                    return true;
+                                                });
+                                            feature_builder.commit(); // temp work around for vtzero 1.0.1 regression
+                                            return true;
+                                        });
+                                }
                             }
                             else
                             {
-                                unsigned extent = layer.extent();
-                                vtzero::layer_builder layer_builder{builder, name, version, extent};
+                                vtzero::layer_builder layer_builder{builder, name, MVT_VERSION_2, extent};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
                                     using coordinate_type = std::int64_t;
                                     auto geom = mapbox::vector_tile::extract_geometry<coordinate_type>(feature);
