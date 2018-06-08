@@ -282,9 +282,9 @@ NAN_METHOD(composite)
             return utils::CallbackError("item in 'tiles' array does not include a 'z' value", callback);
         }
         v8::Local<v8::Value> z_val = tile_obj->Get(Nan::New("z").ToLocalChecked());
-        if (!z_val->IsNumber())
+        if (!z_val->IsInt32())
         {
-            return utils::CallbackError("'z' value in 'tiles' array item is not a number", callback);
+            return utils::CallbackError("'z' value in 'tiles' array item is not an int32", callback);
         }
         int z = z_val->Int32Value();
         if (z < 0)
@@ -298,9 +298,9 @@ NAN_METHOD(composite)
             return utils::CallbackError("item in 'tiles' array does not include a 'x' value", callback);
         }
         v8::Local<v8::Value> x_val = tile_obj->Get(Nan::New("x").ToLocalChecked());
-        if (!x_val->IsNumber())
+        if (!x_val->IsInt32())
         {
-            return utils::CallbackError("'x' value in 'tiles' array item is not a number", callback);
+            return utils::CallbackError("'x' value in 'tiles' array item is not an int32", callback);
         }
         int x = x_val->Int32Value();
         if (x < 0)
@@ -314,9 +314,9 @@ NAN_METHOD(composite)
             return utils::CallbackError("item in 'tiles' array does not include a 'y' value", callback);
         }
         v8::Local<v8::Value> y_val = tile_obj->Get(Nan::New("y").ToLocalChecked());
-        if (!y_val->IsNumber())
+        if (!y_val->IsInt32())
         {
-            return utils::CallbackError("'y' value in 'tiles' array item is not a number", callback);
+            return utils::CallbackError("'y' value in 'tiles' array item is not an int32", callback);
         }
         int y = y_val->Int32Value();
         if (y < 0)
@@ -339,9 +339,9 @@ NAN_METHOD(composite)
         return utils::CallbackError("item in 'tiles' array does not include a 'z' value", callback);
     }
     v8::Local<v8::Value> z_val_maprequest = zxy_maprequest->Get(Nan::New("z").ToLocalChecked());
-    if (!z_val_maprequest->IsNumber())
+    if (!z_val_maprequest->IsInt32())
     {
-        return utils::CallbackError("'z' value in 'tiles' array item is not a number", callback);
+        return utils::CallbackError("'z' value in 'tiles' array item is not an int32", callback);
     }
     int z_maprequest = z_val_maprequest->Int32Value();
     if (z_maprequest < 0)
@@ -356,9 +356,9 @@ NAN_METHOD(composite)
         return utils::CallbackError("item in 'tiles' array does not include a 'x' value", callback);
     }
     v8::Local<v8::Value> x_val_maprequest = zxy_maprequest->Get(Nan::New("x").ToLocalChecked());
-    if (!x_val_maprequest->IsNumber())
+    if (!x_val_maprequest->IsInt32())
     {
-        return utils::CallbackError("'x' value in 'tiles' array item is not a number", callback);
+        return utils::CallbackError("'x' value in 'tiles' array item is not an int32", callback);
     }
     int x_maprequest = x_val_maprequest->Int32Value();
     if (x_maprequest < 0)
@@ -374,9 +374,9 @@ NAN_METHOD(composite)
         return utils::CallbackError("item in 'tiles' array does not include a 'y' value", callback);
     }
     v8::Local<v8::Value> y_val_maprequest = zxy_maprequest->Get(Nan::New("y").ToLocalChecked());
-    if (!y_val_maprequest->IsNumber())
+    if (!y_val_maprequest->IsInt32())
     {
-        return utils::CallbackError("'y' value in 'tiles' array item is not a number", callback);
+        return utils::CallbackError("'y' value in 'tiles' array item is not an int32", callback);
     }
     int y_maprequest = y_val_maprequest->Int32Value();
     if (y_maprequest < 0)
@@ -396,15 +396,15 @@ NAN_METHOD(composite)
         if (options->Has(Nan::New("buffer_size").ToLocalChecked()))
         {
             v8::Local<v8::Value> bs_value = options->Get(Nan::New("buffer_size").ToLocalChecked());
-            if (!bs_value->IsNumber())
+            if (!bs_value->IsInt32())
             {
-                return utils::CallbackError("'buffer_size' must be a number", callback);
+                return utils::CallbackError("'buffer_size' must be an int32", callback);
             }
 
             int buffer_size = bs_value->Int32Value();
             if (buffer_size < 0)
             {
-                return utils::CallbackError("'buffer_size' must be a positive number", callback);
+                return utils::CallbackError("'buffer_size' must be a positive int32", callback);
             }
             baton_data->buffer_size = buffer_size;
         }

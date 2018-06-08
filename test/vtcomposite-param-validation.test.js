@@ -138,7 +138,7 @@ test('failure: buffer object missing y value', assert => {
   });
 });
 
-test('failure: buffer object z value is not a number', assert => {
+test('failure: buffer object z value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -149,12 +149,12 @@ test('failure: buffer object z value is not a number', assert => {
   ];
   composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
-    assert.equal(err.message, '\'z\' value in \'tiles\' array item is not a number');
+    assert.equal(err.message, '\'z\' value in \'tiles\' array item is not an int32');
     assert.end();
   });
 });
 
-test('failure: buffer object x value is not a number', assert => {
+test('failure: buffer object x value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -165,12 +165,12 @@ test('failure: buffer object x value is not a number', assert => {
   ];
   composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
-    assert.equal(err.message, '\'x\' value in \'tiles\' array item is not a number');
+    assert.equal(err.message, '\'x\' value in \'tiles\' array item is not an int32');
     assert.end();
   });
 });
 
-test('failure: buffer object y value is not a number', assert => {
+test('failure: buffer object y value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -181,7 +181,7 @@ test('failure: buffer object y value is not a number', assert => {
   ];
   composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
-    assert.equal(err.message, '\'y\' value in \'tiles\' array item is not a number');
+    assert.equal(err.message, '\'y\' value in \'tiles\' array item is not an int32');
     assert.end();
   });
 });
@@ -284,7 +284,7 @@ test('failure: map request zxy missing y value', assert => {
   });
 });
 
-test('failure: map request zxy z value is not a number', assert => {
+test('failure: map request zxy z value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -295,12 +295,12 @@ test('failure: map request zxy z value is not a number', assert => {
   ];
   composite(buffs, {z:'zero', x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
-    assert.equal(err.message, '\'z\' value in \'tiles\' array item is not a number');
+    assert.equal(err.message, '\'z\' value in \'tiles\' array item is not an int32');
     assert.end();
   });
 });
 
-test('failure: map request zxy x value is not a number', assert => {
+test('failure: map request zxy x value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -311,12 +311,12 @@ test('failure: map request zxy x value is not a number', assert => {
   ];
   composite(buffs, {z:3, x:'zero', y:0}, {}, function(err, result) {
     assert.ok(err);
-    assert.equal(err.message, '\'x\' value in \'tiles\' array item is not a number');
+    assert.equal(err.message, '\'x\' value in \'tiles\' array item is not an int32');
     assert.end();
   });
 });
 
-test('failure: map request zxy y value is not a number', assert => {
+test('failure: map request zxy y value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -327,7 +327,7 @@ test('failure: map request zxy y value is not a number', assert => {
   ];
   composite(buffs, {z:3, x:1, y:'zero'}, {}, function(err, result) {
     assert.ok(err);
-    assert.equal(err.message, '\'y\' value in \'tiles\' array item is not a number');
+    assert.equal(err.message, '\'y\' value in \'tiles\' array item is not an int32');
     assert.end();
   });
 });
