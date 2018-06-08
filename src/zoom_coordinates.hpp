@@ -1,9 +1,5 @@
 #pragma once
 
-// geometry.hpp
-#include <mapbox/geometry/geometry.hpp>
-#include <mapbox/geometry/for_each_point.hpp>
-
 namespace vtile {
 namespace detail {
 
