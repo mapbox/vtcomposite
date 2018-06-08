@@ -7,7 +7,7 @@ var vtinfo = require('./test-utils.js');
 
 test('[composite] composite and overzooming success polygons - overzooming zoom factor of 2 between two tiles, buffer_size & no buffer_size', function(assert) {
   const tiles = [
-    { z: 15, x: 5239, y: 12666, buffer:  fs.readFileSync('./test/fixtures/polygons-buildings-sf-15-5239-12666.mvt')},
+    { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-buildings-sf-15-5239-12666.mvt')},
     { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-hillshade-sf-15-5239-12666.mvt')},
     { z: 16, x: 10478, y: 25332, buffer: fs.readFileSync('./test/fixtures/points-poi-sf-15-5239-12666.mvt')}
   ]

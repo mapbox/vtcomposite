@@ -2,7 +2,6 @@ var test = require('tape');
 var composite = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
-var zlib = require('zlib');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
 var vtinfo = require('./test-utils.js');
 

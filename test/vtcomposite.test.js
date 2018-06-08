@@ -5,16 +5,8 @@ const path = require('path');
 const zlib = require('zlib');
 const mvtFixtures = require('@mapbox/mvt-fixtures');
 const vtinfo = require('./test-utils.js');
-const SphericalMercator = require('@mapbox/sphericalmercator');
-// By default, precomputes up to z30
-var merc = new SphericalMercator({
-    size: 256
-});
-
-
 
 const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
-
 
 test('[composite] success: buffer size stays the same when no compositing needed', function(assert) {
   const tiles = [
