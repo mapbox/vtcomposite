@@ -47,6 +47,22 @@ matrix:
     - os: linux
       env: BUILDTYPE=debug
       node_js: 6
+    # linux publishable node v8/release
+    - os: linux
+      env: BUILDTYPE=release
+      node_js: 8
+    # linux publishable node v8/debug
+    - os: linux
+      env: BUILDTYPE=debug
+      node_js: 8
+    # linux publishable node v10/release
+    - os: linux
+      env: BUILDTYPE=release
+      node_js: 10
+    # linux publishable node v10/debug
+    - os: linux
+      env: BUILDTYPE=debug
+      node_js: 10
     # osx publishable node v6/release
     - os: osx
       osx_image: xcode9.2
@@ -57,7 +73,16 @@ matrix:
       osx_image: xcode9.2
       env: BUILDTYPE=debug
       node_js: 6
-    # linux sanitizer build node v6/debug
+    # osx publishable node v8/release
+    - os: osx
+      osx_image: xcode9.2
+      env: BUILDTYPE=release
+      node_js: 8
+    # osx publishable node v10/release
+    - os: osx
+      osx_image: xcode9.2
+      env: BUILDTYPE=release
+      node_js: 10
     - os: linux
       env: BUILDTYPE=debug TOOLSET=asan
       node_js: 6
