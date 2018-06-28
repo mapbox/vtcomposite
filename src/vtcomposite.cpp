@@ -87,7 +87,7 @@ struct CompositeWorker : Nan::AsyncWorker
     using Base = Nan::AsyncWorker;
 
     CompositeWorker(std::unique_ptr<BatonType>&& baton_data, Nan::Callback* cb)
-        : Base{cb},
+        : Base(cb, "skel:standalone-async-worker"),
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
 
