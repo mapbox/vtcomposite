@@ -95,7 +95,7 @@ struct CompositeWorker : Nan::AsyncWorker
         try
         {
             vtzero::tile_builder builder;
-            std::vector<std::string> names;
+            std::vector<vtzero::data_view> names;
 
             int const buffer_size = baton_data_->buffer_size;
             int const target_z = baton_data_->z;
@@ -125,7 +125,7 @@ struct CompositeWorker : Nan::AsyncWorker
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
-                        std::string name{layer.name()};
+                        vtzero::data_view name = layer.name();
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
