@@ -12,7 +12,8 @@
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
 // geometry.hpp
-#include <mapbox/geometry/geometry.hpp>
+#include <mapbox/geometry/for_each_point.hpp>
+#include <mapbox/geometry/point.hpp>
 #include <mapbox/geometry/box.hpp>
 // stl
 #include <algorithm>
@@ -155,6 +156,7 @@ struct CompositeWorker : Nan::AsyncWorker
                             {
                                 vtzero::layer_builder layer_builder{builder, name, MVT_VERSION_2, extent};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
+
                                     using coordinate_type = std::int64_t;
                                     auto geom = mapbox::vector_tile::extract_geometry<coordinate_type>(feature);
                                     int dx, dy;
