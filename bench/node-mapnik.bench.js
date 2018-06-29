@@ -18,7 +18,7 @@ const path = require('path');
 const assert = require('assert');
 const Queue = require('d3-queue').queue;
 const vtquery = require('../lib/index.js');
-const rules = require('./rules');
+const rules = require('./mapnik-rules');
 let ruleCount = 1;
 const mapnik = require('mapnik');
 
@@ -61,14 +61,28 @@ function runRule(rule, ruleCallback) {
         if (err) {
           return cb(err);
         }
-        ++runs;
-        if (track_mem && runs % 1000) {
-          var mem = process.memoryUsage();
-          if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
-          if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
-          if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
+
+        if (rule.options.compress){
+          result.getData({compression:'gzip'}, function(err, data) {
+            ++runs;
+            if (track_mem && runs % 1000) {
+              var mem = process.memoryUsage();
+              if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
+              if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
+              if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
+            }
+            return cb();
+          }); 
+        }else{
+          ++runs;
+          if (track_mem && runs % 1000) {
+            var mem = process.memoryUsage();
+            if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
+            if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
+            if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
+          }
+          return cb();
         }
-        return cb();
       });
     } else {
       return cb();

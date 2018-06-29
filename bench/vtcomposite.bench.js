@@ -18,7 +18,7 @@ const path = require('path');
 const assert = require('assert');
 const Queue = require('d3-queue').queue;
 const composite = require('../lib/index.js');
-const rules = require('./rules');
+const rules = require('./vtcomposite-rules');
 let ruleCount = 1;
 
 // run each rule synchronously
