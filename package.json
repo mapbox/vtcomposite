@@ -21,9 +21,6 @@
     "nan": "~2.10.0",
     "node-pre-gyp": "~0.10.2"
   },
-  "bundledDependencies": [
-    "node-pre-gyp"
-  ],
   "devDependencies": {
     "@mapbox/cloudfriend": "^1.9.1",
     "@mapbox/mvt-fixtures": "^3.4.0",
