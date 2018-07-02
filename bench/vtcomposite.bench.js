@@ -18,7 +18,7 @@ const path = require('path');
 const assert = require('assert');
 const Queue = require('d3-queue').queue;
 const composite = require('../lib/index.js');
-const rules = require('./vtcomposite-rules');
+const rules = require('./rules');
 let ruleCount = 1;
 
 // run each rule synchronously
@@ -42,8 +42,14 @@ function runRule(rule, ruleCallback) {
   function run(cb) {
     composite(rule.tiles, rule.zxy, rule.options, function(err, result) {
       if (err) {
-        return cb(err);
+        throw err;
       }
+
+      if (rule.options.compress){
+        if(result[0] !== 0x1F && result[1] !== 0x8B){
+          throw new Error('resulting buffer is not compressed!');
+        }
+      } 
       ++runs;
       return cb();
     });
