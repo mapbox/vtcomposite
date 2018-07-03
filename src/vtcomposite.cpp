@@ -2,6 +2,7 @@
 #include "vtcomposite.hpp"
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
+#include "extract_geometry.hpp"
 #include "zoom_coordinates.hpp"
 #include "feature_builder.hpp"
 // gzip-hpp
@@ -17,7 +18,6 @@
 #include <mapbox/geometry/box.hpp>
 // stl
 #include <algorithm>
-#include <mapbox/vector_tile.hpp>
 
 namespace vtile {
 
@@ -156,9 +156,8 @@ struct CompositeWorker : Nan::AsyncWorker
                             {
                                 vtzero::layer_builder layer_builder{builder, name, MVT_VERSION_2, extent};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
-
                                     using coordinate_type = std::int64_t;
-                                    auto geom = mapbox::vector_tile::extract_geometry<coordinate_type>(feature);
+                                    auto geom = vtile::extract_geometry<coordinate_type>(feature);
                                     int dx, dy;
                                     std::tie(dx, dy) = vtile::displacement(tile_obj->z, static_cast<int>(extent), target_z, target_x, target_y);
                                     // scale by zoom_factor and apply displacement
