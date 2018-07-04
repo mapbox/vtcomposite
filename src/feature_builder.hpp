@@ -141,7 +141,6 @@ struct feature_builder_visitor
 
     void operator()(mapbox::geometry::multi_polygon<coordinate_type> const& mpoly)
     {
-        std::vector<mapbox::geometry::polygon<coordinate_type>> result;
         vtzero::polygon_feature_builder feature_builder{layer_builder_};
         if (feature_.has_id()) feature_builder.set_id(feature_.id());
         bool valid = false;
@@ -150,6 +149,7 @@ struct feature_builder_visitor
         {
             auto extent = mapbox::geometry::envelope(poly);
             if (!boost::geometry::intersects(extent, bbox_)) continue;
+            std::vector<mapbox::geometry::polygon<coordinate_type>> result;
             boost::geometry::intersection(poly, bbox_, result);
             for (auto const& p : result)
             {
