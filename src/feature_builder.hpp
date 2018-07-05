@@ -9,7 +9,8 @@
 #include <boost/core/ignore_unused.hpp>
 #include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
-
+// stl
+#include <algorithm>
 //BOOST_GEOMETRY_REGISTER_POINT_2D(mapbox::geometry::point<int>, int, boost::geometry::cs::cartesian, x, y)
 // ^ Uncomment to enable coordinate_type = int ^
 
@@ -151,18 +152,13 @@ struct overzoomed_feature_builder
         vtzero::decode_point_geometry(feature.geometry(), detail::point_handler<coordinate_type>(multi_point, dx_, dy_, zoom_factor_));
         vtzero::point_feature_builder feature_builder{layer_builder_};
         if (feature.has_id()) feature_builder.set_id(feature.id());
-        std::vector<mapbox::geometry::point<coordinate_type>> result;
-        for (auto const& pt : multi_point)
+        multi_point.erase(std::remove_if(multi_point.begin(), multi_point.end(), [&](mapbox::geometry::point<CoordinateType> const& pt) {
+            return !(boost::geometry::intersects(pt, bbox_));
+        }));
+        if (!multi_point.empty())
         {
-            if (boost::geometry::intersects(pt, bbox_))
-            {
-                result.push_back(pt);
-            }
-        }
-        if (!result.empty())
-        {
-            feature_builder.add_points(static_cast<unsigned>(result.size()));
-            for (auto const& pt : result)
+            feature_builder.add_points(static_cast<unsigned>(multi_point.size()));
+            for (auto const& pt : multi_point)
             {
                 feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
             }
