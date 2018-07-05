@@ -152,9 +152,11 @@ struct overzoomed_feature_builder
         vtzero::decode_point_geometry(feature.geometry(), detail::point_handler<coordinate_type>(multi_point, dx_, dy_, zoom_factor_));
         vtzero::point_feature_builder feature_builder{layer_builder_};
         if (feature.has_id()) feature_builder.set_id(feature.id());
-        multi_point.erase(std::remove_if(multi_point.begin(), multi_point.end(), [&](auto const& pt) {
-            return !(boost::geometry::intersects(pt, bbox_));
-        }));
+        multi_point.erase(std::remove_if(multi_point.begin(), multi_point.end(), [this](auto const& pt) {
+                              return !boost::geometry::intersects(pt, bbox_);
+                          }),
+                          multi_point.end());
+
         if (!multi_point.empty())
         {
             feature_builder.add_points_from_container(multi_point);
