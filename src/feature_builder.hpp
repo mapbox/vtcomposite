@@ -207,43 +207,33 @@ struct overzoomed_feature_builder
     {
         std::vector<detail::polygon_ring<CoordinateType>> rings;
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
-
-        std::vector<mapbox::geometry::polygon<coordinate_type>> result;
         vtzero::polygon_feature_builder feature_builder{layer_builder_};
         if (feature.has_id()) feature_builder.set_id(feature.id());
         bool valid = false;
-
-        mapbox::geometry::multi_polygon<CoordinateType> mp;
-        mp.reserve(rings.size());
-        for (auto&& r : rings)
+        bool process = false;
+        for (auto const& r : rings)
         {
             if (r.type == vtzero::ring_type::outer)
             {
-                mp.emplace_back();
-                mp.back().push_back(std::move(r.ring));
+                auto extent = mapbox::geometry::envelope(r.ring);
+                process = boost::geometry::intersects(extent, bbox_);
             }
-            else if (!mp.empty() && r.type == vtzero::ring_type::inner)
+            if (process)
             {
-                mp.back().push_back(std::move(r.ring));
-            }
-        }
-
-        for (auto const& poly : mp)
-        {
-            auto extent = mapbox::geometry::envelope(poly);
-            if (!boost::geometry::intersects(extent, bbox_)) continue;
-            boost::geometry::intersection(poly, bbox_, result);
-            for (auto const& p : result)
-            {
-                for (auto const& ring : p)
+                std::vector<mapbox::geometry::polygon<coordinate_type>> result;
+                boost::geometry::intersection(r.ring, bbox_, result);
+                for (auto const& p : result)
                 {
-                    if (ring.size() > 3)
+                    for (auto const& ring : p)
                     {
-                        valid = true;
-                        feature_builder.add_ring(static_cast<unsigned>(ring.size()));
-                        for (auto const& pt : ring)
+                        if (ring.size() > 3)
                         {
-                            feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                            valid = true;
+                            feature_builder.add_ring(static_cast<unsigned>(ring.size()));
+                            for (auto const& pt : ring)
+                            {
+                                feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                            }
                         }
                     }
                 }
