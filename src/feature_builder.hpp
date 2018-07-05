@@ -62,7 +62,15 @@ struct feature_builder_visitor
                 result.push_back(pt);
             }
         }
-        if (!result.empty()) finalize(feature_builder);
+        if (!result.empty())
+        {
+            feature_builder.add_points(static_cast<unsigned>(result.size()));
+            for (auto const& pt : result)
+            {
+                feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+            }
+            finalize(feature_builder);
+        }
     }
 
     void operator()(mapbox::geometry::line_string<coordinate_type> const& line)
