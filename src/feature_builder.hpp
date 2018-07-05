@@ -157,11 +157,7 @@ struct overzoomed_feature_builder
         }));
         if (!multi_point.empty())
         {
-            feature_builder.add_points(static_cast<unsigned>(multi_point.size()));
-            for (auto const& pt : multi_point)
-            {
-                feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
-            }
+            feature_builder.add_points_from_container(multi_point);
             finalize(feature_builder, feature);
         }
     }
