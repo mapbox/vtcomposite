@@ -160,8 +160,8 @@ struct CompositeWorker : Nan::AsyncWorker
                                     mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
                                                                                 {static_cast<int>(extent) + buffer_size,
                                                                                  static_cast<int>(extent) + buffer_size}};
-                                    vtile::overzoomed_feature_builder<coordinate_type> builder{layer_builder, bbox, dx, dy, zoom_factor};
-                                    builder.apply(feature);
+                                    vtile::overzoomed_feature_builder<coordinate_type> feature_builder{layer_builder, bbox, dx, dy, zoom_factor};
+                                    feature_builder.apply(feature);
                                     return true;
                                 });
                             }
