@@ -83,22 +83,12 @@ struct line_string_handler
 };
 
 template <typename CoordinateType>
-struct polygon_ring
-{
-
-    polygon_ring()
-        : ring(), type(vtzero::ring_type::invalid)
-    {
-    }
-
-    mapbox::geometry::linear_ring<CoordinateType> ring;
-    vtzero::ring_type type;
-};
+using annotated_ring = std::pair<mapbox::geometry::linear_ring<CoordinateType>, vtzero::ring_type>;
 
 template <typename CoordinateType>
 struct polygon_handler
 {
-    using geom_type = std::vector<polygon_ring<CoordinateType>>;
+    using geom_type = std::vector<annotated_ring<CoordinateType>>;
     polygon_handler(geom_type& geom, int dx, int dy, int zoom_factor)
         : geom_(geom),
           dx_(dx),
@@ -108,19 +98,19 @@ struct polygon_handler
     void ring_begin(std::uint32_t count)
     {
         geom_.emplace_back();
-        geom_.back().ring.reserve(count);
+        geom_.back().first.reserve(count);
     }
 
     void ring_point(vtzero::point const& pt)
     {
         CoordinateType x = pt.x * zoom_factor_ - dx_;
         CoordinateType y = pt.y * zoom_factor_ - dy_;
-        geom_.back().ring.emplace_back(x, y);
+        geom_.back().first.emplace_back(x, y);
     }
 
     void ring_end(vtzero::ring_type type)
     {
-        geom_.back().type = type;
+        geom_.back().second = type;
     }
 
     geom_type& geom_;
@@ -205,7 +195,7 @@ struct overzoomed_feature_builder
     }
     void apply_geometry_polygon(vtzero::feature const& feature)
     {
-        std::vector<detail::polygon_ring<CoordinateType>> rings;
+        std::vector<detail::annotated_ring<CoordinateType>> rings;
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
         vtzero::polygon_feature_builder feature_builder{layer_builder_};
         if (feature.has_id()) feature_builder.set_id(feature.id());
@@ -213,15 +203,15 @@ struct overzoomed_feature_builder
         bool process = false;
         for (auto const& r : rings)
         {
-            if (r.type == vtzero::ring_type::outer)
+            if (r.second == vtzero::ring_type::outer)
             {
-                auto extent = mapbox::geometry::envelope(r.ring);
+                auto extent = mapbox::geometry::envelope(r.first);
                 process = boost::geometry::intersects(extent, bbox_);
             }
             if (process)
             {
                 std::vector<mapbox::geometry::polygon<coordinate_type>> result;
-                boost::geometry::intersection(r.ring, bbox_, result);
+                boost::geometry::intersection(r.first, bbox_, result);
                 for (auto const& p : result)
                 {
                     for (auto const& ring : p)
