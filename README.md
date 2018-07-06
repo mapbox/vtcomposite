@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/mapbox/vtcomposite.svg?branch=master)](https://travis-ci.org/mapbox/vtcomposite)
-[![codecov](https://codecov.io/gh/mapbox/node-cpp-skel/branch/master/graph/badge.svg)](https://codecov.io/gh/mapbox/vtcomposite)
+[![codecov](https://codecov.io/gh/mapbox/vtcomposite/branch/master/graph/badge.svg)](https://codecov.io/gh/mapbox/vtcomposite)
 
 # Installation
 
@@ -77,7 +77,7 @@ The sanitizers [are part of the compiler](https://github.com/mapbox/cpp/blob/mas
 
 # Code coverage
 
-To see code coverage you can view current results online at [![codecov](https://codecov.io/gh/mapbox/vtcomposite/branch/master/graph/badge.svg)](https://codecov.io/gh/mapbox/node-cpp-skel) or you can build in a customized way and display coverage locally like:
+To see code coverage you can view current results online at [![codecov](https://codecov.io/gh/mapbox/vtcomposite/branch/master/graph/badge.svg)](https://codecov.io/gh/mapbox/vtcomposite) or you can build in a customized way and display coverage locally like:
 
 ```
 make coverage
@@ -85,7 +85,7 @@ make coverage
 
 **Note**
 
-Use [`// LCOV_EXCL_START` and `// LCOV_EXCL_STOP`](https://github.com/mapbox/vtvalidate/blob/master/src/vtvalidate.cpp#L70-L73) to ignore from [codecov](https://codecov.io/gh/mapbox/node-cpp-skel) _remotely_. However, this won't ignore when running coverage _locally_.
+Use [`// LCOV_EXCL_START` and `// LCOV_EXCL_STOP`](https://github.com/mapbox/vtvalidate/blob/master/src/vtvalidate.cpp#L70-L73) to ignore from [codecov](https://codecov.io/gh/mapbox/vtcomposite) _remotely_. However, this won't ignore when running coverage _locally_.
 
 For more details about what `make coverage` is doing under the hood see https://github.com/mapbox/cpp#code-coverage.
 
