@@ -3,7 +3,7 @@
 const argv = require('minimist')(process.argv.slice(2));
 if (!argv.iterations || !argv.concurrency || !argv.package) {
   console.error('Please provide desired iterations, concurrency');
-  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite');
+  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik');
   process.exit(1);
 }
 
