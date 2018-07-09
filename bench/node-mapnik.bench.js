@@ -50,7 +50,7 @@ function runRule(rule, ruleCallback) {
   let runsQueue = Queue();
 
   function run(cb) {
-    if (rule.tiles.length > 1){
+    if (rule.tiles.length > 0) {
       var target_vt = new mapnik.VectorTile(rule.zxy.z, rule.zxy.x, rule.zxy.y);
 
       var source_tiles = new Array(rule.tiles.length);
@@ -62,7 +62,7 @@ function runRule(rule, ruleCallback) {
       }
 
       // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
-      target_vt.composite(source_tiles, {}, function(err, result) {
+      target_vt.composite(source_tiles, rule.options, function(err, result) {
         if (err) {
           return cb(err);
         }
