@@ -1,9 +1,9 @@
 "use strict";
 
 const argv = require('minimist')(process.argv.slice(2));
-if (!argv.iterations || !argv.concurrency) {
+if (!argv.iterations || !argv.concurrency || !argv.package) {
   console.error('Please provide desired iterations, concurrency');
-  console.error('Example: \nnode bench/node-mapnik.bench.js --iterations 50 --concurrency 10');
+  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik');
   process.exit(1);
 }
 
@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const Queue = require('d3-queue').queue;
-const vtquery = require('../lib/index.js');
+const composite = require('../lib/index.js');
 const rules = require('./rules');
 let ruleCount = 1;
 const mapnik = require('mapnik');
@@ -29,7 +29,6 @@ const memstats = {
   max_heap:0,
   max_heap_total:0
 };
-
 
 // run each rule synchronously
 const ruleQueue = Queue(1);
@@ -50,28 +49,66 @@ function runRule(rule, ruleCallback) {
   let runsQueue = Queue();
 
   function run(cb) {
-    if (rule.tiles.length > 1){
-      var target_vt = new mapnik.VectorTile(rule.zxy.z, rule.zxy.x, rule.zxy.y);
-      var vt1 = new mapnik.VectorTile(rule.tiles[0].z,rule.tiles[0].x,rule.tiles[0].y);
-      vt1.addDataSync(rule.tiles[0].buffer);
-      var vt2 = new mapnik.VectorTile(rule.tiles[1].z,rule.tiles[1].x,rule.tiles[1].y);
-      vt2.addDataSync(rule.tiles[1].buffer);
-      // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
-      target_vt.composite([vt1, vt2], {}, function(err, result) {
-        if (err) {
-          return cb(err);
+    switch(argv.package){
+      case 'vtcomposite':
+        composite(rule.tiles, rule.zxy, rule.options, function(err, result) {
+          if (err) {
+            throw err;
+          }
+
+          if (rule.options.compress){
+            if(result[0] !== 0x1F && result[1] !== 0x8B){
+              throw new Error('resulting buffer is not compressed!');
+            }
+          } 
+          ++runs;
+          return cb();
+        });
+        break;
+      case 'node-mapnik':
+        if (rule.tiles.length > 1){
+          var target_vt = new mapnik.VectorTile(rule.zxy.z, rule.zxy.x, rule.zxy.y);
+          var vt1 = new mapnik.VectorTile(rule.tiles[0].z,rule.tiles[0].x,rule.tiles[0].y);
+          vt1.bufferSize = rule.options.buffer_size; 
+          vt1.addDataSync(rule.tiles[0].buffer);
+          var vt2 = new mapnik.VectorTile(rule.tiles[1].z,rule.tiles[1].x,rule.tiles[1].y);
+          vt2.bufferSize = rule.options.buffer_size; 
+          vt2.addDataSync(rule.tiles[1].buffer);
+
+          // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
+          target_vt.composite([vt1, vt2], {}, function(err, result) {
+            if (err) {
+              return cb(err);
+            }
+
+            let options = {compression:'none'}
+            if (rule.options.compress){
+              options.compression = 'gzip'; 
+            }
+
+            result.getData(options, function(err, data) {
+                if (err) {
+                  throw err;
+                }
+
+                if (rule.options.compress){
+                  if(data[0] !== 0x1F && data[1] !== 0x8B){
+                    throw new Error('resulting buffer is not compressed!');
+                  }
+                } 
+                ++runs;
+
+                if (track_mem && runs % 1000) {
+                  var mem = process.memoryUsage();
+                  if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
+                  if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
+                  if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
+                }
+                return cb();
+            }); 
+          });
         }
-        ++runs;
-        if (track_mem && runs % 1000) {
-          var mem = process.memoryUsage();
-          if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
-          if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
-          if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
-        }
-        return cb();
-      });
-    } else {
-      return cb();
+        break; 
     }
   }
 

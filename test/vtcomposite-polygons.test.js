@@ -51,7 +51,7 @@ test('[composite] composite and overzooming success polygons - overzooming zoom 
   assert.equal(info0.layers.building.length, 1718);
   assert.equal(info1.layers.hillshade.length, 17);
   assert.equal(info2.layers.poi_label.length, 14);
-  
+
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.building.length, 238);
@@ -67,6 +67,30 @@ test('[composite] composite and overzooming success polygons - overzooming zoom 
   });
 });
 
+test('[composite] composite and overzooming success polygons - overzooming multipolygon with large buffer', function(assert) {
+  const zxy = { z:16, x:12210, y:25447 };
+  const parent = { z:15, x:6105, y:12723 };
 
+  const tiles = [
+    { buffer: fs.readFileSync('./test/fixtures/mapbox-vector-terrain-v2-hillshade-15-6105-12723.mvt'),  z: parent.z, x: parent.x, y: parent.y }
+  ];
 
+  const ogOutputInfo = vtinfo(tiles[0].buffer);
+  assert.equal(ogOutputInfo.layers.hillshade.length, 1);
+  var hillshade = ogOutputInfo.layers.hillshade;
+  var feature = hillshade.feature(0);
+  var geojson = feature.toGeoJSON(zxy.x,zxy.y,zxy.z);
+  var coords = geojson.geometry.coordinates;
+  assert.equal(coords.length, 23);
 
+  composite(tiles, zxy, {buffer_size: 5000}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+    assert.equal(outputInfo.layers.hillshade.length, 1);
+    var hillshade = outputInfo.layers.hillshade;
+    var feature = hillshade.feature(0);
+    var geojson = feature.toGeoJSON(zxy.x,zxy.y,zxy.z);
+    var coords = geojson.geometry.coordinates;
+    assert.equal(coords.length, 23);
+    assert.end();
+  });
+});

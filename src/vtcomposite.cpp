@@ -2,7 +2,6 @@
 #include "vtcomposite.hpp"
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
-#include "zoom_coordinates.hpp"
 #include "feature_builder.hpp"
 // gzip-hpp
 #include <gzip/compress.hpp>
@@ -17,7 +16,6 @@
 #include <mapbox/geometry/box.hpp>
 // stl
 #include <algorithm>
-#include <mapbox/vector_tile.hpp>
 
 namespace vtile {
 
@@ -155,18 +153,15 @@ struct CompositeWorker : Nan::AsyncWorker
                             else
                             {
                                 vtzero::layer_builder layer_builder{builder, name, MVT_VERSION_2, extent};
+                                using coordinate_type = std::int64_t;
+                                int dx, dy;
+                                std::tie(dx, dy) = vtile::displacement(tile_obj->z, static_cast<int>(extent), target_z, target_x, target_y);
+                                mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
+                                                                            {static_cast<int>(extent) + buffer_size,
+                                                                             static_cast<int>(extent) + buffer_size}};
+                                vtile::overzoomed_feature_builder<coordinate_type> feature_builder{layer_builder, bbox, dx, dy, zoom_factor};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
-
-                                    using coordinate_type = std::int64_t;
-                                    auto geom = mapbox::vector_tile::extract_geometry<coordinate_type>(feature);
-                                    int dx, dy;
-                                    std::tie(dx, dy) = vtile::displacement(tile_obj->z, static_cast<int>(extent), target_z, target_x, target_y);
-                                    // scale by zoom_factor and apply displacement
-                                    mapbox::geometry::for_each_point(geom,
-                                                                     vtile::detail::zoom_coordinates<mapbox::geometry::point<coordinate_type>>(zoom_factor, dx, dy));
-                                    mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
-                                                                                {static_cast<int>(extent) + buffer_size, static_cast<int>(extent) + buffer_size}};
-                                    mapbox::util::apply_visitor(vtile::feature_builder_visitor<coordinate_type>{layer_builder, bbox, feature}, geom);
+                                    feature_builder.apply(feature);
                                     return true;
                                 });
                             }
