@@ -50,9 +50,9 @@ test('[composite] composite and overzooming success multi geometries - different
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 1);
 
-    composite(tiles, zxy, {'buffer_size': 4080}, (err, vtBuffer) => {
+    composite(tiles, zxy, {'buffer_size': 4096}, (err, vtBuffer) => {
       const outputInfo = vtinfo(vtBuffer);
-      assert.equal(Object.keys(outputInfo.layers).length, 2);
+      assert.equal(Object.keys(outputInfo.layers).length, 3);
       assert.end();
     });
   });
