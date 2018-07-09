@@ -257,7 +257,7 @@ test('failure: map request zxy missing x value', assert => {
     {
       buffer: Buffer.from('hey'),
       z: 0,
-      // x: 0,
+      x: 0,
       y: 0
     }
   ];
@@ -274,7 +274,7 @@ test('failure: map request zxy missing y value', assert => {
       buffer: Buffer.from('hey'),
       z: 0,
       x: 0,
-      // y: 0
+      y: 0
     }
   ];
   composite(buffs, {z:3, x:1}, {}, function(err, result) {
@@ -379,3 +379,67 @@ test('failure: map request zxy y value is negative', assert => {
     assert.end();
   });
 });
+
+test('failure: map request zxy is not an object', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('hey'),
+      z: 0,
+      x: 0,
+      y: 0
+    }
+  ];
+  composite(buffs, true, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'zxy_maprequest\' must be an object');
+    assert.end();
+  });
+});
+
+test('failure: compress must be a boolean', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('hey'),
+      z: 0,
+      x: 0,
+      y: 0
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, {compress:'hi'}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'compress\' must be a boolean');
+    assert.end();
+  });
+});
+
+test('failure: options must be an object', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('hey'),
+      z: 0,
+      x: 0,
+      y: 0
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, true, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'options\' arg must be an object');
+    assert.end();
+  });
+});
+
+// test.only('failure: buffer size is not int32', assert => {
+//   const buffs = [
+//     {
+//       buffer: new Buffer(10),
+//       z: 0,
+//       x: 0,
+//       y: 0
+//     }
+//   ];
+//   composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
+//     assert.ok(err);
+//     assert.equal(err.message, '\'buffer_size\' must be an int32');
+//     assert.end();
+//   });
+// });
