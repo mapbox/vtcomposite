@@ -6,12 +6,7 @@ var mvtFixtures = require('@mapbox/mvt-fixtures');
 var geoData = require('./fixtures/four-points.js');
 var vtinfo = require('./test-utils.js');
 
-// eventually replace long2tile and lat2tile with spherical mercator
-const SphericalMercator = require('@mapbox/sphericalmercator');
-// // By default, precomputes up to z30
-var merc = new SphericalMercator({
-    size: 256
-});
+// can replace long2tile and lat2tile with existing lib 
 
 function long2tile(lon,zoom) { 
   return (((lon+180)/360*Math.pow(2,zoom))); 
@@ -49,15 +44,12 @@ test('[composite] success overzooming - different zooms between two tiles, no bu
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
   const originalGeometry = info.layers.quadrants.feature(0).loadGeometry()[0][0];
-  console.log('quads!!', info.layers.quadrants.feature(0).loadGeometry());
+
   const tiles = [
     {buffer: buffer1, z:0, x:0, y:0}
   ];
 
   const zxy = {z:1, x:0, y:0};
-
-  // merc.xyz([originalGeometry.x, ], zoom, tms_style, srs)
-
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
