@@ -428,18 +428,34 @@ test('failure: options must be an object', assert => {
   });
 });
 
-// test.only('failure: buffer size is not int32', assert => {
-//   const buffs = [
-//     {
-//       buffer: new Buffer(10),
-//       z: 0,
-//       x: 0,
-//       y: 0
-//     }
-//   ];
-//   composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
-//     assert.ok(err);
-//     assert.equal(err.message, '\'buffer_size\' must be an int32');
-//     assert.end();
-//   });
-// });
+test('failure: buffer size is not int32', assert => {
+  const buffs = [
+    {
+      buffer: new Buffer(10),
+      z: 0,
+      x: 0,
+      y: 0
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, {buffer_size:'hi'}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'buffer_size\' must be an int32');
+    assert.end();
+  });
+});
+
+test('failure: buffer size is not positive int32', assert => {
+  const buffs = [
+    {
+      buffer: new Buffer(10),
+      z: 0,
+      x: 0,
+      y: 0
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, {buffer_size:-10}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'buffer_size\' must be a positive int32');
+    assert.end();
+  });
+});
