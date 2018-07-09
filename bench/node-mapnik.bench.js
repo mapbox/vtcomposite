@@ -50,14 +50,19 @@ function runRule(rule, ruleCallback) {
   let runsQueue = Queue();
 
   function run(cb) {
-    if (rule.tiles.length > 1){
+    if (rule.tiles.length > 0) {
       var target_vt = new mapnik.VectorTile(rule.zxy.z, rule.zxy.x, rule.zxy.y);
-      var vt1 = new mapnik.VectorTile(rule.tiles[0].z,rule.tiles[0].x,rule.tiles[0].y);
-      vt1.addDataSync(rule.tiles[0].buffer);
-      var vt2 = new mapnik.VectorTile(rule.tiles[1].z,rule.tiles[1].x,rule.tiles[1].y);
-      vt2.addDataSync(rule.tiles[1].buffer);
+
+      var source_tiles = new Array(rule.tiles.length);
+      for (var i = 0; i < rule.tiles.length; ++i)
+      {
+        var vt = new mapnik.VectorTile(rule.tiles[i].z,rule.tiles[i].x,rule.tiles[i].y);
+        vt.addDataSync(rule.tiles[i].buffer);
+        source_tiles[i] = vt;
+      }
+
       // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
-      target_vt.composite([vt1, vt2], {}, function(err, result) {
+      target_vt.composite(source_tiles, rule.options, function(err, result) {
         if (err) {
           return cb(err);
         }
