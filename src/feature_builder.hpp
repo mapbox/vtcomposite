@@ -240,7 +240,6 @@ struct overzoomed_feature_builder
             apply_geometry_polygon(feature);
             break;
         default:
-            std::clog << "gets here" << endl;
             // LCOV_EXCL_START
             break;
             // LCOV_EXCL_STOP        
