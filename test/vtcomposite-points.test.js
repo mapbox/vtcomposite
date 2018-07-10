@@ -6,12 +6,7 @@ var mvtFixtures = require('@mapbox/mvt-fixtures');
 var geoData = require('./fixtures/four-points.js');
 var vtinfo = require('./test-utils.js');
 
-// eventually replace long2tile and lat2tile with spherical mercator
-// const SphericalMercator = require('@mapbox/sphericalmercator');
-// // By default, precomputes up to z30
-// var merc = new SphericalMercator({
-//     size: 256
-// });
+// can replace long2tile and lat2tile with existing lib 
 
 function long2tile(lon,zoom) { 
   return (((lon+180)/360*Math.pow(2,zoom))); 

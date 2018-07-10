@@ -44,7 +44,6 @@ module.exports = [
     description: 'tiles completely made of points, overzooming, no properties',
     options: {buffer_size: 128 },
     tiles: [
-      { z: 1, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-16-10498-22872.mvt')},
       { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-16-10498-22872.mvt')}
     ],
     zxy: { z: 1, x: 0, y: 0}
@@ -53,7 +52,6 @@ module.exports = [
     description: 'tiles completely made of points, same zoom, no properties',
     options: {buffer_size: 128 },
     tiles: [
-      { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-16-10498-22872.mvt')},
       { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-16-10498-22872.mvt')}
     ],
     zxy: { z: 0, x: 0, y: 0}
@@ -62,7 +60,6 @@ module.exports = [
     description: 'tiles completely made of points, overzoooming, lots of properties',
     options: {buffer_size: 128 },
     tiles: [
-      { z: 1, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-properties-16-10498-22872.mvt')},
       { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-properties-16-10498-22872.mvt')}
     ],
     zxy: { z: 1, x: 0, y: 0}
@@ -71,7 +68,6 @@ module.exports = [
     description: 'tiles completely made of points, same zoom, lots of properties',
     options: {buffer_size: 128 },
     tiles: [
-      { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-properties-16-10498-22872.mvt')},
       { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-properties-16-10498-22872.mvt')}
     ],
     zxy: { z: 0, x: 0, y: 0}
@@ -80,7 +76,6 @@ module.exports = [
     description: 'buffer_size 128 - tiles completely made of points, same zoom, lots of properties',
     options: { buffer_size: 128},
     tiles: [
-      { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-properties-16-10498-22872.mvt')},
       { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/points-properties-16-10498-22872.mvt')}
     ],
     zxy: { z: 0, x: 0, y: 0}
@@ -89,7 +84,6 @@ module.exports = [
     description: 'tiles completely made of linestrings, overzooming and lots of properties',
     options: {buffer_size: 128 },
     tiles: [
-      { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/linestrings-properties-16-10498-22872.mvt')},
       { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/linestrings-properties-16-10498-22872.mvt')}
     ],
     zxy: { z: 1, x: 0, y: 0}
@@ -98,7 +92,6 @@ module.exports = [
     description: 'tiles completely made of polygons, overzooming and lots of properties',
     options: {buffer_size: 128 },
     tiles: [
-      { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/polygons-properties-16-10498-22872.mvt')},
       { z: 0, x: 0, y: 0, buffer: fs.readFileSync('./test/fixtures/polygons-properties-16-10498-22872.mvt')}
     ],
     zxy: { z: 1, x: 0, y: 0}

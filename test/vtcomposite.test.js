@@ -155,12 +155,3 @@ test('[composite] failure: tile with zoom level higher than requested zoom is di
     assert.end();
   });
 });
-
-
-
-
-
-
-
-
-
