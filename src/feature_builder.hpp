@@ -5,6 +5,7 @@
 #include <mapbox/geometry/algorithms/detail/boost_adapters.hpp>
 // vtzero
 #include <vtzero/builder.hpp>
+#include <vtzero/property_mapper.hpp>
 // boost
 #include <boost/core/ignore_unused.hpp>
 #include <boost/geometry/algorithms/intersects.hpp>
@@ -127,23 +128,28 @@ struct overzoomed_feature_builder
 {
     using coordinate_type = CoordinateType;
     overzoomed_feature_builder(vtzero::layer_builder& layer_builder,
+                               vtzero::property_mapper& mapper,
                                mapbox::geometry::box<coordinate_type> const& bbox,
                                int dx, int dy, int zoom_factor)
         : layer_builder_{layer_builder},
+          mapper_{mapper},
           bbox_{bbox},
           dx_{dx},
           dy_{dy},
           zoom_factor_{zoom_factor} {}
 
     template <typename FeatureBuilder>
-    void finalize(FeatureBuilder& builder, vtzero::feature const& feature)
+    void finalize(FeatureBuilder& builder, vtzero::feature& feature)
     {
         // add properties
-        builder.copy_properties(feature);
+        while (auto idxs = feature.next_property_indexes())
+        {
+            builder.add_property(mapper_(idxs));
+        }
         builder.commit();
     }
 
-    void apply_geometry_point(vtzero::feature const& feature)
+    void apply_geometry_point(vtzero::feature& feature)
     {
         mapbox::geometry::multi_point<CoordinateType> multi_point;
         vtzero::decode_point_geometry(feature.geometry(), detail::point_handler<coordinate_type>(multi_point, dx_, dy_, zoom_factor_));
@@ -161,7 +167,7 @@ struct overzoomed_feature_builder
         }
     }
 
-    void apply_geometry_linestring(vtzero::feature const& feature)
+    void apply_geometry_linestring(vtzero::feature& feature)
     {
         mapbox::geometry::multi_line_string<CoordinateType> multi_line;
         vtzero::decode_linestring_geometry(feature.geometry(), detail::line_string_handler<coordinate_type>(multi_line, dx_, dy_, zoom_factor_));
@@ -185,7 +191,7 @@ struct overzoomed_feature_builder
         }
         if (valid) finalize(feature_builder, feature);
     }
-    void apply_geometry_polygon(vtzero::feature const& feature)
+    void apply_geometry_polygon(vtzero::feature& feature)
     {
         std::vector<detail::annotated_ring<CoordinateType>> rings;
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
@@ -232,7 +238,7 @@ struct overzoomed_feature_builder
         if (valid) finalize(feature_builder, feature);
     }
 
-    void apply(vtzero::feature const& feature)
+    void apply(vtzero::feature& feature)
     {
         switch (feature.geometry_type())
         {
@@ -252,6 +258,7 @@ struct overzoomed_feature_builder
         }
     }
     vtzero::layer_builder& layer_builder_;
+    vtzero::property_mapper& mapper_;
     mapbox::geometry::box<coordinate_type> const& bbox_;
     int dx_;
     int dy_;
