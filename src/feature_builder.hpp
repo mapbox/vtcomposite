@@ -247,7 +247,9 @@ struct overzoomed_feature_builder
             apply_geometry_polygon(feature);
             break;
         default:
+            // LCOV_EXCL_START
             break;
+            // LCOV_EXCL_STOP        
         }
     }
     vtzero::layer_builder& layer_builder_;
