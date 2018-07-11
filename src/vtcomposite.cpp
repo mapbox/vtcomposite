@@ -78,6 +78,7 @@ struct BatonType
     int y{};
     int buffer_size = 0;
     bool compress = false;
+    bool reencode = false;
 };
 
 struct CompositeWorker : Nan::AsyncWorker
@@ -129,7 +130,7 @@ struct CompositeWorker : Nan::AsyncWorker
                         {
                             names.push_back(name);
                             unsigned extent = layer.extent();
-                            if (zoom_factor == 1)
+                            if (zoom_factor == 1 && !baton_data_->reencode)
                             {
                                 builder.add_existing_layer(layer);
                             }
@@ -396,6 +397,15 @@ NAN_METHOD(composite)
                 return utils::CallbackError("'compress' must be a boolean", callback);
             }
             baton_data->compress = comp_value->BooleanValue();
+        }
+        if (options->Has(Nan::New("reencode").ToLocalChecked()))
+        {
+            v8::Local<v8::Value> reencode_value = options->Get(Nan::New("reencode").ToLocalChecked());
+            if (!reencode_value->IsBoolean())
+            {
+                return utils::CallbackError("'reencode' must be a boolean", callback);
+            }
+            baton_data->reencode = reencode_value->BooleanValue();
         }
     }
     // enter the threadpool, then done in the callback function call the threadpool
