@@ -195,7 +195,7 @@ struct overzoomed_feature_builder
         if (feature.has_id()) feature_builder.set_id(feature.id());
         bool valid = false;
         bool process = false;
-        for (auto const& r : rings)
+        for (auto& r : rings)
         {
             if (r.second == vtzero::ring_type::outer)
             {
@@ -205,6 +205,8 @@ struct overzoomed_feature_builder
             if (process)
             {
                 std::vector<mapbox::geometry::polygon<coordinate_type>> result;
+                if (r.second == vtzero::ring_type::inner) boost::geometry::reverse(r.first);
+                // ^^ reverse inner rings before clipping as we're dealing with a disassembled polygon
                 boost::geometry::intersection(r.first, bbox_, result);
                 for (auto const& p : result)
                 {
@@ -214,9 +216,14 @@ struct overzoomed_feature_builder
                         {
                             valid = true;
                             feature_builder.add_ring(static_cast<unsigned>(ring.size()));
-                            for (auto const& pt : ring)
+                            if (r.second == vtzero::ring_type::outer)
                             {
-                                feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                                std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
+                            }
+                            else
+                            {
+                                // apply points in reverse to preserve original winding order of inner rings
+                                std::for_each(ring.rbegin(), ring.rend(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
                             }
                         }
                     }
