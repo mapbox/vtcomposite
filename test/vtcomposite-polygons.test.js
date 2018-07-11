@@ -96,7 +96,7 @@ test('[composite] composite and overzooming success polygons - overzooming multi
 });
 
 
-test.only('[composite] composite and overzooming success polygons - overzooming polygon with hole', function(assert) {
+test('[composite] composite and overzooming success polygons - overzooming polygon with hole', function(assert) {
   const zxy = { z:1, x:0, y:0 };
   const parent = { z:0, x:0, y:0 };
 
