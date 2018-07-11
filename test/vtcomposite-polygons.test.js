@@ -19,7 +19,7 @@ test('[composite] composite success polygons - same zoom, different features, wi
   assert.equal(info0.layers.building.length, 1718);
   assert.equal(info1.layers.hillshade.length, 17);
   assert.equal(info2.layers.poi_label.length, 14);
-  
+
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.building.length, 1718);
@@ -30,7 +30,7 @@ test('[composite] composite success polygons - same zoom, different features, wi
       const outputInfoWithBuffer = vtinfo(vtBuffer);
       assert.equal(outputInfo.layers.building.length, 1718);
       assert.equal(outputInfo.layers.hillshade.length, 17);
-      assert.equal(outputInfo.layers.poi_label.length, 14);      
+      assert.equal(outputInfo.layers.poi_label.length, 14);
       assert.end();
     });
   });
@@ -91,6 +91,35 @@ test('[composite] composite and overzooming success polygons - overzooming multi
     var geojson = feature.toGeoJSON(zxy.x,zxy.y,zxy.z);
     var coords = geojson.geometry.coordinates;
     assert.equal(coords.length, 23);
+    assert.end();
+  });
+});
+
+
+test.only('[composite] composite and overzooming success polygons - overzooming polygon with hole', function(assert) {
+  const zxy = { z:1, x:0, y:0 };
+  const parent = { z:0, x:0, y:0 };
+
+  const tiles = [
+    { buffer: fs.readFileSync('./test/fixtures/polygon-with-hole.mvt'),  z: parent.z, x: parent.x, y: parent.y }
+  ];
+
+  const ogOutputInfo = vtinfo(tiles[0].buffer);
+  assert.equal(ogOutputInfo.layers.polygon.length, 1);
+  var polygon_layer = ogOutputInfo.layers.polygon;
+  var feature = polygon_layer.feature(0);
+  var geojson = feature.toGeoJSON(zxy.x,zxy.y,zxy.z);
+  var coords = geojson.geometry.coordinates;
+  assert.equal(coords.length, 2);
+
+  composite(tiles, zxy, {buffer_size: 0}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+    assert.equal(outputInfo.layers.polygon.length, 1);
+    var polygon_layer = outputInfo.layers.polygon;
+    var feature = polygon_layer.feature(0);
+    var geojson = feature.toGeoJSON(zxy.x,zxy.y,zxy.z);
+    var coords = geojson.geometry.coordinates;
+    assert.equal(coords.length, 2);
     assert.end();
   });
 });
