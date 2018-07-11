@@ -22,6 +22,7 @@
     "node-pre-gyp": "~0.10.2"
   },
   "devDependencies": {
+    "jest-diff": "^23.2.0",
     "@mapbox/cloudfriend": "^1.9.1",
     "@mapbox/mvt-fixtures": "^3.4.0",
     "@mapbox/sphericalmercator": "^1.1.0",
