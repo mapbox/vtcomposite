@@ -142,9 +142,16 @@ struct CompositeWorker : Nan::AsyncWorker
                                 mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
                                                                             {static_cast<int>(extent) + buffer_size,
                                                                              static_cast<int>(extent) + buffer_size}};
+                                // can be greater than the extent - either larger or smaller to reflect the clip region 
+                                // coordinate_type defines the type of number using for type of coordinates 
+                                // larger enough type that you won't have to have overflow (almost always guaranteed)
+                                // safe for doing coordinate calculations 
+                                // if extent is in the billions, vt spec doesn't specify max tile extent                                             
                                 vtile::overzoomed_feature_builder<coordinate_type> feature_builder{layer_builder, bbox, dx, dy, zoom_factor};
+                                // creating a feature builder object, creating feature builder and calling apply function on each feature
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
                                     feature_builder.apply(feature);
+                                    // looks for the geometry and calls the appropriate transformation for that geom type 
                                     return true;
                                 });
                             }
