@@ -195,7 +195,7 @@ struct overzoomed_feature_builder
         if (feature.has_id()) feature_builder.set_id(feature.id());
         bool valid = false;
         bool process = false;
-        for (auto & r : rings)
+        for (auto& r : rings)
         {
             if (r.second == vtzero::ring_type::outer)
             {
@@ -218,14 +218,12 @@ struct overzoomed_feature_builder
                             feature_builder.add_ring(static_cast<unsigned>(ring.size()));
                             if (r.second == vtzero::ring_type::outer)
                             {
-                                std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt)
-                                              { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));});
+                                std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
                             }
                             else
                             {
                                 // apply points in reverse to preserve original winding order of inner rings
-                                std::for_each(ring.rbegin(), ring.rend(), [&feature_builder](auto const& pt)
-                                              { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));});
+                                std::for_each(ring.rbegin(), ring.rend(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
                             }
                         }
                     }
