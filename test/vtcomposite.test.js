@@ -5,6 +5,7 @@ const path = require('path');
 const zlib = require('zlib');
 const mvtFixtures = require('@mapbox/mvt-fixtures');
 const vtinfo = require('./test-utils.js');
+var tilebelt = require('@mapbox/tilebelt');
 
 const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
@@ -173,7 +174,7 @@ test('[composite] underzooming generates out of bounds error', function(assert) 
   });
 });
 
-test.only('[composite] huge zoom factor still overzooms', function(assert) {
+test.only('[composite] huge zoom factor 22 still overzooms', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
@@ -182,12 +183,16 @@ test.only('[composite] huge zoom factor still overzooms', function(assert) {
     {buffer: buffer1, z:0, x:0, y:0}
   ];
 
-  const zxy = {z:18, x:4300, y:19};
+  const zoom = 3; 
+  const coords = require('./fixtures/four-points.js')['features'][0]['geometry']['coordinates'];
+  const overzoomedZXY = tilebelt.pointToTile(coords[0], coords[1], zoom);
+  console.log('zxy of upper left point at z' + zoom, overzoomedZXY);
+  const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
+  console.log('maprequest zxy', zxy);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    console.log(err);
     const outputInfo = vtinfo(vtBuffer);
-    console.log(outputInfo);
+    console.log('output tile', outputInfo);
     assert.end();
   });
 });

@@ -17,6 +17,7 @@
   "author": "Mapbox",
   "license": "ISC",
   "dependencies": {
+    "@mapbox/tilebelt": "^1.0.1",
     "mason-js-sdk": "^0.1.4",
     "nan": "~2.10.0",
     "node-pre-gyp": "~0.10.2"
