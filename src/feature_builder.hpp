@@ -139,10 +139,7 @@ struct overzoomed_feature_builder
     void finalize(FeatureBuilder& builder, vtzero::feature const& feature)
     {
         // add properties
-        feature.for_each_property([&builder](vtzero::property const& p) {
-            builder.add_property(p);
-            return true;
-        });
+        builder.copy_properties(feature);
         builder.commit();
     }
 
@@ -151,7 +148,7 @@ struct overzoomed_feature_builder
         mapbox::geometry::multi_point<CoordinateType> multi_point;
         vtzero::decode_point_geometry(feature.geometry(), detail::point_handler<coordinate_type>(multi_point, dx_, dy_, zoom_factor_));
         vtzero::point_feature_builder feature_builder{layer_builder_};
-        if (feature.has_id()) feature_builder.set_id(feature.id());
+        feature_builder.copy_id(feature);
         multi_point.erase(std::remove_if(multi_point.begin(), multi_point.end(), [this](auto const& pt) {
                               return !boost::geometry::within(pt, bbox_);
                           }),
@@ -172,7 +169,8 @@ struct overzoomed_feature_builder
         boost::geometry::intersection(multi_line, bbox_, result);
         bool valid = false;
         vtzero::linestring_feature_builder feature_builder{layer_builder_};
-        if (feature.has_id()) feature_builder.set_id(feature.id());
+        feature_builder.copy_id(feature);
+
         for (auto const& l : result)
         {
             if (l.size() > 1)
@@ -192,7 +190,8 @@ struct overzoomed_feature_builder
         std::vector<detail::annotated_ring<CoordinateType>> rings;
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
         vtzero::polygon_feature_builder feature_builder{layer_builder_};
-        if (feature.has_id()) feature_builder.set_id(feature.id());
+        feature_builder.copy_id(feature);
+
         bool valid = false;
         bool process = false;
         for (auto& r : rings)
@@ -249,7 +248,7 @@ struct overzoomed_feature_builder
         default:
             // LCOV_EXCL_START
             break;
-            // LCOV_EXCL_STOP        
+            // LCOV_EXCL_STOP
         }
     }
     vtzero::layer_builder& layer_builder_;
