@@ -108,21 +108,3 @@ test('[composite] overzooming success - overzooming zoom factor of 4 between two
   });
 });
 
-test.only('[composite] underzooming success errors', function(assert) {
-  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
-  const info = vtinfo(buffer1);
-  assert.equal(info.layers.quadrants.length, 4);
-  
-  const tiles = [
-    {buffer: buffer1, z:3, x:1, y:1}
-  ];
-
-  const zxy = {z:0, x:0, y:0};
-
-  composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const outputInfo = vtinfo(vtBuffer);
-    console.log(outputInfo);
-    assert.end();
-  });
-});
-

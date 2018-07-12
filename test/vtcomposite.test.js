@@ -155,3 +155,39 @@ test('[composite] failure: tile with zoom level higher than requested zoom is di
     assert.end();
   });
 });
+
+test('[composite] underzooming generates out of bounds error', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
+  const info = vtinfo(buffer1);
+  assert.equal(info.layers.quadrants.length, 4);
+  
+  const tiles = [
+    {buffer: buffer1, z:3, x:1, y:1}
+  ];
+
+  const zxy = {z:0, x:0, y:0};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.equal(err.message, 'Invalid tile composite request: SOURCE(3,1,1) TARGET(0,0,0)')
+    assert.end();
+  });
+});
+
+test.only('[composite] huge zoom factor still overzooms', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
+  const info = vtinfo(buffer1);
+  assert.equal(info.layers.quadrants.length, 4);
+  
+  const tiles = [
+    {buffer: buffer1, z:0, x:0, y:0}
+  ];
+
+  const zxy = {z:18, x:4300, y:19};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    console.log(err);
+    const outputInfo = vtinfo(vtBuffer);
+    console.log(outputInfo);
+    assert.end();
+  });
+});
