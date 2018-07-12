@@ -105,6 +105,8 @@ struct CompositeWorker : Nan::AsyncWorker
 
             for (auto const& tile_obj : baton_data_->tiles)
             {
+                std::clog << "tile z" << tile_obj->z << "target z" << target_z << std::endl;
+
                 if (vtile::within_target(*tile_obj, target_z, target_x, target_y))
                 {
                     vtzero::data_view tile_view{};
@@ -118,6 +120,15 @@ struct CompositeWorker : Nan::AsyncWorker
                     else
                     {
                         tile_view = tile_obj->data;
+                    }
+
+                    std::clog << "tile z" << tile_obj->z << "target z" << target_z << std::endl;
+                    if (tile_obj->z > target_z)
+                    {
+                        std::ostringstream os;
+                        os << "Underzooming not supported. TILE Zoom("
+                           << tile_obj->z << ") greather than TARGET Zoom (" << target_z << ")";
+                        throw std::invalid_argument(os.str());    
                     }
 
                     int zoom_factor = 1 << (target_z - tile_obj->z);

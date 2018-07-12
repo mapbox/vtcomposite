@@ -108,7 +108,7 @@ test('[composite] overzooming success - overzooming zoom factor of 4 between two
   });
 });
 
-test.only('[composite] overzooming success - overzooming zoom factor of 4 between two tiles, no buffer', function(assert) {
+test.only('[composite] underzooming success errors', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
@@ -118,11 +118,6 @@ test.only('[composite] overzooming success - overzooming zoom factor of 4 betwee
   ];
 
   const zxy = {z:0, x:0, y:0};
-
-  const long = geoData.features[0].geometry.coordinates[0];
-  const lat = geoData.features[0].geometry.coordinates[1];
-  const longInt = Math.round(parseFloat('.' + (long2tile(long,zxy.z)).toString().split('.')[1])*4096);
-  const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
