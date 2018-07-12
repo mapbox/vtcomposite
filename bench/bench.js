@@ -1,10 +1,9 @@
 "use strict";
-const zlib = require('zlib');
+
 const argv = require('minimist')(process.argv.slice(2));
-console.log('argv', argv)
 if (!argv.iterations || !argv.concurrency || !argv.package) {
   console.error('Please provide desired iterations, concurrency');
-  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik\nPass --compressed to bench compress tiles.');
+  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik');
   process.exit(1);
 }
 
@@ -33,22 +32,8 @@ const memstats = {
 
 // run each rule synchronously
 const ruleQueue = Queue(1);
-
 rules.forEach(function(rule) {
-  // console.log('rule not compressed');
-  if(argv.compress){
-    const newTiles = []
-    rule.tiles.forEach(function(t){
-      const compressedTile = zlib.gzipSync(t.buffer);
-      newTiles.push(compressedTile); 
-    });
-    rule.tiles = newTiles;
-    console.log('newTiles', newTiles);
-    ruleQueue.defer(runRule, rule);
-  }else{
-    console.log('rule.tiles', rule.tiles)
-    ruleQueue.defer(runRule, rule);
-  }
+  ruleQueue.defer(runRule, rule);
 });
 
 ruleQueue.awaitAll(function(err, res) {
@@ -66,7 +51,6 @@ function runRule(rule, ruleCallback) {
   function run(cb) {
     switch(argv.package){
       case 'vtcomposite':
-        // console.log(rule.tiles[0])
         composite(rule.tiles, rule.zxy, rule.options, function(err, result) {
           if (err) {
             throw err;
