@@ -1,7 +1,6 @@
 "use strict";
 const zlib = require('zlib');
 const argv = require('minimist')(process.argv.slice(2));
-console.log('argv', argv)
 if (!argv.iterations || !argv.concurrency || !argv.package) {
   console.error('Please provide desired iterations, concurrency');
   console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik\nPass --compressed to bench compress tiles.');
@@ -61,7 +60,6 @@ function runRule(rule, ruleCallback) {
   function run(cb) {
     switch(argv.package){
       case 'vtcomposite':
-        // console.log(rule.tiles[0])
         composite(rule.tiles, rule.zxy, rule.options, function(err, result) {
           if (err) {
             throw err;
