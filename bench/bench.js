@@ -35,18 +35,13 @@ const memstats = {
 const ruleQueue = Queue(1);
 
 rules.forEach(function(rule) {
-  // console.log('rule not compressed');
   if(argv.compress){
-    const newTiles = []
     rule.tiles.forEach(function(t){
       const compressedTile = zlib.gzipSync(t.buffer);
-      newTiles.push(compressedTile); 
+      t.buffer = compressedTile; 
     });
-    rule.tiles = newTiles;
-    console.log('newTiles', newTiles);
     ruleQueue.defer(runRule, rule);
   }else{
-    console.log('rule.tiles', rule.tiles)
     ruleQueue.defer(runRule, rule);
   }
 });
