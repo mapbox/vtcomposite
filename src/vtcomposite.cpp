@@ -120,14 +120,6 @@ struct CompositeWorker : Nan::AsyncWorker
                         tile_view = tile_obj->data;
                     }
 
-                    if (tile_obj->z > target_z)
-                    {
-                        std::ostringstream os;
-                        os << "Underzooming not supported. TILE Zoom("
-                           << tile_obj->z << ") greather than TARGET Zoom (" << target_z << ")";
-                        throw std::invalid_argument(os.str());
-                    }
-
                     int zoom_factor = 1 << (target_z - tile_obj->z);
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
