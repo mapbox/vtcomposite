@@ -174,7 +174,7 @@ test('[composite] underzooming generates out of bounds error', function(assert) 
   });
 });
 
-test.only('[composite] huge zoom factor 22 still overzooms - example', function(assert) {
+test('[composite] huge zoom factor 22 still overzooms - example', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
@@ -198,10 +198,10 @@ test.only('[composite] huge zoom factor 22 still overzooms - example', function(
   });
 });
 
-test('[composite] huge zoom factor 22 still overzooms - example 2', function(assert) {
+test.only('[composite] huge zoom factor 22 still overzooms - example 2', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/points-poi-sf-15-5239-12666.mvt');
   const info = vtinfo(buffer1);
-  assert.equal(info.layers.poi_label.length, 4);
+  assert.equal(info.layers.poi_label.length, 14);
   
   const tiles = [
     {buffer: buffer1, z:15, x:5239, y:12666}
@@ -216,6 +216,7 @@ test('[composite] huge zoom factor 22 still overzooms - example 2', function(ass
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
+    assert.equal(outputInfo.layers.poi_label.length, 1);
     console.log('output tile', outputInfo);
     assert.end();
   });
