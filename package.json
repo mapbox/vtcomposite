@@ -17,8 +17,6 @@
   "author": "Mapbox",
   "license": "ISC",
   "dependencies": {
-    "@mapbox/tilebelt": "^1.0.1",
-    "@mapbox/vt2geojson": "^1.1.5",
     "mason-js-sdk": "^0.1.4",
     "nan": "~2.10.0",
     "node-pre-gyp": "~0.10.2"
@@ -34,6 +32,7 @@
     "d3-queue": "^3.0.1",
     "mapnik": "^3.7.2",
     "minimist": "~1.2.0",
+    "@mapbox/tilebelt": "^1.0.1",
     "pbf": "^3.1.0",
     "sphericalmercator": "^1.0.5",
     "tape": "^4.5.1"
