@@ -5,6 +5,7 @@ const path = require('path');
 const zlib = require('zlib');
 const mvtFixtures = require('@mapbox/mvt-fixtures');
 const vtinfo = require('./test-utils.js');
+var tilebelt = require('@mapbox/tilebelt');
 
 const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
@@ -152,6 +153,65 @@ test('[composite] failure: tile with zoom level higher than requested zoom is di
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     assert.ok(err);
     assert.equal(err.message, 'Invalid tile composite request: SOURCE(7,10,22) TARGET(6,10,22)');
+    assert.end();
+  });
+});
+
+test('[composite] underzooming generates out of bounds error', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
+  const info = vtinfo(buffer1);
+  assert.equal(info.layers.quadrants.length, 4);
+  
+  const tiles = [
+    {buffer: buffer1, z:3, x:1, y:1}
+  ];
+
+  const zxy = {z:0, x:0, y:0};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.equal(err.message, 'Invalid tile composite request: SOURCE(3,1,1) TARGET(0,0,0)')
+    assert.end();
+  });
+});
+
+test('[composite] huge overzoom z0 - z14', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
+  const info = vtinfo(buffer1);
+  assert.equal(info.layers.quadrants.length, 4);
+  
+  const tiles = [
+    {buffer: buffer1, z:0, x:0, y:0}
+  ];
+
+  const zoom = 14; 
+  const coords = require('./fixtures/four-points.js')['features'][0]['geometry']['coordinates'];
+  const overzoomedZXY = tilebelt.pointToTile(coords[0], coords[1], zoom);
+  const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+    assert.equal(outputInfo.layers.quadrants.length, 1);
+    assert.end();
+  });
+});
+
+test('[composite] huge overzoom z15 - z27', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/points-poi-sf-15-5239-12666.mvt');
+  const info = vtinfo(buffer1);
+  assert.equal(info.layers.poi_label.length, 14);
+  
+  const tiles = [
+    {buffer: buffer1, z:15, x:5239, y:12666}
+  ];
+
+  const zoom = 27; 
+  const coords = require('./fixtures/points-poi-sf-15-5239-12666.js')['features'][0]['geometry']['coordinates'];
+  const overzoomedZXY = tilebelt.pointToTile(coords[0], coords[1], zoom);
+  const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+    assert.equal(outputInfo.layers.poi_label.length, 1);
     assert.end();
   });
 });

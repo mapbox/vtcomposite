@@ -150,7 +150,7 @@ struct overzoomed_feature_builder
         vtzero::point_feature_builder feature_builder{layer_builder_};
         feature_builder.copy_id(feature);
         multi_point.erase(std::remove_if(multi_point.begin(), multi_point.end(), [this](auto const& pt) {
-                              return !boost::geometry::within(pt, bbox_);
+                              return !boost::geometry::covered_by(pt, bbox_);
                           }),
                           multi_point.end());
 

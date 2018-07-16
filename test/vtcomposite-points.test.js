@@ -107,3 +107,4 @@ test('[composite] overzooming success - overzooming zoom factor of 4 between two
     assert.end();
   });
 });
+
