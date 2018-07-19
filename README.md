@@ -269,7 +269,7 @@ Let’s say you have two tiles at `z5` - `santacruz.mvt` & `losangeles.mvt`. Eac
 
 
 
-`**vtcomposite**` **code:** 
+**`vtcomposite` code:** 
 
 
     const santaCruzBuffer = fs.readFileSync('/santacruz.mvt');
@@ -300,16 +300,10 @@ We know that as zoom levels increase, each tile divides into four smaller tiles.
 
 If the `zxy` is `5/5/12`, the `z6` children tiles are located at: 
 
-| 2x, 2y
-**6/10/24**     | 2x + 1, 2y
-**6/11/24**     |
-| ---------------------- | -------------------------- |
-| 2x, 2y +1 
-**6/10/25** | 2x + 1, 2y + 1
-**6/11/25** |
+![](https://d2mxuefqeaa7sj.cloudfront.net/s_04E22B61D71C1B99F8EBA3C41F5DDF0F28DDD0F66171831E6A32600C9DBCD6E9_1532040176336_Screen+Shot+2018-07-19+at+3.42.16+PM.png)
 
 
-`**vtcomposite**` **code:** 
+**`vtcomposite` code:** 
 
 
     const santaCruzAndLABuffer = fs.readFileSync('/santa_cruz_plus_la-5-5-12.mvt');
@@ -364,9 +358,9 @@ Based off these equations, we know that resulting `(x,y)` point geometries for S
 
 ## Clipping
 
-Wait a second…! Los Angeles isn’t the tile we requested - `{z:6, x:10, y:24}` at `z6`…it’s in `{z:6, x:10, y:25}`. 
+Wait a second…! Los Angeles isn’t the tile we requested - `{z:6, x:10, y:24}` - it’s in `{z:6, x:10, y:25}`. 
 
-That means we need to **clip** the overzoomed geometries to only include the point(s) we need for tile  `{z:6, x:10, y:24}`. Since Santa Cruz is the only geometry in `{z:6, x:10, y:24}`, we **clip** extraneous data, which means we clip any geometries that are not included in the `z6` tile, but *are* included in the parent tile that’s been overzoomed - see ya Los Angeles! 
+That means we need to **clip** the overzoomed geometries to only include the point(s) we need for tile  `{z:6, x:10, y:24}`. Since Santa Cruz is the only geometry in `{z:6, x:10, y:24}`, we **clip** extraneous data, which means we remove any geometries that are not included in the `z6` tile, but *are* included in the parent tile that’s been overzoomed - `{z:5, x:5, y:12}`. See ya Los Angeles! 
 
 # Contributing and License
 
