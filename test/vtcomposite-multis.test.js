@@ -20,7 +20,7 @@ test('[composite] composite success multi geometries - different layer name, dif
   assert.equal(info0.layers.hello.length, 1);
   assert.equal(info1.layers.goodbye.length, 1);
   assert.equal(info2.layers.seeya.length, 1);
-  
+
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.goodbye.length, 1);
@@ -46,9 +46,10 @@ test('[composite] composite success multi geometries - different layer name, dif
   assert.equal(info0.layers.saucy.length, 1);
   assert.equal(info1.layers.goodbye.length, 1);
   assert.equal(info2.layers.seeya.length, 1);
-  
+
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
+    assert.equal(vtBuffer.length, 171);
     assert.equal(outputInfo.layers.goodbye.length, 1);
     assert.equal(outputInfo.layers.seeya.length, 1);
     assert.equal(outputInfo.layers.saucy.length, 1);
@@ -71,14 +72,14 @@ test('[composite] composite and overzooming success multi geometries - different
   assert.equal(info0.layers.hello.length, 1);
   assert.equal(info1.layers.goodbye.length, 1);
   assert.equal(info2.layers.seeya.length, 1);
-  
+
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 1);
 
     composite(tiles, zxy, {'buffer_size': 4096}, (err, vtBuffer) => {
       const outputInfo = vtinfo(vtBuffer);
-
+      assert.equal(vtBuffer.length, 181);
       assert.equal(Object.keys(outputInfo.layers).length, 3);
       assert.end();
     });
@@ -101,17 +102,16 @@ test('[composite] composite and overzooming success multi geometries with v1 til
   assert.equal(info0.layers.saucy.length, 1);
   assert.equal(info1.layers.goodbye.length, 1);
   assert.equal(info2.layers.seeya.length, 1);
-  
+
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 1);
 
     composite(tiles, zxy, {'buffer_size': 4096}, (err, vtBuffer) => {
       const outputInfo = vtinfo(vtBuffer);
-
+      assert.equal(vtBuffer.length, 181);
       assert.equal(Object.keys(outputInfo.layers).length, 3);
       assert.end();
     });
   });
 });
-

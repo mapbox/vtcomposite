@@ -6,14 +6,14 @@ var mvtFixtures = require('@mapbox/mvt-fixtures');
 var geoData = require('./fixtures/four-points.js');
 var vtinfo = require('./test-utils.js');
 
-// can replace long2tile and lat2tile with existing lib 
+// can replace long2tile and lat2tile with existing lib
 
-function long2tile(lon,zoom) { 
-  return (((lon+180)/360*Math.pow(2,zoom))); 
+function long2tile(lon,zoom) {
+  return (((lon+180)/360*Math.pow(2,zoom)));
 }
 
-function lat2tile(lat,zoom)  { 
-  return (((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom))); 
+function lat2tile(lat,zoom)  {
+  return (((1-Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2 *Math.pow(2,zoom)));
 }
 
 test('[composite] success compositing - different layer name, different features, same zoom, no buffer', function(assert) {
@@ -29,7 +29,7 @@ test('[composite] success compositing - different layer name, different features
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
-
+    assert.equal(vtBuffer.length, 110);
     assert.ok(outputInfo.layers.hello, 'expected layer name');
     assert.ok(outputInfo.layers['clipped-square'], 'expected layer name');
     assert.equal(Object.keys(outputInfo.layers).length, 2, 'expected number of layers');
@@ -53,6 +53,7 @@ test('[composite] success overzooming - different zooms between two tiles, no bu
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
+    assert.equal(vtBuffer.length, 57);
     assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
     assert.deepEqual(
       outputInfo.layers.quadrants.feature(0).loadGeometry(),
@@ -74,7 +75,7 @@ test('[composite] overzooming success - overzooming zoom factor of 4 between two
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
-  
+
   const originalGeometry = info.layers.quadrants.feature(0).loadGeometry()[0][0];
   const tiles = [
     {buffer: buffer1, z:0, x:0, y:0}
@@ -89,22 +90,21 @@ test('[composite] overzooming success - overzooming zoom factor of 4 between two
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
-
+    assert.equal(vtBuffer.length, 57);
     assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
 
     assert.deepEqual(
-      outputInfo.layers.quadrants.feature(0).loadGeometry(), 
-      [ [ { x: 1024, y: 2560  } ] ], 
+      outputInfo.layers.quadrants.feature(0).loadGeometry(),
+      [ [ { x: 1024, y: 2560  } ] ],
       'first feature scales as expected'
     );
 
     assert.deepEqual(
-      {x:longInt, y:latInt}, 
+      {x:longInt, y:latInt},
       outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
       'check that new coordinates shifted properly (since zoom factor is 3)'
-    ); 
+    );
 
     assert.end();
   });
 });
-
