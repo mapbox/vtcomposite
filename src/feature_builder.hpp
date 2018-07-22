@@ -43,7 +43,7 @@ struct point_handler
     {
         CoordinateType x = pt.x * zoom_factor_ - dx_;
         CoordinateType y = pt.y * zoom_factor_ - dy_;
-        mapbox::geometry::point<CoordinateType> pt0{x,y};
+        mapbox::geometry::point<CoordinateType> pt0{x, y};
         if (boost::geometry::covered_by(pt0, bbox_))
         {
             geom_.push_back(std::move(pt0));
