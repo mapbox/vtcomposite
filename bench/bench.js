@@ -1,9 +1,8 @@
 "use strict";
-const zlib = require('zlib');
 const argv = require('minimist')(process.argv.slice(2));
 if (!argv.iterations || !argv.concurrency || !argv.package) {
   console.error('Please provide desired iterations, concurrency');
-  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik\nPass --compressed to bench compress tiles.');
+  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik\nPass --compress to bench decompressing and compressing tiles.');
   process.exit(1);
 }
 
@@ -14,8 +13,10 @@ if (!argv.iterations || !argv.concurrency || !argv.package) {
 process.env.UV_THREADPOOL_SIZE = argv.concurrency;
 
 const fs = require('fs');
+const zlib = require('zlib');
 const path = require('path');
 const assert = require('assert');
+const bytes = require('bytes');
 const Queue = require('d3-queue').queue;
 const composite = require('../lib/index.js');
 const rules = require('./rules');
@@ -57,62 +58,67 @@ function runRule(rule, ruleCallback) {
   let runs = 0;
   let runsQueue = Queue();
 
+  // If --compress force all benchmarks to compress final buffer
+  if(argv.compress){
+    rule.options.compress = true;
+  }
+
   function run(cb) {
+
+    function done(err,result,callback) {
+      if (rule.options.compress){
+        if(result[0] !== 0x1F && result[1] !== 0x8B){
+          throw new Error('resulting buffer is not compressed!');
+        }
+      }
+      ++runs;
+
+      if (track_mem && runs % 1000) {
+        var mem = process.memoryUsage();
+        if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
+        if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
+        if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
+      }
+
+      return cb();
+    }
+
     switch(argv.package){
       case 'vtcomposite':
         composite(rule.tiles, rule.zxy, rule.options, function(err, result) {
           if (err) {
             throw err;
           }
-
-          if (rule.options.compress){
-            if(result[0] !== 0x1F && result[1] !== 0x8B){
-              throw new Error('resulting buffer is not compressed!');
-            }
-          }
-          ++runs;
-          return cb();
+          return done(null,result);
         });
         break;
       case 'node-mapnik':
         var target_vt = new mapnik.VectorTile(rule.zxy.z, rule.zxy.x, rule.zxy.y);
-        var source_tiles = new Array(rule.tiles.length);
+        let addDataQueue = Queue();
+        function addData(tile,done) {
+          var vt = new mapnik.VectorTile(tile.z,tile.x,tile.y);
+          vt.addData(tile.buffer,function(err) {
+             if (err) throw err;
+             return done(null,vt);
+          });
+        }
         for (var i = 0; i < rule.tiles.length; ++i)
         {
-          var vt = new mapnik.VectorTile(rule.tiles[i].z,rule.tiles[i].x,rule.tiles[i].y);
-          vt.addDataSync(rule.tiles[i].buffer);
-          source_tiles[i] = vt;
+          addDataQueue.defer(addData,rule.tiles[i]);
         }
-        // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
-        target_vt.composite(source_tiles, rule.options, function(err, result) {
-          if (err) {
-            return cb(err);
-          }
-
-          let options = {compression:'none'}
-          if (rule.options.compress){
-            options.compression = 'gzip';
-          }
-
-          result.getData(options, function(err, data) {
+        addDataQueue.awaitAll(function(error,source_tiles) {
+          if (error) throw error;
+          // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
+          target_vt.composite(source_tiles, rule.options, function(err, result) {
             if (err) {
-              throw err;
+              return cb(err);
             }
 
+            let options = {compression:'none'}
             if (rule.options.compress){
-              if(data[0] !== 0x1F && data[1] !== 0x8B){
-                throw new Error('resulting buffer is not compressed!');
-              }
+              options.compression = 'gzip';
             }
-            ++runs;
-
-            if (track_mem && runs % 1000) {
-              var mem = process.memoryUsage();
-              if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
-              if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
-              if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
-            }
-            return cb();
+            result.getData(options, done);
           });
         });
         break;
@@ -141,7 +147,7 @@ function runRule(rule, ruleCallback) {
     if (time == 0) {
       console.log("Warning: ms timer not high enough resolution to reliably track rate. Try more iterations");
     } else {
-    // number of milliseconds per iteration
+      // number of milliseconds per iteration
       var rate = runs/(time/1000);
       process.stdout.write(rate.toFixed(0) + ' runs/s (' + time + 'ms)');
     }
@@ -160,3 +166,12 @@ function log(message) {
     process.stdout.write(message);
   }
 }
+
+process.on('exit',function() {
+  if (track_mem) {
+    console.log('Benchmark peak mem (max_rss, max_heap, max_heap_total): ', bytes(memstats.max_rss), bytes(memstats.max_heap), bytes(memstats.max_heap_total));
+  } else {
+    console.log('Note: pass --mem to track memory usage');
+  }
+  console.log('Benchmark iterations:',argv.iterations,'concurrency:',argv.concurrency);
+})
