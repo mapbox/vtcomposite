@@ -3,7 +3,7 @@ const zlib = require('zlib');
 const argv = require('minimist')(process.argv.slice(2));
 if (!argv.iterations || !argv.concurrency || !argv.package) {
   console.error('Please provide desired iterations, concurrency');
-  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik\nPass --compressed to bench compress tiles.');
+  console.error('Example: \nnode bench/bench.js --iterations 50 --concurrency 10 --package vtcomposite\nPackage options: vtcomposite or node-mapnik\nPass --compress to bench compress tiles.');
   process.exit(1);
 }
 
@@ -71,48 +71,64 @@ function runRule(rule, ruleCallback) {
             }
           }
           ++runs;
+
+          if (track_mem && runs % 1000) {
+            var mem = process.memoryUsage();
+            if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
+            if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
+            if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
+          }
           return cb();
         });
         break;
       case 'node-mapnik':
         var target_vt = new mapnik.VectorTile(rule.zxy.z, rule.zxy.x, rule.zxy.y);
-        var source_tiles = new Array(rule.tiles.length);
+        let addDataQueue = Queue();
+        function addData(tile,done) {
+          var vt = new mapnik.VectorTile(tile.z,tile.x,tile.y);
+          vt.addData(tile.buffer,function(err) {
+             if (err) throw err;
+             return done(null,vt);
+          });
+        }
         for (var i = 0; i < rule.tiles.length; ++i)
         {
-          var vt = new mapnik.VectorTile(rule.tiles[i].z,rule.tiles[i].x,rule.tiles[i].y);
-          vt.addDataSync(rule.tiles[i].buffer);
-          source_tiles[i] = vt;
+          addDataQueue.defer(addData,rule.tiles[i]);
         }
-        // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
-        target_vt.composite(source_tiles, rule.options, function(err, result) {
-          if (err) {
-            return cb(err);
-          }
-
-          let options = {compression:'none'}
-          if (rule.options.compress){
-            options.compression = 'gzip';
-          }
-
-          result.getData(options, function(err, data) {
+        addDataQueue.awaitAll(function(error,source_tiles) {
+          if (error) throw error;
+//          console.log(source_tiles)
+          // http://mapnik.org/documentation/node-mapnik/3.6/#VectorTile.composite
+          target_vt.composite(source_tiles, rule.options, function(err, result) {
             if (err) {
-              throw err;
+              return cb(err);
             }
 
+            let options = {compression:'none'}
             if (rule.options.compress){
-              if(data[0] !== 0x1F && data[1] !== 0x8B){
-                throw new Error('resulting buffer is not compressed!');
-              }
+              options.compression = 'gzip';
             }
-            ++runs;
 
-            if (track_mem && runs % 1000) {
-              var mem = process.memoryUsage();
-              if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
-              if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
-              if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
-            }
-            return cb();
+            result.getData(options, function(err, data) {
+              if (err) {
+                throw err;
+              }
+
+              if (rule.options.compress){
+                if(data[0] !== 0x1F && data[1] !== 0x8B){
+                  throw new Error('resulting buffer is not compressed!');
+                }
+              }
+              ++runs;
+
+              if (track_mem && runs % 1000) {
+                var mem = process.memoryUsage();
+                if (mem.rss > memstats.max_rss) memstats.max_rss = mem.rss;
+                if (mem.heapTotal > memstats.max_heap_total) memstats.max_heap_total = mem.heapTotal;
+                if (mem.heapUsed > memstats.max_heap) memstats.max_heap = mem.heapUsed;
+              }
+              return cb();
+            });
           });
         });
         break;
