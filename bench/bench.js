@@ -19,7 +19,7 @@ const assert = require('assert');
 const bytes = require('bytes');
 const Queue = require('d3-queue').queue;
 const composite = require('../lib/index.js');
-const rules = require('./rules');
+var rules = require('./rules');
 let ruleCount = 1;
 const mapnik = require('mapnik');
 
@@ -33,6 +33,17 @@ const memstats = {
 
 // run each rule synchronously
 const ruleQueue = Queue(1);
+
+if(argv.only) {
+  rules = rules.filter(function(e) {
+    return e.description === argv.only;
+  });
+}
+
+if (rules.length < 1) {
+  console.error('Error: Could not match any rules based on "' + argv.only + '"');
+  process.exit(1);
+}
 
 rules.forEach(function(rule) {
   if(argv.compress){
