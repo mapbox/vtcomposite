@@ -1,5 +1,4 @@
 "use strict";
-const zlib = require('zlib');
 const argv = require('minimist')(process.argv.slice(2));
 if (!argv.iterations || !argv.concurrency || !argv.package) {
   console.error('Please provide desired iterations, concurrency');
@@ -14,8 +13,10 @@ if (!argv.iterations || !argv.concurrency || !argv.package) {
 process.env.UV_THREADPOOL_SIZE = argv.concurrency;
 
 const fs = require('fs');
+const zlib = require('zlib');
 const path = require('path');
 const assert = require('assert');
+const bytes = require('bytes');
 const Queue = require('d3-queue').queue;
 const composite = require('../lib/index.js');
 const rules = require('./rules');
@@ -157,7 +158,7 @@ function runRule(rule, ruleCallback) {
     if (time == 0) {
       console.log("Warning: ms timer not high enough resolution to reliably track rate. Try more iterations");
     } else {
-    // number of milliseconds per iteration
+      // number of milliseconds per iteration
       var rate = runs/(time/1000);
       process.stdout.write(rate.toFixed(0) + ' runs/s (' + time + 'ms)');
     }
@@ -176,3 +177,12 @@ function log(message) {
     process.stdout.write(message);
   }
 }
+
+process.on('exit',function() {
+  if (track_mem) {
+    console.log('Benchmark peak mem (max_rss, max_heap, max_heap_total): ', bytes(memstats.max_rss), bytes(memstats.max_heap), bytes(memstats.max_heap_total));
+  } else {
+    console.log('Note: pass --mem to track memory usage');
+  }
+  console.log('Benchmark iterations:',argv.iterations,'concurrency:',argv.concurrency);
+})
