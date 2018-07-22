@@ -22,8 +22,9 @@ template <typename CoordinateType>
 struct point_handler
 {
     using geom_type = mapbox::geometry::multi_point<CoordinateType>;
-    point_handler(geom_type& geom, int dx, int dy, int zoom_factor)
+    point_handler(geom_type& geom, int dx, int dy, int zoom_factor, mapbox::geometry::box<CoordinateType> const& bbox)
         : geom_(geom),
+          bbox_(bbox),
           dx_(dx),
           dy_(dy),
           zoom_factor_(zoom_factor)
@@ -32,19 +33,27 @@ struct point_handler
 
     void points_begin(std::uint32_t count)
     {
-        geom_.reserve(count);
+        if (count > 1)
+        {
+            geom_.reserve(count);
+        }
     }
 
     void points_point(vtzero::point const& pt)
     {
         CoordinateType x = pt.x * zoom_factor_ - dx_;
         CoordinateType y = pt.y * zoom_factor_ - dy_;
-        geom_.emplace_back(x, y);
+        mapbox::geometry::point<CoordinateType> pt0{x,y};
+        if (boost::geometry::covered_by(pt0, bbox_))
+        {
+            geom_.push_back(std::move(pt0));
+        }
     }
 
     void points_end() {}
 
     geom_type& geom_;
+    mapbox::geometry::box<CoordinateType> const& bbox_;
     int dx_;
     int dy_;
     int zoom_factor_;
@@ -149,15 +158,10 @@ struct overzoomed_feature_builder
     void apply_geometry_point(vtzero::feature const& feature)
     {
         mapbox::geometry::multi_point<CoordinateType> multi_point;
-        vtzero::decode_point_geometry(feature.geometry(), detail::point_handler<coordinate_type>(multi_point, dx_, dy_, zoom_factor_));
-        vtzero::point_feature_builder feature_builder{layer_builder_};
-        multi_point.erase(std::remove_if(multi_point.begin(), multi_point.end(), [this](auto const& pt) {
-                              return !boost::geometry::covered_by(pt, bbox_);
-                          }),
-                          multi_point.end());
-
+        vtzero::decode_point_geometry(feature.geometry(), detail::point_handler<coordinate_type>(multi_point, dx_, dy_, zoom_factor_, bbox_));
         if (!multi_point.empty())
         {
+            vtzero::point_feature_builder feature_builder{layer_builder_};
             feature_builder.copy_id(feature);
             feature_builder.add_points_from_container(multi_point);
             finalize(feature_builder, feature);
