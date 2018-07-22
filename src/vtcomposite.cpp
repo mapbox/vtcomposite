@@ -144,10 +144,10 @@ struct CompositeWorker : Nan::AsyncWorker
                                                                             {static_cast<int>(extent) + buffer_size,
                                                                              static_cast<int>(extent) + buffer_size}};
                                 vtile::overzoomed_feature_builder<coordinate_type> feature_builder{layer_builder, mapper, bbox, dx, dy, zoom_factor};
-                                while (auto feature = layer.next_feature())
-                                {
-                                    feature_builder.apply(feature);
-                                }
+                                layer.for_each_feature([&](vtzero::feature const& feature) {
+                                  feature_builder.apply(feature);
+                                  return true;
+                                });
                             }
                         }
                     }

@@ -139,22 +139,18 @@ struct overzoomed_feature_builder
           zoom_factor_{zoom_factor} {}
 
     template <typename FeatureBuilder>
-    void finalize(FeatureBuilder& builder, vtzero::feature& feature)
+    void finalize(FeatureBuilder& builder, vtzero::feature const& feature)
     {
         // add properties
-        while (auto idxs = feature.next_property_indexes())
-        {
-            builder.add_property(mapper_(idxs));
-        }
+        builder.copy_properties(feature, mapper_);
         builder.commit();
     }
 
-    void apply_geometry_point(vtzero::feature& feature)
+    void apply_geometry_point(vtzero::feature const& feature)
     {
         mapbox::geometry::multi_point<CoordinateType> multi_point;
         vtzero::decode_point_geometry(feature.geometry(), detail::point_handler<coordinate_type>(multi_point, dx_, dy_, zoom_factor_));
         vtzero::point_feature_builder feature_builder{layer_builder_};
-        feature_builder.copy_id(feature);
         multi_point.erase(std::remove_if(multi_point.begin(), multi_point.end(), [this](auto const& pt) {
                               return !boost::geometry::covered_by(pt, bbox_);
                           }),
@@ -162,83 +158,88 @@ struct overzoomed_feature_builder
 
         if (!multi_point.empty())
         {
+            feature_builder.copy_id(feature);
             feature_builder.add_points_from_container(multi_point);
             finalize(feature_builder, feature);
         }
     }
 
-    void apply_geometry_linestring(vtzero::feature& feature)
+    void apply_geometry_linestring(vtzero::feature const& feature)
     {
         mapbox::geometry::multi_line_string<CoordinateType> multi_line;
         vtzero::decode_linestring_geometry(feature.geometry(), detail::line_string_handler<coordinate_type>(multi_line, dx_, dy_, zoom_factor_));
         std::vector<mapbox::geometry::line_string<coordinate_type>> result;
         boost::geometry::intersection(multi_line, bbox_, result);
-        bool valid = false;
-        vtzero::linestring_feature_builder feature_builder{layer_builder_};
-        feature_builder.copy_id(feature);
-
-        for (auto const& l : result)
+        if (!result.empty())
         {
-            if (l.size() > 1)
+            bool valid = false;
+            vtzero::linestring_feature_builder feature_builder{layer_builder_};
+            feature_builder.copy_id(feature);
+            for (auto const& l : result)
             {
-                valid = true;
-                feature_builder.add_linestring(static_cast<unsigned>(l.size()));
-                for (auto const& pt : l)
+                if (l.size() > 1)
                 {
-                    feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                    valid = true;
+                    feature_builder.add_linestring(static_cast<unsigned>(l.size()));
+                    for (auto const& pt : l)
+                    {
+                        feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                    }
                 }
             }
+            if (valid) finalize(feature_builder, feature);
         }
-        if (valid) finalize(feature_builder, feature);
     }
-    void apply_geometry_polygon(vtzero::feature& feature)
+    void apply_geometry_polygon(vtzero::feature const& feature)
     {
         std::vector<detail::annotated_ring<CoordinateType>> rings;
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
-        vtzero::polygon_feature_builder feature_builder{layer_builder_};
-        feature_builder.copy_id(feature);
-
-        bool valid = false;
-        bool process = false;
-        for (auto& r : rings)
+        if (!rings.empty())
         {
-            if (r.second == vtzero::ring_type::outer)
+            vtzero::polygon_feature_builder feature_builder{layer_builder_};
+            feature_builder.copy_id(feature);
+            bool valid = false;
+            bool process = false;
+            for (auto& r : rings)
             {
-                auto extent = mapbox::geometry::envelope(r.first);
-                process = boost::geometry::intersects(extent, bbox_);
-            }
-            if (process)
-            {
-                std::vector<mapbox::geometry::polygon<coordinate_type>> result;
-                if (r.second == vtzero::ring_type::inner) boost::geometry::reverse(r.first);
-                // ^^ reverse inner rings before clipping as we're dealing with a disassembled polygon
-                boost::geometry::intersection(r.first, bbox_, result);
-                for (auto const& p : result)
+                if (r.second == vtzero::ring_type::outer)
                 {
-                    for (auto const& ring : p)
+                    auto extent = mapbox::geometry::envelope(r.first);
+                    process = boost::geometry::intersects(extent, bbox_);
+                }
+                if (process)
+                {
+                    std::vector<mapbox::geometry::polygon<coordinate_type>> result;
+                    if (r.second == vtzero::ring_type::inner) boost::geometry::reverse(r.first);
+                    // ^^ reverse inner rings before clipping as we're dealing with a disassembled polygon
+                    boost::geometry::intersection(r.first, bbox_, result);
+                    for (auto const& p : result)
                     {
-                        if (ring.size() > 3)
+                        for (auto const& ring : p)
                         {
-                            valid = true;
-                            feature_builder.add_ring(static_cast<unsigned>(ring.size()));
-                            if (r.second == vtzero::ring_type::outer)
+                            if (ring.size() > 3)
                             {
-                                std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
-                            }
-                            else
-                            {
-                                // apply points in reverse to preserve original winding order of inner rings
-                                std::for_each(ring.rbegin(), ring.rend(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
+                                valid = true;
+                                feature_builder.add_ring(static_cast<unsigned>(ring.size()));
+                                if (r.second == vtzero::ring_type::outer)
+                                {
+                                    std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
+                                }
+                                else
+                                {
+                                    // apply points in reverse to preserve original winding order of inner rings
+                                    std::for_each(ring.rbegin(), ring.rend(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
+                                }
                             }
                         }
                     }
                 }
             }
+            if (valid) finalize(feature_builder, feature);
         }
-        if (valid) finalize(feature_builder, feature);
     }
 
-    void apply(vtzero::feature& feature)
+    void apply(vtzero::feature const& feature)
     {
         switch (feature.geometry_type())
         {
