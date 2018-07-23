@@ -105,9 +105,11 @@ function runRule(rule, ruleCallback) {
         break;
       case 'node-mapnik':
         var target_vt = new mapnik.VectorTile(rule.zxy.z, rule.zxy.x, rule.zxy.y);
+        target_vt.bufferSize = rule.options.buffer_size;
         let addDataQueue = Queue();
         function addData(tile,done) {
           var vt = new mapnik.VectorTile(tile.z,tile.x,tile.y);
+          vt.bufferSize = rule.options.buffer_size;
           vt.addData(tile.buffer,function(err) {
              if (err) throw err;
              return done(null,vt);
