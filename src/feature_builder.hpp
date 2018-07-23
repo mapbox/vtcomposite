@@ -167,19 +167,27 @@ struct overzoomed_feature_builder
         vtzero::decode_linestring_geometry(feature.geometry(), detail::line_string_handler<coordinate_type>(multi_line, dx_, dy_, zoom_factor_));
         std::vector<mapbox::geometry::line_string<coordinate_type>> result;
         boost::geometry::intersection(multi_line, bbox_, result);
-        bool valid = false;
+
         vtzero::linestring_feature_builder feature_builder{layer_builder_};
         feature_builder.copy_id(feature);
-
+        bool valid = false;
         for (auto const& l : result)
         {
+            valid = false;
             if (l.size() > 1)
             {
-                valid = true;
                 feature_builder.add_linestring(static_cast<unsigned>(l.size()));
-                for (auto const& pt : l)
+                auto itr = l.cbegin();
+                auto last_pt = *itr++;
+                feature_builder.set_point(static_cast<int>(last_pt.x), static_cast<int>(last_pt.y));
+                for (auto const& end = l.end(); itr != end; ++itr)
                 {
-                    feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                    if (*itr != last_pt)
+                    {
+                        valid = true;
+                        feature_builder.set_point(static_cast<int>(itr->x), static_cast<int>(itr->y));
+                        last_pt = *itr;
+                    }
                 }
             }
         }
