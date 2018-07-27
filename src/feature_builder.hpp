@@ -64,23 +64,33 @@ struct line_string_handler
 
     void linestring_begin(std::uint32_t count)
     {
+        first_ = true;
         geom_.emplace_back();
         geom_.back().reserve(count);
     }
 
     void linestring_point(vtzero::point const& pt)
     {
-        CoordinateType x = pt.x * zoom_factor_ - dx_;
-        CoordinateType y = pt.y * zoom_factor_ - dy_;
-        geom_.back().emplace_back(x, y);
+        if (first_ || pt.x != cur_x_ || pt.y != cur_y_)
+        {
+            CoordinateType x = pt.x * zoom_factor_ - dx_;
+            CoordinateType y = pt.y * zoom_factor_ - dy_;
+            geom_.back().emplace_back(x, y);
+            cur_x_ = pt.x;
+            cur_y_ = pt.y;
+            first_ = false;
+        }
     }
 
     void linestring_end() {}
 
     geom_type& geom_;
-    int dx_;
-    int dy_;
-    int zoom_factor_;
+    int const dx_;
+    int const dy_;
+    int const zoom_factor_;
+    CoordinateType cur_x_ = 0;
+    CoordinateType cur_y_ = 0;
+    bool first_ = true;
 };
 
 template <typename CoordinateType>
@@ -98,15 +108,22 @@ struct polygon_handler
 
     void ring_begin(std::uint32_t count)
     {
+        first_ = true;
         geom_.emplace_back();
         geom_.back().first.reserve(count);
     }
 
     void ring_point(vtzero::point const& pt)
     {
-        CoordinateType x = pt.x * zoom_factor_ - dx_;
-        CoordinateType y = pt.y * zoom_factor_ - dy_;
-        geom_.back().first.emplace_back(x, y);
+        if (first_ || pt.x != cur_x_ || pt.y != cur_y_)
+        {
+            CoordinateType x = pt.x * zoom_factor_ - dx_;
+            CoordinateType y = pt.y * zoom_factor_ - dy_;
+            geom_.back().first.emplace_back(x, y);
+            cur_x_ = pt.x;
+            cur_y_ = pt.y;
+            first_ = false;
+        }
     }
 
     void ring_end(vtzero::ring_type type)
@@ -115,9 +132,12 @@ struct polygon_handler
     }
 
     geom_type& geom_;
-    int dx_;
-    int dy_;
-    int zoom_factor_;
+    int const dx_;
+    int const dy_;
+    int const zoom_factor_;
+    CoordinateType cur_x_ = 0;
+    CoordinateType cur_y_ = 0;
+    bool first_ = true;
 };
 
 } // namespace detail
@@ -176,18 +196,11 @@ struct overzoomed_feature_builder
             valid = false;
             if (l.size() > 1)
             {
+                valid = true;
                 feature_builder.add_linestring(static_cast<unsigned>(l.size()));
-                auto itr = l.cbegin();
-                auto last_pt = *itr++;
-                feature_builder.set_point(static_cast<int>(last_pt.x), static_cast<int>(last_pt.y));
-                for (auto const& end = l.end(); itr != end; ++itr)
+                for (auto const& pt : l)
                 {
-                    if (*itr != last_pt)
-                    {
-                        valid = true;
-                        feature_builder.set_point(static_cast<int>(itr->x), static_cast<int>(itr->y));
-                        last_pt = *itr;
-                    }
+                    feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
                 }
             }
         }
@@ -225,12 +238,14 @@ struct overzoomed_feature_builder
                             feature_builder.add_ring(static_cast<unsigned>(ring.size()));
                             if (r.second == vtzero::ring_type::outer)
                             {
-                                std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
+                                std::for_each(ring.begin(), ring.end(),
+                                              [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
                             }
                             else
                             {
                                 // apply points in reverse to preserve original winding order of inner rings
-                                std::for_each(ring.rbegin(), ring.rend(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
+                                std::for_each(ring.rbegin(), ring.rend(),
+                                              [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
                             }
                         }
                     }
