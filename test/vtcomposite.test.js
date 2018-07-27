@@ -217,24 +217,26 @@ test('[composite] huge overzoom z15 - z27', function(assert) {
 });
 
 test.only('[composite] invalid geometry', function(assert) {
-  const buffer1 = fs.readFileSync(__dirname + '/fixtures/invalid-geom/chimani.hojsv2t9-14-5088-5937.vector.pbf');
-  const buffer2 = fs.readFileSync(__dirname + '/fixtures/invalid-geom/mapbox.mapbox-streets-v7-14-5088-5937.vector.pbf');
-  const buffer3 = fs.readFileSync(__dirname + '/fixtures/invalid-geom/mapbox.mapbox-terrain-v2-14-5088-5937.vector.pbf');
-  const info = vtinfo(buffer1);
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/0.mvt');
+  const buffer2 = fs.readFileSync(__dirname + '/fixtures/1.mvt');
+  // hopefully this is z12
+  const buffer3 = fs.readFileSync(__dirname + '/fixtures/2.mvt');
+  // const info = vtinfo(buffer1);
 
   // console.log(info);
 
   const tiles = [
-    {buffer: buffer1, z:14, x:5088, y:5937},
-    {buffer: buffer2, z:14, x:5088, y:5937},
-    {buffer: buffer3, z:14, x:5088, y:5937}
+    {buffer: buffer1, z:14, x:4396, y:6458}, 
+    {buffer: buffer2, z:14, x:4396, y:6458},
+    {buffer: buffer3, z:12, x:1099, y:1614}
+
   ];
 
-  const zxy = {z:14, x:5088, y:5937};
+  const zxy = {z:14, x:4396, y:6458};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    const outputInfo = vtinfo(vtBuffer);
-
+    // const outputInfo = vtinfo(vtBuffer);
+    console.log('error', err);
     // console.log(outputInfo);
 
     assert.end();
