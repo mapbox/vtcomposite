@@ -226,7 +226,7 @@ test('[composite] invalid geometry', function(assert) {
   // console.log(info);
 
   const tiles = [
-    {buffer: buffer1, z:14, x:4396, y:6458}, 
+    {buffer: buffer1, z:14, x:4396, y:6458},
     {buffer: buffer2, z:14, x:4396, y:6458},
     {buffer: buffer3, z:12, x:1099, y:1614}
 
@@ -243,13 +243,13 @@ test('[composite] invalid geometry', function(assert) {
   });
 });
 
-test.only('[composite] invalid geometry again, chimani stinks', function(assert) {
+test('[composite] invalid geometry again, chimani stinks', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/3.mvt');
   const buffer2 = fs.readFileSync(__dirname + '/fixtures/4.mvt');
   const buffer3 = fs.readFileSync(__dirname + '/fixtures/5.mvt');
 
   const tiles = [
-    {buffer: buffer1, z:14, x:5088, y:5937}, 
+    {buffer: buffer1, z:14, x:5088, y:5937},
     {buffer: buffer2, z:14, x:5088, y:5937},
     {buffer: buffer3, z:12, x:1272, y:1484}
   ];
