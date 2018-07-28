@@ -7,7 +7,6 @@
 #include <vtzero/builder.hpp>
 #include <vtzero/property_mapper.hpp>
 // boost
-#include <boost/core/ignore_unused.hpp>
 #include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
 // stl
@@ -31,7 +30,7 @@ struct point_handler
     {
     }
 
-    void points_begin(std::uint32_t count)
+    void points_begin(std::uint32_t)
     {
     }
 
