@@ -77,9 +77,11 @@
         './src/module.cpp',
         './src/vtcomposite.cpp'
       ],
+      'libraries':[
+          '<(module_root_dir)/mason_packages/.link/lib/libdeflate.a'
+      ],
       'ldflags': [
-        '-Wl,-z,now',
-        '<(module_root_dir)/mason_packages/.link/lib/libdeflate.a'
+        '-Wl,-z,now'
       ],
       'conditions': [
         ['error_on_warnings == "true"', {
@@ -95,8 +97,7 @@
       ],
       'xcode_settings': {
         'OTHER_LDFLAGS':[
-          '-Wl,-bind_at_load',
-          '<(module_root_dir)/mason_packages/.link/lib/libdeflate.a'
+          '-Wl,-bind_at_load'
         ],
         'OTHER_CPLUSPLUSFLAGS': [
             '<@(system_includes)',
