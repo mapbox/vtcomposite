@@ -33,10 +33,6 @@ struct point_handler
 
     void points_begin(std::uint32_t count)
     {
-        if (count > 1)
-        {
-            geom_.reserve(count);
-        }
     }
 
     void points_point(vtzero::point const& pt)
