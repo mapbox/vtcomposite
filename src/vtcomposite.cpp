@@ -101,7 +101,9 @@ struct CompositeWorker : Nan::AsyncWorker
             int const target_x = baton_data_->x;
             int const target_y = baton_data_->y;
 
-            std::vector<std::unique_ptr<std::vector<char>>> buffer_cache;
+            std::vector<std::string> buffer_cache;
+            gzip::Decompressor decompressor;
+            gzip::Compressor compressor;
 
             for (auto const& tile_obj : baton_data_->tiles)
             {
@@ -110,10 +112,10 @@ struct CompositeWorker : Nan::AsyncWorker
                     vtzero::data_view tile_view{};
                     if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
-                        buffer_cache.push_back(std::make_unique<std::vector<char>>());
-                        gzip::Decompressor decompressor;
-                        decompressor.decompress(*buffer_cache.back(), tile_obj->data.data(), tile_obj->data.size());
-                        tile_view = protozero::data_view{buffer_cache.back()->data(), buffer_cache.back()->size()};
+                        buffer_cache.emplace_back();
+                        std::string & buf = buffer_cache.back();
+                        decompressor.decompress(buf, tile_obj->data.data(), tile_obj->data.size());
+                        tile_view = vtzero::data_view{buf};
                     }
                     else
                     {
@@ -166,7 +168,7 @@ struct CompositeWorker : Nan::AsyncWorker
             {
                 std::string temp;
                 builder.serialize(temp);
-                tile_buffer = gzip::compress(temp.data(), temp.size());
+                compressor.compress(tile_buffer, temp.data(), temp.size());
             }
             else
             {

@@ -94,7 +94,8 @@
       ],
       'xcode_settings': {
         'OTHER_LDFLAGS':[
-          '-Wl,-bind_at_load'
+          '-Wl,-bind_at_load',
+          '<(module_root_dir)/mason_packages/.link/lib/libdeflate.a'
         ],
         'OTHER_CPLUSPLUSFLAGS': [
             '<@(system_includes)',
