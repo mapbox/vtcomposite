@@ -79,6 +79,7 @@
       ],
       'ldflags': [
         '-Wl,-z,now',
+        '<(module_root_dir)/mason_packages/.link/lib/libdeflate.a'
       ],
       'conditions': [
         ['error_on_warnings == "true"', {
