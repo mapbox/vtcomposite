@@ -172,22 +172,30 @@ struct overzoomed_feature_builder
         boost::geometry::intersection(multi_line, bbox_, result);
         if (!result.empty())
         {
-            bool valid = false;
             vtzero::linestring_feature_builder feature_builder{layer_builder_};
             feature_builder.copy_id(feature);
+            bool valid = false;
             for (auto const& l : result)
             {
+                valid = false;
                 if (l.size() > 1)
                 {
-                    valid = true;
                     feature_builder.add_linestring(static_cast<unsigned>(l.size()));
-                    for (auto const& pt : l)
+                    auto itr = l.cbegin();
+                    auto last_pt = *itr++;
+                    feature_builder.set_point(static_cast<int>(last_pt.x), static_cast<int>(last_pt.y));
+                    for (auto const& end = l.end(); itr != end; ++itr)
                     {
-                        feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                        if (*itr != last_pt)
+                        {
+                            valid = true;
+                            feature_builder.set_point(static_cast<int>(itr->x), static_cast<int>(itr->y));
+                            last_pt = *itr;
+                        }
                     }
-                }
+              }
+              if (valid) finalize(feature_builder, feature);
             }
-            if (valid) finalize(feature_builder, feature);
         }
     }
     void apply_geometry_polygon(vtzero::feature const& feature)
