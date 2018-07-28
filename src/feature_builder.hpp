@@ -192,9 +192,9 @@ struct overzoomed_feature_builder
                             last_pt = *itr;
                         }
                     }
-              }
-              if (valid) finalize(feature_builder, feature);
+                }
             }
+            if (valid) finalize(feature_builder, feature);
         }
     }
     void apply_geometry_polygon(vtzero::feature const& feature)
