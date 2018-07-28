@@ -13,6 +13,7 @@ install:
   - which node
   - clang++ -v
   - which clang++
+  - git clone -b libdeflate-redux https://github.com/mapbox/gzip-hpp ../gzip-hpp
   - make ${BUILDTYPE}
 
 # *Here we run tests*
