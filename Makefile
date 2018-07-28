@@ -36,11 +36,11 @@ mason_packages/.link/include: mason_packages/headers
 build-deps: mason_packages/.link/include
 
 release: build-deps
-	V=1 CXXFLAGS=-I`pwd`/../gzip-hpp/include ./node_modules/.bin/node-pre-gyp configure build --error_on_warnings=$(WERROR) --loglevel=error
+	V=1 CXXFLAGS="-I`pwd`/../gzip-hpp/include" ./node_modules/.bin/node-pre-gyp configure build --error_on_warnings=$(WERROR) --loglevel=error
 	@echo "run 'make clean' for full rebuild"
 
 debug: mason_packages/.link/include
-	V=1 CXXFLAGS=-I`pwd`/../gzip-hpp/include ./node_modules/.bin/node-pre-gyp configure build --error_on_warnings=$(WERROR) --loglevel=error --debug
+	V=1 CXXFLAGS="-I`pwd`/../gzip-hpp/include" ./node_modules/.bin/node-pre-gyp configure build --error_on_warnings=$(WERROR) --loglevel=error --debug
 	@echo "run 'make clean' for full rebuild"
 
 coverage: build-deps

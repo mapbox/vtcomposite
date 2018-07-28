@@ -113,7 +113,7 @@ struct CompositeWorker : Nan::AsyncWorker
                     if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
                         buffer_cache.emplace_back();
-                        std::string & buf = buffer_cache.back();
+                        std::string& buf = buffer_cache.back();
                         decompressor.decompress(buf, tile_obj->data.data(), tile_obj->data.size());
                         tile_view = vtzero::data_view{buf};
                     }
