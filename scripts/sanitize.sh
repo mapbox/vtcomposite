@@ -51,4 +51,3 @@ else
     LD_PRELOAD=${MASON_LLVM_RT_PRELOAD} \
       npm test
 fi
-
