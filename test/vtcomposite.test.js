@@ -216,14 +216,10 @@ test('[composite] huge overzoom z15 - z27', function(assert) {
   });
 });
 
-test('[composite] invalid geometry', function(assert) {
+test('[composite] vtzero error raised for V1 tiles with polygon missing int command 7 (ClosePath)', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/0.mvt');
   const buffer2 = fs.readFileSync(__dirname + '/fixtures/1.mvt');
-  // hopefully this is z12
   const buffer3 = fs.readFileSync(__dirname + '/fixtures/2.mvt');
-  // const info = vtinfo(buffer1);
-
-  // console.log(info);
 
   const tiles = [
     {buffer: buffer1, z:14, x:4396, y:6458}, 
@@ -243,7 +239,7 @@ test('[composite] invalid geometry', function(assert) {
   });
 });
 
-test.only('[composite] invalid geometry again, chimani stinks', function(assert) {
+test('[composite] resolves zero length linestring error for overzoomed V1 tiles with polygons', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/3.mvt');
   const buffer2 = fs.readFileSync(__dirname + '/fixtures/4.mvt');
   const buffer3 = fs.readFileSync(__dirname + '/fixtures/5.mvt');
