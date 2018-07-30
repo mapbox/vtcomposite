@@ -331,7 +331,7 @@ That means we need to **clip** the overzoomed geometries to only include the poi
 
 ## Clipping with a `buffer_size` 
 
-In the example above, we clipped geometries based on the default tile boundaries (4096X4096). However, the `composite` function always us to have control over which geometries we include/exclude outside the requested tile when clipping. By passing in a `buffer_size` to the compositing function, we are able to explicitly state if we want to keep geometries outside the tile extent. 
+In the example above, we clipped geometries based on the default tile boundaries (4096X4096). However, the `composite` function always us to have control over which geometries we include/exclude outside the requested tile when clipping. By passing in a `buffer_size` to the compositing function, we are able to explicitly state if we want to keep geometries outside the tile extent when overzooming. 
 
 # Contributing and License
 
