@@ -136,13 +136,14 @@ struct CompositeWorker : Nan::AsyncWorker
                             else
                             {
                                 vtzero::layer_builder layer_builder{builder, name, MVT_VERSION_2, extent};
+                                vtzero::property_mapper mapper{layer, layer_builder};
                                 using coordinate_type = std::int64_t;
                                 int dx, dy;
                                 std::tie(dx, dy) = vtile::displacement(tile_obj->z, static_cast<int>(extent), target_z, target_x, target_y);
                                 mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
                                                                             {static_cast<int>(extent) + buffer_size,
                                                                              static_cast<int>(extent) + buffer_size}};
-                                vtile::overzoomed_feature_builder<coordinate_type> feature_builder{layer_builder, bbox, dx, dy, zoom_factor};
+                                vtile::overzoomed_feature_builder<coordinate_type> feature_builder{layer_builder, mapper, bbox, dx, dy, zoom_factor};
                                 layer.for_each_feature([&](vtzero::feature const& feature) {
                                     feature_builder.apply(feature);
                                     return true;
