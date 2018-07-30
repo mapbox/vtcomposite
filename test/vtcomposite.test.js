@@ -161,7 +161,7 @@ test('[composite] underzooming generates out of bounds error', function(assert) 
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
-  
+
   const tiles = [
     {buffer: buffer1, z:3, x:1, y:1}
   ];
@@ -178,12 +178,12 @@ test('[composite] huge overzoom z0 - z14', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
-  
+
   const tiles = [
     {buffer: buffer1, z:0, x:0, y:0}
   ];
 
-  const zoom = 14; 
+  const zoom = 14;
   const coords = require('./fixtures/four-points.js')['features'][0]['geometry']['coordinates'];
   const overzoomedZXY = tilebelt.pointToTile(coords[0], coords[1], zoom);
   const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
@@ -199,12 +199,12 @@ test('[composite] huge overzoom z15 - z27', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/points-poi-sf-15-5239-12666.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.poi_label.length, 14);
-  
+
   const tiles = [
     {buffer: buffer1, z:15, x:5239, y:12666}
   ];
 
-  const zoom = 27; 
+  const zoom = 27;
   const coords = require('./fixtures/points-poi-sf-15-5239-12666.js')['features'][0]['geometry']['coordinates'];
   const overzoomedZXY = tilebelt.pointToTile(coords[0], coords[1], zoom);
   const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
@@ -212,6 +212,26 @@ test('[composite] huge overzoom z15 - z27', function(assert) {
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.poi_label.length, 1);
+    assert.end();
+  });
+});
+
+test('[composite] resolves zero length linestring error for overzoomed V1 tiles with polygons', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/3.mvt');
+  const buffer2 = fs.readFileSync(__dirname + '/fixtures/4.mvt');
+  const buffer3 = fs.readFileSync(__dirname + '/fixtures/5.mvt');
+
+  const tiles = [
+    {buffer: buffer1, z:14, x:5088, y:5937},
+    {buffer: buffer2, z:14, x:5088, y:5937},
+    {buffer: buffer3, z:12, x:1272, y:1484}
+  ];
+
+  const zxy = {z:14, x:5088, y:5937};
+
+  composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+    const outputInfo = vtinfo(vtBuffer);
+    assert.equal(Object.keys(outputInfo.layers).length, 11, 'v1 tiles with polygons composite successfully');
     assert.end();
   });
 });
