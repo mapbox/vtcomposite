@@ -93,8 +93,6 @@ struct CompositeWorker : Nan::AsyncWorker
     {
         try
         {
-            std::clog << "this is vtcomposite!" << std::endl;
-
             vtzero::tile_builder builder;
             std::vector<vtzero::data_view> names;
 

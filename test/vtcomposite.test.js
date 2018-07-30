@@ -222,7 +222,7 @@ test('[composite] vtzero error raised for V1 tiles with polygon missing int comm
   const buffer3 = fs.readFileSync(__dirname + '/fixtures/2.mvt');
 
   const tiles = [
-    {buffer: buffer1, z:14, x:4396, y:6458}, 
+    {buffer: buffer1, z:14, x:4396, y:6458},
     {buffer: buffer2, z:14, x:4396, y:6458},
     {buffer: buffer3, z:12, x:1099, y:1614}
 
@@ -245,7 +245,7 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
   const buffer3 = fs.readFileSync(__dirname + '/fixtures/5.mvt');
 
   const tiles = [
-    {buffer: buffer1, z:14, x:5088, y:5937}, 
+    {buffer: buffer1, z:14, x:5088, y:5937},
     {buffer: buffer2, z:14, x:5088, y:5937},
     {buffer: buffer3, z:12, x:1272, y:1484}
   ];
@@ -253,9 +253,8 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
   const zxy = {z:14, x:5088, y:5937};
 
   composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
-    // const outputInfo = vtinfo(vtBuffer);
-    console.log('error', err);
-    // console.log(outputInfo);
+    const outputInfo = vtinfo(vtBuffer);
+    assert.equal(Object.keys(outputInfo.layers).length, 11, 'v1 tiles with polygons composite successfully');
 
     assert.end();
   });
