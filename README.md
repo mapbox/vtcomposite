@@ -195,7 +195,7 @@ The viz/ directory contains a small node application that is helpful for visual 
 cd viz
 npm install
 MapboxAccessToken={token} node app.js
-# localhost:x000
+# localhost:3000
 
 #in a separate terminal tab, run a simple server on a port of your choosing
 #navigate to this port in your browser 
