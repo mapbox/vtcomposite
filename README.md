@@ -25,10 +25,10 @@ vtcomposite is made possible with node-cpp-skel, vtzero, geometry.hpp, spatial-a
 ### Parameters
 
 -   `tiles` **[Array][4]&lt;[Object][5]>** an array of tile objects with `buffer`, `z`, `x`, and `y` values
--   `null` **[Array][4]&lt;[Object][5]>** `z`, `x`, and `y` values of a map request
+-   `zxy` **[Array][4]&lt;[Object][5]>** `z`, `x`, and `y` values of a map request
 -   `options` **[Object][5]?** 
-    -   `options.compress` **[Boolean][6]** a boolean value indicating whether or not to return a compressed buffer. Default is to return a uncompressed buffer. (optional, default `true`)
-    -   `options.buffer_size` **[Number][7]** the buffer size of a tile, indicating the tile extent that should be composited and/or clipped. Default is `buffer_size=0`. (optional, default `128`)
+    -   `options.compress` **[Boolean][6]** a boolean value indicating whether or not to return a compressed buffer. Default is to return a uncompressed buffer. (optional, default `false`)
+    -   `options.buffer_size` **[Number][7]** the buffer size of a tile, indicating the tile extent that should be composited and/or clipped. Default is `buffer_size=0`. (optional, default `0`)
 
 ### Examples
 
@@ -214,7 +214,7 @@ Compositing is a tool to combine multiple vector tiles into a single tile. Compo
 
 ## Compositing: Merging 2+ Tiles
 
-Let’s say you have two tiles at `z5` - `santacruz.mvt` & `losangeles.mvt`. Each tile contains a single point that corresponds to one of the two cities. You could generate a single tile, `sc_plus_la.mvt` that contains both points by compositing the two tiles. 
+Let’s say you have two tiles at `z5` - `santacruz.mvt` & `losangeles.mvt`. Each tile contains a single point that corresponds to one of the two cities. You could generate a single tile, `santa_cruz_plus_la-5-5-12.mvt` that contains both points by compositing the two tiles. 
 
 ## Source Tiles
 
@@ -223,31 +223,9 @@ Let’s say you have two tiles at `z5` - `santacruz.mvt` & `losangeles.mvt`. Eac
 ![](https://d2mxuefqeaa7sj.cloudfront.net/s_04E22B61D71C1B99F8EBA3C41F5DDF0F28DDD0F66171831E6A32600C9DBCD6E9_1531946395305_sc.png)
 
 
-
-
-
-
-
-
-
-
-
-
-
 `losangeles.mvt` - single point 
 
 ![](https://d2mxuefqeaa7sj.cloudfront.net/s_04E22B61D71C1B99F8EBA3C41F5DDF0F28DDD0F66171831E6A32600C9DBCD6E9_1531946414805_la.png)
-
-
-
-
-
-
-
-
-
-
-
 
 
 ## Output Tile
@@ -256,17 +234,6 @@ Let’s say you have two tiles at `z5` - `santacruz.mvt` & `losangeles.mvt`. Eac
 
 
 ![](https://d2mxuefqeaa7sj.cloudfront.net/s_04E22B61D71C1B99F8EBA3C41F5DDF0F28DDD0F66171831E6A32600C9DBCD6E9_1531946439263_scla.png)
-
-
-
-
-
-
-
-
-
-
-
 
 
 **`vtcomposite` code:** 
@@ -353,20 +320,28 @@ Based off these equations, we know that resulting `(x,y)` point geometries for S
 
 
     Santa Cruz point = [1274, 3730] at zxy 6/10/24
-    Los Angeles point = [90, 2318] at zxy 6/10/25
+    Los Angeles point = [90, 2318] at zxy 6/11/25
 
 
 ## Clipping
 
-Wait a second…! Los Angeles isn’t the tile we requested - `{z:6, x:10, y:24}` - it’s in `{z:6, x:10, y:25}`. 
+Wait a second…! Los Angeles isn’t the tile we requested - `{z:6, x:10, y:24}` - it’s in `{z:6, x:11, y:25}`. 
 
 That means we need to **clip** the overzoomed geometries to only include the point(s) we need for tile  `{z:6, x:10, y:24}`. Since Santa Cruz is the only geometry in `{z:6, x:10, y:24}`, we **clip** extraneous data, which means we remove any geometries that are not included in the `z6` tile, but *are* included in the parent tile that’s been overzoomed - `{z:5, x:5, y:12}`. See ya Los Angeles! 
+
+## Clipping with a `buffer_size` 
+
+In the example above, we clipped geometries based on the default tile boundaries (4096X4096). However, the `composite` function always us to have control over which geometries we include/exclude outside the requested tile when clipping. By passing in a `buffer_size` to the compositing function, we are able to explicitly state if we want to keep geometries outside the tile extent. 
 
 # Contributing and License
 
 This project is based off the node-cpp-skel framework. Node-cpp-skel is licensed under [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/). 
 
 [![badge](https://mapbox.s3.amazonaws.com/cpp-assets/node-cpp-skel-badge_blue.svg)](https://github.com/mapbox/node-cpp-skel)
+
+For more about vtcomposite contributing and licensing, see: 
+- vtcomposite [license](https://github.com/mapbox/vtcomposite/blob/master/LICENSE.md)
+- vtcomposite [contribution docs](https://github.com/mapbox/vtcomposite/blob/master/CONTRIBUTING.md)
 
 
 
