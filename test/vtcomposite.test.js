@@ -231,10 +231,9 @@ test('[composite] vtzero error raised for V1 tiles with polygon missing int comm
   const zxy = {z:14, x:4396, y:6458};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
-    // const outputInfo = vtinfo(vtBuffer);
-    console.log('error', err);
-    // console.log(outputInfo);
-
+    const outputInfo = vtinfo(vtBuffer);
+    //console.log('error', err);
+    console.log(outputInfo);
     assert.end();
   });
 });
@@ -255,7 +254,6 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
   composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 11, 'v1 tiles with polygons composite successfully');
-
     assert.end();
   });
 });
