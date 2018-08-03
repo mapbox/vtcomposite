@@ -151,7 +151,7 @@ struct CompositeWorker : Nan::AsyncWorker
                                     }
                                     catch (vtzero::geometry_exception const& ex)
                                     {
-                                        std::cerr << "vtzero::geometry_exception:" << ex.what() << std::endl;
+                                        std::cerr << "Skipping feature with malformed geometry : " << ex.what() << std::endl;
                                     }
                                     return true;
                                 });
