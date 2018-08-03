@@ -86,10 +86,10 @@ namespace {
 template <typename FeatureBuilder>
 struct build_feature_from_v1
 {
-    build_feature_from_v1(FeatureBuilder & builder)
+    build_feature_from_v1(FeatureBuilder& builder)
         : builder_(builder) {}
 
-    bool operator() (vtzero::feature const& feature)
+    bool operator()(vtzero::feature const& feature)
     {
         try
         {
@@ -107,10 +107,10 @@ struct build_feature_from_v1
 template <typename FeatureBuilder>
 struct build_feature_from_v2
 {
-    build_feature_from_v2(FeatureBuilder & builder)
+    build_feature_from_v2(FeatureBuilder& builder)
         : builder_(builder) {}
 
-    bool operator() (vtzero::feature const& feature)
+    bool operator()(vtzero::feature const& feature)
     {
         builder_.apply(feature);
         return true;
@@ -118,7 +118,7 @@ struct build_feature_from_v2
     FeatureBuilder& builder_;
 };
 
-}
+} // namespace
 
 struct CompositeWorker : Nan::AsyncWorker
 {
