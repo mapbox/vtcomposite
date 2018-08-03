@@ -19,6 +19,7 @@
 
 namespace vtile {
 
+static constexpr unsigned MVT_VERSION_1 = 1u;
 static constexpr unsigned MVT_VERSION_2 = 2u;
 
 struct TileObject
@@ -80,6 +81,45 @@ struct BatonType
     bool compress = false;
 };
 
+namespace {
+
+template <typename FeatureBuilder>
+struct build_feature_from_v1
+{
+    build_feature_from_v1(FeatureBuilder & builder)
+        : builder_(builder) {}
+
+    bool operator() (vtzero::feature const& feature)
+    {
+        try
+        {
+            builder_.apply(feature);
+        }
+        catch (vtzero::geometry_exception const& ex)
+        {
+            std::cerr << "Skipping feature with malformed geometry (v1): " << ex.what() << std::endl;
+        }
+        return true;
+    }
+    FeatureBuilder& builder_;
+};
+
+template <typename FeatureBuilder>
+struct build_feature_from_v2
+{
+    build_feature_from_v2(FeatureBuilder & builder)
+        : builder_(builder) {}
+
+    bool operator() (vtzero::feature const& feature)
+    {
+        builder_.apply(feature);
+        return true;
+    }
+    FeatureBuilder& builder_;
+};
+
+}
+
 struct CompositeWorker : Nan::AsyncWorker
 {
     using Base = Nan::AsyncWorker;
@@ -124,7 +164,8 @@ struct CompositeWorker : Nan::AsyncWorker
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
-                        vtzero::data_view name = layer.name();
+                        vtzero::data_view const name = layer.name();
+                        unsigned const version = layer.version();
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
@@ -135,26 +176,24 @@ struct CompositeWorker : Nan::AsyncWorker
                             }
                             else
                             {
+                                using coordinate_type = std::int64_t;
+                                using feature_builder_type = vtile::overzoomed_feature_builder<coordinate_type>;
                                 vtzero::layer_builder layer_builder{builder, name, MVT_VERSION_2, extent};
                                 vtzero::property_mapper mapper{layer, layer_builder};
-                                using coordinate_type = std::int64_t;
                                 int dx, dy;
                                 std::tie(dx, dy) = vtile::displacement(tile_obj->z, static_cast<int>(extent), target_z, target_x, target_y);
                                 mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
                                                                             {static_cast<int>(extent) + buffer_size,
                                                                              static_cast<int>(extent) + buffer_size}};
-                                vtile::overzoomed_feature_builder<coordinate_type> feature_builder{layer_builder, mapper, bbox, dx, dy, zoom_factor};
-                                layer.for_each_feature([&feature_builder](vtzero::feature const& feature) {
-                                    try
-                                    {
-                                        feature_builder.apply(feature);
-                                    }
-                                    catch (vtzero::geometry_exception const& ex)
-                                    {
-                                        std::cerr << "Skipping feature with malformed geometry : " << ex.what() << std::endl;
-                                    }
-                                    return true;
-                                });
+                                feature_builder_type f_builder{layer_builder, mapper, bbox, dx, dy, zoom_factor};
+                                if (version == MVT_VERSION_1)
+                                {
+                                    layer.for_each_feature(build_feature_from_v1<feature_builder_type>(f_builder));
+                                }
+                                else
+                                {
+                                    layer.for_each_feature(build_feature_from_v2<feature_builder_type>(f_builder));
+                                }
                             }
                         }
                     }
