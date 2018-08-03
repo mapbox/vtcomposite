@@ -216,7 +216,7 @@ test('[composite] huge overzoom z15 - z27', function(assert) {
   });
 });
 
-test('[composite] vtzero error raised for V1 tiles with polygon missing int command 7 (ClosePath)', function(assert) {
+test('[composite] processing V1 tiles with malformed geometries', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/0.mvt');
   const buffer2 = fs.readFileSync(__dirname + '/fixtures/1.mvt');
   const buffer3 = fs.readFileSync(__dirname + '/fixtures/2.mvt');
@@ -225,15 +225,18 @@ test('[composite] vtzero error raised for V1 tiles with polygon missing int comm
     {buffer: buffer1, z:14, x:4396, y:6458},
     {buffer: buffer2, z:14, x:4396, y:6458},
     {buffer: buffer3, z:12, x:1099, y:1614}
-
   ];
 
   const zxy = {z:14, x:4396, y:6458};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
-    //console.log('error', err);
-    console.log(outputInfo);
+    var count = 0;
+    for (var name in outputInfo.layers)
+    {
+      count += outputInfo.layers[name].length;
+    }
+    assert.equal(count, 567, 'v1 tiles with polygons composite successfully');
     assert.end();
   });
 });
