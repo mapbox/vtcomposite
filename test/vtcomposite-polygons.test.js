@@ -2,7 +2,7 @@ var test = require('tape');
 var composite = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
-var vtinfo = require('./test-utils.js');
+var vtinfo = require('./test-utils.js').vtinfo;
 
 test('[composite] composite success polygons - same zoom, different features, without and without buffer', function(assert) {
   const tiles = [

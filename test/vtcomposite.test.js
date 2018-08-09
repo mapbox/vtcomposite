@@ -4,8 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const mvtFixtures = require('@mapbox/mvt-fixtures');
-const vtinfo = require('./test-utils.js');
-var tilebelt = require('@mapbox/tilebelt');
+const vtinfo = require('./test-utils.js').vtinfo;
+const vt1infoValid = require('./test-utils.js').vt1infoValid;
+const tilebelt = require('@mapbox/tilebelt');
 
 const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
@@ -257,6 +258,26 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
   composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 11, 'v1 tiles with polygons composite successfully');
+    assert.end();
+  });
+});
+
+test('[composite] resolves polygon clockwise error in overzoomed V1 tiles', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/v1-6.mvt');
+  const buffer2 = fs.readFileSync(__dirname + '/fixtures/v1-7.mvt');
+  const buffer3 = fs.readFileSync(__dirname + '/fixtures/v1-8.mvt');
+
+  const tiles = [
+    {buffer: buffer1, z:3, x:4, y:2},
+    {buffer: buffer2, z:3, x:4, y:2},
+    {buffer: buffer3, z:2, x:2, y:1}
+  ];
+
+  const zxy = {z:4, x:8, y:5};
+
+  composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+    const outputInfo = vt1infoValid(vtBuffer);
+    assert.equal(Object.keys(outputInfo.layers).length, 7, 'v1 tiles with polygons composite successfully');
     assert.end();
   });
 });
