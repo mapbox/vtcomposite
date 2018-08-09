@@ -3,7 +3,7 @@ var composite = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
-var vtinfo = require('./test-utils.js');
+var vtinfo = require('./test-utils.js').vtinfo;
 
 test('[composite] composite success multi geometries - different layer name, different features, same zoom, no buffer', function(assert) {
   const tiles = [
