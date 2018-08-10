@@ -24,8 +24,15 @@ export WERROR ?= true
 # just typing `make` will call `make release`
 default: release
 
+# --ignore-scripts allows us to install only the dependencies of this
+# module without running the build itself (which allows us to run that later, directly, using node-pre-gyp)
+# But we then run `npm rebuild` to insure those deps are fully installed. This is needed since `--ignore-scripts`
+# also means that npm will not run the "scripts" for those dependencies and this means that modules which override the
+# install target, like node-pre-gyp based modules, will not have their native module installed. So by running `npm rebuild` as a
+# followup we fix that problem. Ideally there would be a cleaner way to say "please install the deps of vtcomposite and not vtcomposite itself"
+# but until then this works
 node_modules/nan:
-	npm install --ignore-scripts
+	npm install --ignore-scripts && npm rebuild
 
 mason_packages/headers: node_modules/nan
 	node_modules/.bin/mason-js install
