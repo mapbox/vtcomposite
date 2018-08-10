@@ -3,7 +3,7 @@ var composite = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
-var vtinfo = require('./test-utils.js');
+var vtinfo = require('./test-utils.js').vtinfo;
 
 test('[composite] overzooming success (linestring), no buffer - different zooms between two tiles', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/simple-line.mvt');
