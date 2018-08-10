@@ -20,7 +20,6 @@
 namespace vtile {
 
 static constexpr unsigned MVT_VERSION_1 = 1u;
-static constexpr unsigned MVT_VERSION_2 = 2u;
 
 struct TileObject
 {
