@@ -190,6 +190,7 @@ test('[composite] huge overzoom z0 - z14', function(assert) {
   const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.quadrants.length, 1);
     assert.end();
@@ -211,6 +212,7 @@ test('[composite] huge overzoom z15 - z27', function(assert) {
   const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.poi_label.length, 1);
     assert.end();
@@ -231,6 +233,7 @@ test('[composite] processing V1 tiles with malformed geometries', function(asser
   const zxy = {z:14, x:4396, y:6458};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vtinfo(vtBuffer);
     var count = 0;
     for (var name in outputInfo.layers)
@@ -256,6 +259,7 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
   const zxy = {z:14, x:5088, y:5937};
 
   composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 11, 'v1 tiles with polygons composite successfully');
     assert.end();
@@ -276,6 +280,7 @@ test('[composite] resolves polygon clockwise error in overzoomed V1 tiles', func
   const zxy = {z:4, x:8, y:5};
 
   composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vt1infoValid(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 7, 'v1 tiles with polygons composite successfully');
     assert.end();
