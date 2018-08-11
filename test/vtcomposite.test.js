@@ -266,23 +266,27 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
   });
 });
 
-test('[composite] resolves polygon clockwise error in overzoomed V1 tiles', function(assert) {
-  const buffer1 = fs.readFileSync(__dirname + '/fixtures/v1-6.mvt');
-  const buffer2 = fs.readFileSync(__dirname + '/fixtures/v1-7.mvt');
-  const buffer3 = fs.readFileSync(__dirname + '/fixtures/v1-8.mvt');
+// These tiles are invalid v2 tiles such that boost::geometry can't handle some zero-area polygons
+// and results in unsigned integer overflow. So, we skip this test for the sanitize job
+if (!process.env.ASAN_OPTIONS) {
+  test('[composite] resolves polygon clockwise error in overzoomed V1 tiles', function(assert) {
+    const buffer1 = fs.readFileSync(__dirname + '/fixtures/v1-6.mvt');
+    const buffer2 = fs.readFileSync(__dirname + '/fixtures/v1-7.mvt');
+    const buffer3 = fs.readFileSync(__dirname + '/fixtures/v1-8.mvt');
 
-  const tiles = [
-    {buffer: buffer1, z:3, x:4, y:2},
-    {buffer: buffer2, z:3, x:4, y:2},
-    {buffer: buffer3, z:2, x:2, y:1}
-  ];
+    const tiles = [
+      {buffer: buffer1, z:3, x:4, y:2},
+      {buffer: buffer2, z:3, x:4, y:2},
+      {buffer: buffer3, z:2, x:2, y:1}
+    ];
 
-  const zxy = {z:4, x:8, y:5};
+    const zxy = {z:4, x:8, y:5};
 
-  composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
-    if (err) throw err;
-    const outputInfo = vt1infoValid(vtBuffer);
-    assert.equal(Object.keys(outputInfo.layers).length, 7, 'v1 tiles with polygons composite successfully');
-    assert.end();
+    composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+      if (err) throw err;
+      const outputInfo = vt1infoValid(vtBuffer);
+      assert.equal(Object.keys(outputInfo.layers).length, 7, 'v1 tiles with polygons composite successfully');
+      assert.end();
+    });
   });
-});
+}
