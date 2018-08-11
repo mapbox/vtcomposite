@@ -270,7 +270,7 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
 // and results in unsigned integer overflow. So, we skip this test for the sanitize job
 if (!process.env.ASAN_OPTIONS) {
   test('[composite] resolves polygon clockwise error in overzoomed V1 tiles', function(assert) {
-    const buffer1 = fs.readFileSync(__dirname + '/fixtures/v1-6.mvt');
+    const buffer1 = fs.readFileSync(__dirname + '/fixtures/v1-6.mvt'); // note this tile uses zlib coding rather than gzip
     const buffer2 = fs.readFileSync(__dirname + '/fixtures/v1-7.mvt');
     const buffer3 = fs.readFileSync(__dirname + '/fixtures/v1-8.mvt');
 
