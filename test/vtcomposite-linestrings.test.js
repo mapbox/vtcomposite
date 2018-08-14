@@ -19,19 +19,20 @@ test('[composite] overzooming success (linestring), no buffer - different zooms 
   const zxy = {z:1, x:0, y:0};
 
   composite(tiles, zxy, {buffer_size:128}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
 
     assert.deepEqual(
-      outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0], 
-      { x: 784, y: 1848 }, 
+      outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
+      { x: 784, y: 1848 },
       'first feature scales as expected'
     );
 
     assert.deepEqual(
-      { x: 4224, y: 3398 }, 
+      { x: 4224, y: 3398 },
       outputInfo.layers.quadrants.feature(0).loadGeometry()[0][1],
       'check that new coordinates shifted properly (since zoom factor is 3)'
-    ); 
+    );
 
     assert.end();
   });
@@ -51,19 +52,20 @@ test('[composite] overzooming success (linestring), with buffer - different zoom
   const zxy = {z:1, x:0, y:0};
 
   composite(tiles, zxy, {buffer_size:128}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
 
     assert.deepEqual(
-      outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0], 
-      { x: 784, y: 1848 }, 
+      outputInfo.layers.quadrants.feature(0).loadGeometry()[0][0],
+      { x: 784, y: 1848 },
       'first feature scales as expected'
     );
 
     assert.deepEqual(
-      { x: 4224, y: 3398 }, 
+      { x: 4224, y: 3398 },
       outputInfo.layers.quadrants.feature(0).loadGeometry()[0][1],
       'check that new coordinates shifted properly (since zoom factor is 3)'
-    ); 
+    );
 
     assert.end();
   });
