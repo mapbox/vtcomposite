@@ -4,7 +4,7 @@ var fs = require('fs');
 var path = require('path');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
 var geoData = require('./fixtures/four-points.js');
-var vtinfo = require('./test-utils.js');
+var vtinfo = require('./test-utils.js').vtinfo;
 
 // can replace long2tile and lat2tile with existing lib
 

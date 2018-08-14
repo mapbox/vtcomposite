@@ -20,7 +20,6 @@
 namespace vtile {
 
 static constexpr unsigned MVT_VERSION_1 = 1u;
-static constexpr unsigned MVT_VERSION_2 = 2u;
 
 struct TileObject
 {
@@ -178,7 +177,7 @@ struct CompositeWorker : Nan::AsyncWorker
                             {
                                 using coordinate_type = std::int64_t;
                                 using feature_builder_type = vtile::overzoomed_feature_builder<coordinate_type>;
-                                vtzero::layer_builder layer_builder{builder, name, MVT_VERSION_2, extent};
+                                vtzero::layer_builder layer_builder{builder, name, version, extent};
                                 vtzero::property_mapper mapper{layer, layer_builder};
                                 int dx, dy;
                                 std::tie(dx, dy) = vtile::displacement(tile_obj->z, static_cast<int>(extent), target_z, target_x, target_y);
