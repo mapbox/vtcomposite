@@ -21,12 +21,14 @@ test('[composite] composite success polygons - same zoom, different features, wi
   assert.equal(info2.layers.poi_label.length, 14);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.building.length, 1718);
     assert.equal(outputInfo.layers.hillshade.length, 17);
     assert.equal(outputInfo.layers.poi_label.length, 14);
 
     composite(tiles, zxy, {buffer_size:128}, (err, vtBuffer) => {
+      assert.notOk(err);
       const outputInfoWithBuffer = vtinfo(vtBuffer);
       assert.equal(outputInfo.layers.building.length, 1718);
       assert.equal(outputInfo.layers.hillshade.length, 17);
@@ -53,12 +55,14 @@ test('[composite] composite and overzooming success polygons - overzooming zoom 
   assert.equal(info2.layers.poi_label.length, 14);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.building.length, 238);
     assert.equal(outputInfo.layers.hillshade.length, 11);
     assert.equal(outputInfo.layers.poi_label.length, 14);
 
     composite(tiles, zxy, {buffer_size:128}, (err, vtBuffer) => {
+      assert.notOk(err);
       const outputInfoWithBuffer = vtinfo(vtBuffer);
 
       assert.equal(outputInfoWithBuffer.layers.building.length, 275);
@@ -84,6 +88,7 @@ test('[composite] composite and overzooming success polygons - overzooming multi
   assert.equal(coords.length, 23);
 
   composite(tiles, zxy, {buffer_size: 5000}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.hillshade.length, 1);
     var hillshade = outputInfo.layers.hillshade;
@@ -113,6 +118,7 @@ test('[composite] composite and overzooming success polygons - overzooming polyg
   assert.equal(coords.length, 2);
 
   composite(tiles, zxy, {buffer_size: 0}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.polygon.length, 1);
     var polygon_layer = outputInfo.layers.polygon;

@@ -28,12 +28,12 @@ test('[composite] success compositing - different layer name, different features
   const zxy = {z:15, x:5238, y:12666};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(vtBuffer.length, 110);
     assert.ok(outputInfo.layers.hello, 'expected layer name');
     assert.ok(outputInfo.layers['clipped-square'], 'expected layer name');
     assert.equal(Object.keys(outputInfo.layers).length, 2, 'expected number of layers');
-    assert.notOk(err);
     assert.end();
   });
 });
@@ -52,6 +52,7 @@ test('[composite] success overzooming - different zooms between two tiles, no bu
   const zxy = {z:1, x:0, y:0};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(vtBuffer.length, 57);
     assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
@@ -89,6 +90,7 @@ test('[composite] overzooming success - overzooming zoom factor of 4 between two
   const latInt = Math.round(parseFloat('.' + (lat2tile(lat,zxy.z)).toString().split('.')[1])*4096);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(vtBuffer.length, 57);
     assert.equal(outputInfo.layers.quadrants.length, 1,'clips all but one feature when overzooming');
