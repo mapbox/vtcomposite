@@ -4,8 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const mvtFixtures = require('@mapbox/mvt-fixtures');
-const vtinfo = require('./test-utils.js');
-var tilebelt = require('@mapbox/tilebelt');
+const vtinfo = require('./test-utils.js').vtinfo;
+const vt1infoValid = require('./test-utils.js').vt1infoValid;
+const tilebelt = require('@mapbox/tilebelt');
 
 const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
@@ -189,6 +190,7 @@ test('[composite] huge overzoom z0 - z14', function(assert) {
   const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.quadrants.length, 1);
     assert.end();
@@ -210,6 +212,7 @@ test('[composite] huge overzoom z15 - z27', function(assert) {
   const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.poi_label.length, 1);
     assert.end();
@@ -230,6 +233,7 @@ test('[composite] processing V1 tiles with malformed geometries', function(asser
   const zxy = {z:14, x:4396, y:6458};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vtinfo(vtBuffer);
     var count = 0;
     for (var name in outputInfo.layers)
@@ -255,8 +259,34 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
   const zxy = {z:14, x:5088, y:5937};
 
   composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+    if (err) throw err;
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 11, 'v1 tiles with polygons composite successfully');
     assert.end();
   });
 });
+
+// These tiles are invalid v2 tiles such that boost::geometry can't handle some zero-area polygons
+// and results in unsigned integer overflow. So, we skip this test for the sanitize job
+if (!process.env.ASAN_OPTIONS) {
+  test('[composite] resolves polygon clockwise error in overzoomed V1 tiles', function(assert) {
+    const buffer1 = fs.readFileSync(__dirname + '/fixtures/v1-6.mvt'); // note this tile uses zlib coding rather than gzip
+    const buffer2 = fs.readFileSync(__dirname + '/fixtures/v1-7.mvt');
+    const buffer3 = fs.readFileSync(__dirname + '/fixtures/v1-8.mvt');
+
+    const tiles = [
+      {buffer: buffer1, z:3, x:4, y:2},
+      {buffer: buffer2, z:3, x:4, y:2},
+      {buffer: buffer3, z:2, x:2, y:1}
+    ];
+
+    const zxy = {z:4, x:8, y:5};
+
+    composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+      if (err) throw err;
+      const outputInfo = vt1infoValid(vtBuffer);
+      assert.equal(Object.keys(outputInfo.layers).length, 7, 'v1 tiles with polygons composite successfully');
+      assert.end();
+    });
+  });
+}
