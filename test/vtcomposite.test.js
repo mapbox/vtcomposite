@@ -269,6 +269,7 @@ test('[composite] resolves zero length linestring error for overzoomed V1 tiles 
 
 // These tiles are invalid v2 tiles such that boost::geometry can't handle some zero-area polygons
 // and results in unsigned integer overflow. So, we skip this test for the sanitize job
+// This should be able to be enabled again after upgrading to https://github.com/boostorg/geometry/pull/505
 if (!process.env.ASAN_OPTIONS) {
   test('[composite] resolves polygon clockwise error in overzoomed V1 tiles', function(assert) {
     const buffer1 = fs.readFileSync(__dirname + '/fixtures/v1-6.mvt'); // note this tile uses zlib coding rather than gzip
