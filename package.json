@@ -1,6 +1,6 @@
 {
   "name": "@mapbox/vtcomposite",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Skeleton for bindings to C++ libraries for Node.js using NAN",
   "url": "http://github.com/mapbox/vtcomposite",
   "main": "./lib/index.js",
@@ -30,7 +30,7 @@
     "aws-sdk": "^2.245.1",
     "bytes": "^2.5.0",
     "d3-queue": "^3.0.1",
-    "mapnik": "3.6.1",
+    "mapnik": "^4.0.1",
     "minimist": "~1.2.0",
     "pbf": "^3.1.0",
     "sphericalmercator": "^1.0.5",

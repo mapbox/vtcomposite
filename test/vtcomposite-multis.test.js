@@ -3,7 +3,7 @@ var composite = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
-var vtinfo = require('./test-utils.js');
+var vtinfo = require('./test-utils.js').vtinfo;
 
 test('[composite] composite success multi geometries - different layer name, different features, same zoom, no buffer', function(assert) {
   const tiles = [
@@ -22,6 +22,7 @@ test('[composite] composite success multi geometries - different layer name, dif
   assert.equal(info2.layers.seeya.length, 1);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.goodbye.length, 1);
     assert.equal(outputInfo.layers.seeya.length, 1);
@@ -48,6 +49,7 @@ test('[composite] composite success multi geometries - different layer name, dif
   assert.equal(info2.layers.seeya.length, 1);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(vtBuffer.length, 171);
     assert.equal(outputInfo.layers.goodbye.length, 1);
@@ -74,10 +76,12 @@ test('[composite] composite and overzooming success multi geometries - different
   assert.equal(info2.layers.seeya.length, 1);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 1);
 
     composite(tiles, zxy, {'buffer_size': 4096}, (err, vtBuffer) => {
+      assert.notOk(err);
       const outputInfo = vtinfo(vtBuffer);
       assert.equal(vtBuffer.length, 181);
       assert.equal(Object.keys(outputInfo.layers).length, 3);
@@ -104,10 +108,12 @@ test('[composite] composite and overzooming success multi geometries with v1 til
   assert.equal(info2.layers.seeya.length, 1);
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(Object.keys(outputInfo.layers).length, 1);
 
     composite(tiles, zxy, {'buffer_size': 4096}, (err, vtBuffer) => {
+      assert.notOk(err);
       const outputInfo = vtinfo(vtBuffer);
       assert.equal(vtBuffer.length, 181);
       assert.equal(Object.keys(outputInfo.layers).length, 3);

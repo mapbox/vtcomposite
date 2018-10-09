@@ -4,8 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const mvtFixtures = require('@mapbox/mvt-fixtures');
-const vtinfo = require('./test-utils.js');
-var tilebelt = require('@mapbox/tilebelt');
+const vtinfo = require('./test-utils.js').vtinfo;
+const vt1infoValid = require('./test-utils.js').vt1infoValid;
+const tilebelt = require('@mapbox/tilebelt');
 
 const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
@@ -36,12 +37,12 @@ test('[composite] success compositing - same layer name, same features, same zoo
   const zxy = {z:15, x:5238, y:12666};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
 
     assert.ok(outputInfo.layers.hello, 'hello', 'expected layer name');
     assert.equal(Object.keys(outputInfo.layers).length, 1, 'expected number of layers');
     assert.equal(outputInfo.layers.hello.length, 1, 'expected number of features');
-    assert.notOk(err);
     assert.end();
   });
 });
@@ -58,13 +59,13 @@ test('[composite] success compositing - same layer name, different features, sam
   const zxy = {z:15, x:5238, y:12666};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
 
     assert.ok(outputInfo.layers.water, 'returns layer water');
     assert.equal(Object.keys(outputInfo.layers).length, 1, 'return 1 layers');
     assert.equal(outputInfo.layers.water.length, 1, 'only has one feature');
     assert.equal(outputInfo.layers.water.feature(0).properties.name, 'mud lake', 'expected feature');
-    assert.notOk(err);
     assert.end();
   });
 });
@@ -161,7 +162,7 @@ test('[composite] underzooming generates out of bounds error', function(assert) 
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
-  
+
   const tiles = [
     {buffer: buffer1, z:3, x:1, y:1}
   ];
@@ -169,6 +170,7 @@ test('[composite] underzooming generates out of bounds error', function(assert) 
   const zxy = {z:0, x:0, y:0};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.ok(err);
     assert.equal(err.message, 'Invalid tile composite request: SOURCE(3,1,1) TARGET(0,0,0)')
     assert.end();
   });
@@ -178,17 +180,18 @@ test('[composite] huge overzoom z0 - z14', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/four-points-quadrants.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.quadrants.length, 4);
-  
+
   const tiles = [
     {buffer: buffer1, z:0, x:0, y:0}
   ];
 
-  const zoom = 14; 
+  const zoom = 14;
   const coords = require('./fixtures/four-points.js')['features'][0]['geometry']['coordinates'];
   const overzoomedZXY = tilebelt.pointToTile(coords[0], coords[1], zoom);
   const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.quadrants.length, 1);
     assert.end();
@@ -199,19 +202,93 @@ test('[composite] huge overzoom z15 - z27', function(assert) {
   const buffer1 = fs.readFileSync(__dirname + '/fixtures/points-poi-sf-15-5239-12666.mvt');
   const info = vtinfo(buffer1);
   assert.equal(info.layers.poi_label.length, 14);
-  
+
   const tiles = [
     {buffer: buffer1, z:15, x:5239, y:12666}
   ];
 
-  const zoom = 27; 
+  const zoom = 27;
   const coords = require('./fixtures/points-poi-sf-15-5239-12666.js')['features'][0]['geometry']['coordinates'];
   const overzoomedZXY = tilebelt.pointToTile(coords[0], coords[1], zoom);
   const zxy = {z:overzoomedZXY[2], x:overzoomedZXY[0], y:overzoomedZXY[1]};
 
   composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.equal(outputInfo.layers.poi_label.length, 1);
     assert.end();
   });
 });
+
+test('[composite] processing V1 tiles with malformed geometries', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/0.mvt');
+  const buffer2 = fs.readFileSync(__dirname + '/fixtures/1.mvt');
+  const buffer3 = fs.readFileSync(__dirname + '/fixtures/2.mvt');
+
+  const tiles = [
+    {buffer: buffer1, z:14, x:4396, y:6458},
+    {buffer: buffer2, z:14, x:4396, y:6458},
+    {buffer: buffer3, z:12, x:1099, y:1614}
+  ];
+
+  const zxy = {z:14, x:4396, y:6458};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    const outputInfo = vtinfo(vtBuffer);
+    var count = 0;
+    for (var name in outputInfo.layers)
+    {
+      count += outputInfo.layers[name].length;
+    }
+    assert.equal(count, 567, 'v1 tiles with polygons composite successfully');
+    assert.end();
+  });
+});
+
+test('[composite] resolves zero length linestring error for overzoomed V1 tiles with polygons', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/3.mvt');
+  const buffer2 = fs.readFileSync(__dirname + '/fixtures/4.mvt');
+  const buffer3 = fs.readFileSync(__dirname + '/fixtures/5.mvt');
+
+  const tiles = [
+    {buffer: buffer1, z:14, x:5088, y:5937},
+    {buffer: buffer2, z:14, x:5088, y:5937},
+    {buffer: buffer3, z:12, x:1272, y:1484}
+  ];
+
+  const zxy = {z:14, x:5088, y:5937};
+
+  composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+    assert.notOk(err);
+    const outputInfo = vtinfo(vtBuffer);
+    assert.equal(Object.keys(outputInfo.layers).length, 11, 'v1 tiles with polygons composite successfully');
+    assert.end();
+  });
+});
+
+// These tiles are invalid v2 tiles such that boost::geometry can't handle some zero-area polygons
+// and results in unsigned integer overflow. So, we skip this test for the sanitize job
+// This should be able to be enabled again after upgrading to https://github.com/boostorg/geometry/pull/505
+if (!process.env.ASAN_OPTIONS) {
+  test('[composite] resolves polygon clockwise error in overzoomed V1 tiles', function(assert) {
+    const buffer1 = fs.readFileSync(__dirname + '/fixtures/v1-6.mvt'); // note this tile uses zlib coding rather than gzip
+    const buffer2 = fs.readFileSync(__dirname + '/fixtures/v1-7.mvt');
+    const buffer3 = fs.readFileSync(__dirname + '/fixtures/v1-8.mvt');
+
+    const tiles = [
+      {buffer: buffer1, z:3, x:4, y:2},
+      {buffer: buffer2, z:3, x:4, y:2},
+      {buffer: buffer3, z:2, x:2, y:1}
+    ];
+
+    const zxy = {z:4, x:8, y:5};
+
+    composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+      assert.notOk(err);
+      const outputInfo = vt1infoValid(vtBuffer);
+      assert.equal(Object.keys(outputInfo.layers).length, 7, 'v1 tiles with polygons composite successfully');
+      assert.end();
+    });
+  });
+}
