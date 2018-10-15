@@ -5,7 +5,6 @@
 // std
 #include <limits>
 #include <stdexcept>
-#include <string>
 #include <memory>
 
 namespace deflate {
