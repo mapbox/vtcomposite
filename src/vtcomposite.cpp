@@ -3,10 +3,7 @@
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
 #include "feature_builder.hpp"
-// gzip-hpp
-#include <gzip/compress.hpp>
-#include <gzip/decompress.hpp>
-#include <gzip/utils.hpp>
+#include "deflate.hpp"
 // vtzero
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
@@ -141,19 +138,19 @@ struct CompositeWorker : Nan::AsyncWorker
             int const target_y = baton_data_->y;
 
             std::vector<std::string> buffer_cache;
-            gzip::Decompressor decompressor;
-            gzip::Compressor compressor;
+            deflate::Decompressor decompressor;
+            deflate::Compressor compressor;
 
             for (auto const& tile_obj : baton_data_->tiles)
             {
                 if (vtile::within_target(*tile_obj, target_z, target_x, target_y))
                 {
                     vtzero::data_view tile_view{};
-                    if (gzip::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
+                    if (deflate::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
                         buffer_cache.emplace_back();
                         std::string& buf = buffer_cache.back();
-                        decompressor.decompress(buf, tile_obj->data.data(), tile_obj->data.size());
+                        decompressor(buf, tile_obj->data.data(), tile_obj->data.size());
                         tile_view = vtzero::data_view{buf};
                     }
                     else
@@ -213,7 +210,7 @@ struct CompositeWorker : Nan::AsyncWorker
             {
                 std::string temp;
                 builder.serialize(temp);
-                compressor.compress(tile_buffer, temp.data(), temp.size());
+                compressor(tile_buffer, temp.data(), temp.size());
             }
             else
             {

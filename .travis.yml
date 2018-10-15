@@ -8,10 +8,6 @@ addons:
     sources: [ 'ubuntu-toolchain-r-test' ]
     packages: [ 'libstdc++-4.9-dev' ]
 
-before_install:
-  - export CXXFLAGS="-I`pwd`/../gzip-hpp/include ${CXXFLAGS}"
-  - git clone -b libdeflate-redux https://github.com/mapbox/gzip-hpp ../gzip-hpp
-
 install:
   - node -v
   - which node
