@@ -9,24 +9,23 @@
 
 namespace deflate {
 
-inline bool is_zlib(char const* data, std::size_t size) noexcept
+inline bool is_zlib(char const* data) noexcept
 {
-    return size > 2 &&
-           (static_cast<uint8_t>(data[0]) == 0x78 &&
+    return (static_cast<uint8_t>(data[0]) == 0x78 &&
             (static_cast<uint8_t>(data[1]) == 0x9C ||
              static_cast<uint8_t>(data[1]) == 0x01 ||
              static_cast<uint8_t>(data[1]) == 0xDA ||
              static_cast<uint8_t>(data[1]) == 0x5E));
 }
 
-inline bool is_gzip(char const* data, std::size_t size) noexcept
+inline bool is_gzip(char const* data) noexcept
 {
-    return size > 2 && (static_cast<uint8_t>(data[0]) == 0x1F && static_cast<uint8_t>(data[1]) == 0x8B);
+    return (static_cast<uint8_t>(data[0]) == 0x1F && static_cast<uint8_t>(data[1]) == 0x8B);
 }
 
 inline bool is_compressed(char const* data, std::size_t size) noexcept
 {
-    return is_gzip(data, size) || is_zlib(data, size);
+    return size > 2 && (is_gzip(data) || is_zlib(data));
 }
 
 class Compressor
@@ -120,11 +119,10 @@ class Decompressor
                     char const* data,
                     std::size_t size) const
     {
-        if (is_gzip(data, size))
+        if (is_gzip(data))
             apply(output, libdeflate_gzip_decompress, data, size);
-        else if (is_zlib(data, size))
+        else if (is_zlib(data))
             apply(output, libdeflate_zlib_decompress, data, size);
-        //else throw std::runtime_error("bad data");
     }
 
     template <typename OutputType, typename Fun>
