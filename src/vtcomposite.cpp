@@ -137,7 +137,7 @@ struct CompositeWorker : Nan::AsyncWorker
             int const target_x = baton_data_->x;
             int const target_y = baton_data_->y;
 
-            std::vector<std::string> buffer_cache;
+            std::vector<std::unique_ptr<std::vector<char>>> buffer_cache;
             deflate::Decompressor decompressor;
             deflate::Compressor compressor;
 
@@ -148,10 +148,9 @@ struct CompositeWorker : Nan::AsyncWorker
                     vtzero::data_view tile_view{};
                     if (deflate::is_compressed(tile_obj->data.data(), tile_obj->data.size()))
                     {
-                        buffer_cache.emplace_back();
-                        std::string& buf = buffer_cache.back();
-                        decompressor(buf, tile_obj->data.data(), tile_obj->data.size());
-                        tile_view = vtzero::data_view{buf};
+                        buffer_cache.push_back(std::make_unique<std::vector<char>>());
+                        decompressor(*buffer_cache.back(), tile_obj->data.data(), tile_obj->data.size());
+                        tile_view = protozero::data_view{buffer_cache.back()->data(), buffer_cache.back()->size()};
                     }
                     else
                     {
