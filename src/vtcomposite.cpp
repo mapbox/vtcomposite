@@ -275,7 +275,7 @@ NAN_METHOD(composite)
 
     std::unique_ptr<BatonType> baton_data = std::make_unique<BatonType>(num_tiles);
 
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::Isolate* isolate = v8::Isolate::GetCurrent();
 
     for (unsigned t = 0; t < num_tiles; ++t)
     {
@@ -345,7 +345,7 @@ NAN_METHOD(composite)
             return utils::CallbackError("'x' value in 'tiles' array item is not an int32", callback);
         }
         v8::Maybe<int> maybe_x = x_val->Int32Value(isolate->GetCurrentContext());
-        if  (maybe_x.IsNothing())
+        if (maybe_x.IsNothing())
         {
             return utils::CallbackError("'x' value is nothing", callback);
         }
