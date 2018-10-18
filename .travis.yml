@@ -120,7 +120,7 @@ matrix:
       install:
         - make ${BUILDTYPE}
       # Overrides `script` to disable publishing
-      script: []
+      script:
     # Coverage build
     - os: linux
       env: BUILDTYPE=debug CXXFLAGS="--coverage" LDFLAGS="--coverage"
