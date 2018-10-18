@@ -275,6 +275,8 @@ NAN_METHOD(composite)
 
     std::unique_ptr<BatonType> baton_data = std::make_unique<BatonType>(num_tiles);
 
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
     for (unsigned t = 0; t < num_tiles; ++t)
     {
         v8::Local<v8::Value> tile_val = tiles->Get(t);
@@ -282,7 +284,12 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("items in 'tiles' array must be objects", callback);
         }
-        v8::Local<v8::Object> tile_obj = tile_val->ToObject();
+        v8::MaybeLocal<v8::Object> maybe_tile_obj = tile_val->ToObject(isolate->GetCurrentContext());
+        if (maybe_tile_obj.IsEmpty())
+        {
+            return utils::CallbackError("items in 'tiles' can't be empty", callback);
+        }
+        v8::Local<v8::Object> tile_obj = maybe_tile_obj.ToLocalChecked();
 
         // check buffer value
         if (!tile_obj->Has(Nan::New("buffer").ToLocalChecked()))
@@ -294,7 +301,13 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("buffer value in 'tiles' array item is null or undefined", callback);
         }
-        v8::Local<v8::Object> buffer = buf_val->ToObject();
+        v8::MaybeLocal<v8::Object> maybe_buffer = buf_val->ToObject(isolate->GetCurrentContext());
+        if (maybe_buffer.IsEmpty())
+        {
+            return utils::CallbackError("buffer value in 'tiles' array is empty", callback);
+        }
+        v8::Local<v8::Object> buffer = maybe_buffer.ToLocalChecked();
+
         if (!node::Buffer::HasInstance(buffer))
         {
             return utils::CallbackError("buffer value in 'tiles' array item is not a true buffer", callback);
@@ -310,7 +323,12 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'z' value in 'tiles' array item is not an int32", callback);
         }
-        int z = z_val->Int32Value();
+        v8::Maybe<int> maybe_z = z_val->Int32Value(isolate->GetCurrentContext());
+        if (maybe_z.IsNothing())
+        {
+            return utils::CallbackError("'z' value is nothing", callback);
+        }
+        int z = maybe_z.FromJust();
         if (z < 0)
         {
             return utils::CallbackError("'z' value must not be less than zero", callback);
@@ -326,7 +344,12 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'x' value in 'tiles' array item is not an int32", callback);
         }
-        int x = x_val->Int32Value();
+        v8::Maybe<int> maybe_x = x_val->Int32Value(isolate->GetCurrentContext());
+        if  (maybe_x.IsNothing())
+        {
+            return utils::CallbackError("'x' value is nothing", callback);
+        }
+        int x = maybe_x.FromJust();
         if (x < 0)
         {
             return utils::CallbackError("'x' value must not be less than zero", callback);
@@ -342,7 +365,12 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'y' value in 'tiles' array item is not an int32", callback);
         }
-        int y = y_val->Int32Value();
+        v8::Maybe<int> maybe_y = y_val->Int32Value(isolate->GetCurrentContext());
+        if (maybe_y.IsNothing())
+        {
+            return utils::CallbackError("'y' value is nothing", callback);
+        }
+        int y = maybe_y.FromJust();
         if (y < 0)
         {
             return utils::CallbackError("'y' value must not be less than zero", callback);
@@ -367,7 +395,12 @@ NAN_METHOD(composite)
     {
         return utils::CallbackError("'z' value in 'tiles' array item is not an int32", callback);
     }
-    int z_maprequest = z_val_maprequest->Int32Value();
+    v8::Maybe<int> maybe_z_maprequest = z_val_maprequest->Int32Value(isolate->GetCurrentContext());
+    if (maybe_z_maprequest.IsNothing())
+    {
+        return utils::CallbackError("'z' value in 'tiles' array item is nothing", callback);
+    }
+    int z_maprequest = maybe_z_maprequest.FromJust();
     if (z_maprequest < 0)
     {
         return utils::CallbackError("'z' value must not be less than zero", callback);
@@ -384,7 +417,12 @@ NAN_METHOD(composite)
     {
         return utils::CallbackError("'x' value in 'tiles' array item is not an int32", callback);
     }
-    int x_maprequest = x_val_maprequest->Int32Value();
+    v8::Maybe<int> maybe_x_maprequest = x_val_maprequest->Int32Value(isolate->GetCurrentContext());
+    if (maybe_x_maprequest.IsNothing())
+    {
+        return utils::CallbackError("'x' value in 'tiles' array item is nothing", callback);
+    }
+    int x_maprequest = maybe_x_maprequest.FromJust();
     if (x_maprequest < 0)
     {
         return utils::CallbackError("'x' value must not be less than zero", callback);
@@ -402,7 +440,12 @@ NAN_METHOD(composite)
     {
         return utils::CallbackError("'y' value in 'tiles' array item is not an int32", callback);
     }
-    int y_maprequest = y_val_maprequest->Int32Value();
+    v8::Maybe<int> maybe_y_maprequest = y_val_maprequest->Int32Value(isolate->GetCurrentContext());
+    if (maybe_y_maprequest.IsNothing())
+    {
+        return utils::CallbackError("'y' value in 'tiles' array item is nothing", callback);
+    }
+    int y_maprequest = maybe_y_maprequest.FromJust();
     if (y_maprequest < 0)
     {
         return utils::CallbackError("'y' value must not be less than zero", callback);
@@ -416,7 +459,7 @@ NAN_METHOD(composite)
         {
             return utils::CallbackError("'options' arg must be an object", callback);
         }
-        v8::Local<v8::Object> options = info[2]->ToObject();
+        v8::Local<v8::Object> options = info[2]->ToObject(isolate->GetCurrentContext()).ToLocalChecked();
         if (options->Has(Nan::New("buffer_size").ToLocalChecked()))
         {
             v8::Local<v8::Value> bs_value = options->Get(Nan::New("buffer_size").ToLocalChecked());
@@ -424,8 +467,12 @@ NAN_METHOD(composite)
             {
                 return utils::CallbackError("'buffer_size' must be an int32", callback);
             }
-
-            int buffer_size = bs_value->Int32Value();
+            v8::Maybe<int> maybe_buffer_size = bs_value->Int32Value(isolate->GetCurrentContext());
+            if (maybe_buffer_size.IsNothing())
+            {
+                return utils::CallbackError("'buffer_size' is nothing", callback);
+            }
+            int buffer_size = maybe_buffer_size.FromJust();
             if (buffer_size < 0)
             {
                 return utils::CallbackError("'buffer_size' must be a positive int32", callback);
@@ -439,7 +486,12 @@ NAN_METHOD(composite)
             {
                 return utils::CallbackError("'compress' must be a boolean", callback);
             }
-            baton_data->compress = comp_value->BooleanValue();
+            v8::Maybe<bool> maybe_compress = comp_value->BooleanValue(isolate->GetCurrentContext());
+            if (maybe_compress.IsNothing())
+            {
+                return utils::CallbackError("'compress' is nothing", callback);
+            }
+            baton_data->compress = maybe_compress.FromJust();
         }
     }
     // enter the threadpool, then done in the callback function call the threadpool
