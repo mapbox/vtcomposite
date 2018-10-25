@@ -1,8 +1,9 @@
 #pragma once
-#include <nan.h>
+#include <napi.h>
+#include <uv.h>
 
 namespace vtile {
 
-NAN_METHOD(composite);
+Napi::Value composite(const Napi::CallbackInfo& info);
 
 } // namespace vtile
