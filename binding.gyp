@@ -15,7 +15,7 @@
       # It's a variable to make easy to pass to
       # cflags (linux) and xcode (mac)
       'system_includes': [
-        "-isystem <(module_root_dir)/node_modules/node-addon-api/",
+        "-isystem <!@(node -p \"require('node-addon-api').include.slice(1,-1)\")",
         "-isystem <(module_root_dir)/mason_packages/.link/include/"
       ],
       # Flags we pass to the compiler to ensure the compiler
