@@ -1,8 +1,8 @@
 // vtcomposite
 #include "vtcomposite.hpp"
+#include "feature_builder.hpp"
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
-#include "feature_builder.hpp"
 // gzip-hpp
 #include <gzip/compress.hpp>
 #include <gzip/decompress.hpp>
@@ -11,9 +11,9 @@
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
 // geometry.hpp
+#include <mapbox/geometry/box.hpp>
 #include <mapbox/geometry/for_each_point.hpp>
 #include <mapbox/geometry/point.hpp>
-#include <mapbox/geometry/box.hpp>
 // stl
 #include <algorithm>
 
@@ -76,7 +76,7 @@ namespace {
 template <typename FeatureBuilder>
 struct build_feature_from_v1
 {
-    build_feature_from_v1(FeatureBuilder& builder)
+    explicit build_feature_from_v1(FeatureBuilder& builder)
         : builder_(builder) {}
 
     bool operator()(vtzero::feature const& feature)
@@ -97,7 +97,7 @@ struct build_feature_from_v1
 template <typename FeatureBuilder>
 struct build_feature_from_v2
 {
-    build_feature_from_v2(FeatureBuilder& builder)
+    explicit build_feature_from_v2(FeatureBuilder& builder)
         : builder_(builder) {}
 
     bool operator()(vtzero::feature const& feature)
@@ -197,7 +197,7 @@ struct CompositeWorker : Napi::AsyncWorker
                     throw std::invalid_argument(os.str());
                 }
             }
-            std::string& tile_buffer = *output_buffer_.get();
+            std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
             {
                 std::string temp;
@@ -218,7 +218,7 @@ struct CompositeWorker : Napi::AsyncWorker
     }
     void OnOK() override
     {
-        std::string& tile_buffer = *output_buffer_.get();
+        std::string& tile_buffer = *output_buffer_;
         Napi::HandleScope scope(Env());
         Napi::Value argv = Napi::Buffer<char>::New(Env(),
                                                    const_cast<char*>(tile_buffer.data()),
@@ -238,7 +238,13 @@ struct CompositeWorker : Napi::AsyncWorker
 Napi::Value composite(Napi::CallbackInfo const& info)
 {
     // validate callback function
-    Napi::Value callback_val = info[info.Length() - 1];
+    std::size_t length = info.Length();
+    if (length == 0)
+    {
+        Napi::Error::New(info.Env(), "last argument must be a callback function").ThrowAsJavaScriptException();
+        return info.Env().Null();
+    }
+    Napi::Value callback_val = info[length - 1];
     if (!callback_val.IsFunction())
     {
         Napi::Error::New(info.Env(), "last argument must be a callback function").ThrowAsJavaScriptException();
