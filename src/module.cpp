@@ -1,6 +1,5 @@
 #include "vtcomposite.hpp"
 #include <napi.h>
-#include <uv.h>
 
 Napi::Object init(Napi::Env env, Napi::Object exports)
 {
