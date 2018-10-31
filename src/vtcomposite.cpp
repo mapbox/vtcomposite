@@ -256,7 +256,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     // validate tiles
     if (!info[0].IsArray())
     {
-        return utils::CallbackError("first arg 'tiles' must be an array of tile objects", info, callback);
+        return utils::CallbackError("first arg 'tiles' must be an array of tile objects", info);
     }
 
     Napi::Array tiles = info[0].As<Napi::Array>();
@@ -264,7 +264,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
 
     if (num_tiles <= 0)
     {
-        return utils::CallbackError("'tiles' array must be of length greater than 0", info, callback);
+        return utils::CallbackError("'tiles' array must be of length greater than 0", info);
     }
 
     std::unique_ptr<BatonType> baton_data = std::make_unique<BatonType>(num_tiles);
@@ -274,72 +274,72 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         Napi::Value tile_val = tiles.Get(t);
         if (!tile_val.IsObject())
         {
-            return utils::CallbackError("items in 'tiles' array must be objects", info, callback);
+            return utils::CallbackError("items in 'tiles' array must be objects", info);
         }
         Napi::Object tile_obj = tile_val.ToObject();
 
         // check buffer value
         if (!tile_obj.Has(Napi::String::New(info.Env(), "buffer")))
         {
-            return utils::CallbackError("item in 'tiles' array does not include a buffer value", info, callback);
+            return utils::CallbackError("item in 'tiles' array does not include a buffer value", info);
         }
         Napi::Value buf_val = tile_obj.Get(Napi::String::New(info.Env(), "buffer"));
         if (buf_val.IsNull() || buf_val.IsUndefined())
         {
-            return utils::CallbackError("buffer value in 'tiles' array item is null or undefined", info, callback);
+            return utils::CallbackError("buffer value in 'tiles' array item is null or undefined", info);
         }
         Napi::Object buffer = buf_val.ToObject();
         if (!buffer.IsBuffer())
         {
-            return utils::CallbackError("buffer value in 'tiles' array item is not a true buffer", info, callback);
+            return utils::CallbackError("buffer value in 'tiles' array item is not a true buffer", info);
         }
 
         // z value
         if (!tile_obj.Has(Napi::String::New(info.Env(), "z")))
         {
-            return utils::CallbackError("item in 'tiles' array does not include a 'z' value", info, callback);
+            return utils::CallbackError("item in 'tiles' array does not include a 'z' value", info);
         }
         Napi::Value z_val = tile_obj.Get(Napi::String::New(info.Env(), "z"));
         if (!z_val.IsNumber())
         {
-            return utils::CallbackError("'z' value in 'tiles' array item is not an int32", info, callback);
+            return utils::CallbackError("'z' value in 'tiles' array item is not an int32", info);
         }
         int z = z_val.As<Napi::Number>().Int32Value();
         if (z < 0)
         {
-            return utils::CallbackError("'z' value must not be less than zero", info, callback);
+            return utils::CallbackError("'z' value must not be less than zero", info);
         }
 
         // x value
         if (!tile_obj.Has(Napi::String::New(info.Env(), "x")))
         {
-            return utils::CallbackError("item in 'tiles' array does not include a 'x' value", info, callback);
+            return utils::CallbackError("item in 'tiles' array does not include a 'x' value", info);
         }
         Napi::Value x_val = tile_obj.Get(Napi::String::New(info.Env(), "x"));
         if (!x_val.IsNumber())
         {
-            return utils::CallbackError("'x' value in 'tiles' array item is not an int32", info, callback);
+            return utils::CallbackError("'x' value in 'tiles' array item is not an int32", info);
         }
         int x = x_val.As<Napi::Number>().Int32Value();
         if (x < 0)
         {
-            return utils::CallbackError("'x' value must not be less than zero", info, callback);
+            return utils::CallbackError("'x' value must not be less than zero", info);
         }
 
         // y value
         if (!tile_obj.Has(Napi::String::New(info.Env(), "y")))
         {
-            return utils::CallbackError("item in 'tiles' array does not include a 'y' value", info, callback);
+            return utils::CallbackError("item in 'tiles' array does not include a 'y' value", info);
         }
         Napi::Value y_val = tile_obj.Get(Napi::String::New(info.Env(), "y"));
         if (!y_val.IsNumber())
         {
-            return utils::CallbackError("'y' value in 'tiles' array item is not an int32", info, callback);
+            return utils::CallbackError("'y' value in 'tiles' array item is not an int32", info);
         }
         int y = y_val.As<Napi::Number>().Int32Value();
         if (y < 0)
         {
-            return utils::CallbackError("'y' value must not be less than zero", info, callback);
+            return utils::CallbackError("'y' value must not be less than zero", info);
         }
         baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer));
     }
@@ -347,41 +347,41 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     //validate zxy maprequest object
     if (!info[1].IsObject())
     {
-        return utils::CallbackError("'zxy_maprequest' must be an object", info, callback);
+        return utils::CallbackError("'zxy_maprequest' must be an object", info);
     }
     Napi::Object zxy_maprequest = info[1].As<Napi::Object>();
 
     // z value of map request object
     if (!zxy_maprequest.Has(Napi::String::New(info.Env(), "z")))
     {
-        return utils::CallbackError("item in 'tiles' array does not include a 'z' value", info, callback);
+        return utils::CallbackError("item in 'tiles' array does not include a 'z' value", info);
     }
     Napi::Value z_val_maprequest = zxy_maprequest.Get(Napi::String::New(info.Env(), "z"));
     if (!z_val_maprequest.IsNumber())
     {
-        return utils::CallbackError("'z' value in 'tiles' array item is not an int32", info, callback);
+        return utils::CallbackError("'z' value in 'tiles' array item is not an int32", info);
     }
     int z_maprequest = z_val_maprequest.As<Napi::Number>().Int32Value();
     if (z_maprequest < 0)
     {
-        return utils::CallbackError("'z' value must not be less than zero", info, callback);
+        return utils::CallbackError("'z' value must not be less than zero", info);
     }
     baton_data->z = z_maprequest;
 
     // x value of map request object
     if (!zxy_maprequest.Has(Napi::String::New(info.Env(), "x")))
     {
-        return utils::CallbackError("item in 'tiles' array does not include a 'x' value", info, callback);
+        return utils::CallbackError("item in 'tiles' array does not include a 'x' value", info);
     }
     Napi::Value x_val_maprequest = zxy_maprequest.Get(Napi::String::New(info.Env(), "x"));
     if (!x_val_maprequest.IsNumber())
     {
-        return utils::CallbackError("'x' value in 'tiles' array item is not an int32", info, callback);
+        return utils::CallbackError("'x' value in 'tiles' array item is not an int32", info);
     }
     int x_maprequest = x_val_maprequest.As<Napi::Number>().Int32Value();
     if (x_maprequest < 0)
     {
-        return utils::CallbackError("'x' value must not be less than zero", info, callback);
+        return utils::CallbackError("'x' value must not be less than zero", info);
     }
 
     baton_data->x = x_maprequest;
@@ -389,17 +389,17 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     // y value of maprequest object
     if (!zxy_maprequest.Has(Napi::String::New(info.Env(), "y")))
     {
-        return utils::CallbackError("item in 'tiles' array does not include a 'y' value", info, callback);
+        return utils::CallbackError("item in 'tiles' array does not include a 'y' value", info);
     }
     Napi::Value y_val_maprequest = zxy_maprequest.Get(Napi::String::New(info.Env(), "y"));
     if (!y_val_maprequest.IsNumber())
     {
-        return utils::CallbackError("'y' value in 'tiles' array item is not an int32", info, callback);
+        return utils::CallbackError("'y' value in 'tiles' array item is not an int32", info);
     }
     int y_maprequest = y_val_maprequest.As<Napi::Number>().Int32Value();
     if (y_maprequest < 0)
     {
-        return utils::CallbackError("'y' value must not be less than zero", info, callback);
+        return utils::CallbackError("'y' value must not be less than zero", info);
     }
 
     baton_data->y = y_maprequest;
@@ -408,7 +408,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     {
         if (!info[2].IsObject())
         {
-            return utils::CallbackError("'options' arg must be an object", info, callback);
+            return utils::CallbackError("'options' arg must be an object", info);
         }
         Napi::Object options = info[2].ToObject();
         if (options.Has(Napi::String::New(info.Env(), "buffer_size")))
@@ -416,13 +416,13 @@ Napi::Value composite(Napi::CallbackInfo const& info)
             Napi::Value bs_value = options.Get(Napi::String::New(info.Env(), "buffer_size"));
             if (!bs_value.IsNumber())
             {
-                return utils::CallbackError("'buffer_size' must be an int32", info, callback);
+                return utils::CallbackError("'buffer_size' must be an int32", info);
             }
 
             int buffer_size = bs_value.As<Napi::Number>().Int32Value();
             if (buffer_size < 0)
             {
-                return utils::CallbackError("'buffer_size' must be a positive int32", info, callback);
+                return utils::CallbackError("'buffer_size' must be a positive int32", info);
             }
             baton_data->buffer_size = buffer_size;
         }
@@ -431,7 +431,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
             Napi::Value comp_value = options.Get(Napi::String::New(info.Env(), "compress"));
             if (!comp_value.IsBoolean())
             {
-                return utils::CallbackError("'compress' must be a boolean", info, callback);
+                return utils::CallbackError("'compress' must be a boolean", info);
             }
             baton_data->compress = comp_value.As<Napi::Boolean>().Value();
         }
