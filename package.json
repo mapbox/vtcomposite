@@ -1,7 +1,7 @@
 {
   "name": "@mapbox/vtcomposite",
   "version": "0.1.1",
-  "description": "Skeleton for bindings to C++ libraries for Node.js using NAN",
+  "description": "Compositing operations on Vector Tiles (c++ bindings using N-API)",
   "url": "http://github.com/mapbox/vtcomposite",
   "main": "./lib/index.js",
   "repository": {
@@ -18,7 +18,7 @@
   "license": "ISC",
   "dependencies": {
     "mason-js-sdk": "^0.1.4",
-    "nan": "~2.10.0",
+    "node-addon-api": "^1.5.0",
     "node-pre-gyp": "~0.10.2"
   },
   "devDependencies": {

@@ -1,9 +1,10 @@
 #include "vtcomposite.hpp"
-#include <nan.h>
+#include <napi.h>
 
-NAN_MODULE_INIT(init)
+Napi::Object init(Napi::Env env, Napi::Object exports)
 {
-    Nan::SetMethod(target, "composite", vtile::composite);
+    exports.Set(Napi::String::New(env, "composite"), Napi::Function::New(env, vtile::composite));
+    return exports;
 }
 
-NODE_MODULE(module, init) // NOLINT
+NODE_API_MODULE(module, init) // NOLINT

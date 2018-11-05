@@ -1,5 +1,6 @@
 // vtcomposite
 #include "vtcomposite.hpp"
+#include "feature_builder.hpp"
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
 #include "feature_builder.hpp"
@@ -8,9 +9,9 @@
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
 // geometry.hpp
+#include <mapbox/geometry/box.hpp>
 #include <mapbox/geometry/for_each_point.hpp>
 #include <mapbox/geometry/point.hpp>
-#include <mapbox/geometry/box.hpp>
 // stl
 #include <algorithm>
 
@@ -23,14 +24,13 @@ struct TileObject
     TileObject(int z0,
                int x0,
                int y0,
-               v8::Local<v8::Object>& buffer)
+               Napi::Object& buffer)
         : z{z0},
           x{x0},
           y{y0},
-          data{node::Buffer::Data(buffer), node::Buffer::Length(buffer)},
-          buffer_ref{}
+          data{buffer.As<Napi::Buffer<char>>().Data(), buffer.As<Napi::Buffer<char>>().Length()},
+          buffer_ref{Napi::Persistent(buffer.As<Napi::Object>())}
     {
-        buffer_ref.Reset(buffer.As<v8::Object>());
     }
 
     ~TileObject()
@@ -42,15 +42,11 @@ struct TileObject
     TileObject(TileObject const&) = delete;
     TileObject& operator=(TileObject const&) = delete;
 
-    // non-movable
-    TileObject(TileObject&&) = delete;
-    TileObject& operator=(TileObject&&) = delete;
-
     int z;
     int x;
     int y;
     vtzero::data_view data;
-    Nan::Persistent<v8::Object> buffer_ref;
+    Napi::ObjectReference buffer_ref;
 };
 
 struct BatonType
@@ -63,10 +59,6 @@ struct BatonType
     // non-copyable
     BatonType(BatonType const&) = delete;
     BatonType& operator=(BatonType const&) = delete;
-
-    // non-movable
-    BatonType(BatonType&&) = delete;
-    BatonType& operator=(BatonType&&) = delete;
 
     // members
     std::vector<std::unique_ptr<TileObject>> tiles{};
@@ -82,7 +74,7 @@ namespace {
 template <typename FeatureBuilder>
 struct build_feature_from_v1
 {
-    build_feature_from_v1(FeatureBuilder& builder)
+    explicit build_feature_from_v1(FeatureBuilder& builder)
         : builder_(builder) {}
 
     bool operator()(vtzero::feature const& feature)
@@ -103,7 +95,7 @@ struct build_feature_from_v1
 template <typename FeatureBuilder>
 struct build_feature_from_v2
 {
-    build_feature_from_v2(FeatureBuilder& builder)
+    explicit build_feature_from_v2(FeatureBuilder& builder)
         : builder_(builder) {}
 
     bool operator()(vtzero::feature const& feature)
@@ -116,12 +108,12 @@ struct build_feature_from_v2
 
 } // namespace
 
-struct CompositeWorker : Nan::AsyncWorker
+struct CompositeWorker : Napi::AsyncWorker
 {
-    using Base = Nan::AsyncWorker;
+    using Base = Napi::AsyncWorker;
 
-    CompositeWorker(std::unique_ptr<BatonType>&& baton_data, Nan::Callback* cb)
-        : Base(cb, "skel:standalone-async-worker"),
+    CompositeWorker(std::unique_ptr<BatonType>&& baton_data, Napi::Function& cb)
+        : Base(cb),
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
 
@@ -204,7 +196,7 @@ struct CompositeWorker : Nan::AsyncWorker
                     throw std::invalid_argument(os.str());
                 }
             }
-            std::string& tile_buffer = *output_buffer_.get();
+            std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
             {
                 std::string temp;
@@ -219,288 +211,231 @@ struct CompositeWorker : Nan::AsyncWorker
         // LCOV_EXCL_START
         catch (std::exception const& e)
         {
-            SetErrorMessage(e.what());
+            SetError(e.what());
         }
         // LCOV_EXCL_STOP
     }
-
-    void HandleOKCallback() override
+    void OnOK() override
     {
-        std::string& tile_buffer = *output_buffer_.get();
-        Nan::HandleScope scope;
-        const auto argc = 2u;
-        v8::Local<v8::Value> argv[argc] = {
-            Nan::Null(),
-            Nan::NewBuffer(&tile_buffer[0],
-                           static_cast<unsigned int>(tile_buffer.size()),
-                           [](char*, void* hint) {
-                               delete reinterpret_cast<std::string*>(hint);
-                           },
-                           output_buffer_.release())
-                .ToLocalChecked()};
+        std::string& tile_buffer = *output_buffer_;
+        Napi::HandleScope scope(Env());
+        Napi::Value argv = Napi::Buffer<char>::New(Env(),
+                                                   const_cast<char*>(tile_buffer.data()),
+                                                   tile_buffer.size(),
+                                                   [](Napi::Env, char*, std::string* s) {
+                                                       delete s;
+                                                   },
+                                                   output_buffer_.release());
 
-        // Static cast done here to avoid 'cppcoreguidelines-pro-bounds-array-to-pointer-decay' warning with clang-tidy
-        callback->Call(argc, static_cast<v8::Local<v8::Value>*>(argv), async_resource);
+        Callback().Call({Env().Null(), argv});
     }
 
     std::unique_ptr<BatonType> const baton_data_;
     std::unique_ptr<std::string> output_buffer_;
 };
 
-NAN_METHOD(composite)
+Napi::Value composite(Napi::CallbackInfo const& info)
 {
     // validate callback function
-    v8::Local<v8::Value> callback_val = info[info.Length() - 1];
-    if (!callback_val->IsFunction())
+    std::size_t length = info.Length();
+    if (length == 0)
     {
-        Nan::ThrowError("last argument must be a callback function");
-        return;
+        Napi::Error::New(info.Env(), "last argument must be a callback function").ThrowAsJavaScriptException();
+        return info.Env().Null();
+    }
+    Napi::Value callback_val = info[length - 1];
+    if (!callback_val.IsFunction())
+    {
+        Napi::Error::New(info.Env(), "last argument must be a callback function").ThrowAsJavaScriptException();
+        return info.Env().Null();
     }
 
-    v8::Local<v8::Function> callback = callback_val.As<v8::Function>();
+    Napi::Function callback = callback_val.As<Napi::Function>();
 
     // validate tiles
-    if (!info[0]->IsArray())
+    if (!info[0].IsArray())
     {
-        return utils::CallbackError("first arg 'tiles' must be an array of tile objects", callback);
+        return utils::CallbackError("first arg 'tiles' must be an array of tile objects", info);
     }
 
-    v8::Local<v8::Array> tiles = info[0].As<v8::Array>();
-    unsigned num_tiles = tiles->Length();
+    Napi::Array tiles = info[0].As<Napi::Array>();
+    unsigned num_tiles = tiles.Length();
 
     if (num_tiles <= 0)
     {
-        return utils::CallbackError("'tiles' array must be of length greater than 0", callback);
+        return utils::CallbackError("'tiles' array must be of length greater than 0", info);
     }
 
     std::unique_ptr<BatonType> baton_data = std::make_unique<BatonType>(num_tiles);
 
     for (unsigned t = 0; t < num_tiles; ++t)
     {
-        v8::Local<v8::Value> tile_val = tiles->Get(t);
-        if (!tile_val->IsObject())
+        Napi::Value tile_val = tiles.Get(t);
+        if (!tile_val.IsObject())
         {
-            return utils::CallbackError("items in 'tiles' array must be objects", callback);
+            return utils::CallbackError("items in 'tiles' array must be objects", info);
         }
-        Nan::MaybeLocal<v8::Object> maybe_tile_obj = Nan::To<v8::Object>(tile_val);
-        if (maybe_tile_obj.IsEmpty())
-        {
-            return utils::CallbackError("items in 'tiles' can't be empty", callback);
-        }
-        v8::Local<v8::Object> tile_obj = maybe_tile_obj.ToLocalChecked();
-
+        Napi::Object tile_obj = tile_val.ToObject();
         // check buffer value
-        if (!tile_obj->Has(Nan::New("buffer").ToLocalChecked()))
+        if (!tile_obj.Has(Napi::String::New(info.Env(), "buffer")))
         {
-            return utils::CallbackError("item in 'tiles' array does not include a buffer value", callback);
+            return utils::CallbackError("item in 'tiles' array does not include a buffer value", info);
         }
-        v8::Local<v8::Value> buf_val = tile_obj->Get(Nan::New("buffer").ToLocalChecked());
-        if (buf_val->IsNull() || buf_val->IsUndefined())
+        Napi::Value buf_val = tile_obj.Get(Napi::String::New(info.Env(), "buffer"));
+        if (buf_val.IsNull() || buf_val.IsUndefined())
         {
-            return utils::CallbackError("buffer value in 'tiles' array item is null or undefined", callback);
+            return utils::CallbackError("buffer value in 'tiles' array item is null or undefined", info);
         }
-        Nan::MaybeLocal<v8::Object> maybe_buffer = Nan::To<v8::Object>(buf_val);
-        if (maybe_buffer.IsEmpty())
+        Napi::Object buffer = buf_val.ToObject();
+        if (!buffer.IsBuffer())
         {
-            return utils::CallbackError("buffer value in 'tiles' array is empty", callback);
-        }
-        v8::Local<v8::Object> buffer = maybe_buffer.ToLocalChecked();
-
-        if (!node::Buffer::HasInstance(buffer))
-        {
-            return utils::CallbackError("buffer value in 'tiles' array item is not a true buffer", callback);
+            return utils::CallbackError("buffer value in 'tiles' array item is not a true buffer", info);
         }
 
         // z value
-        if (!tile_obj->Has(Nan::New("z").ToLocalChecked()))
+        if (!tile_obj.Has(Napi::String::New(info.Env(), "z")))
         {
-            return utils::CallbackError("item in 'tiles' array does not include a 'z' value", callback);
+            return utils::CallbackError("item in 'tiles' array does not include a 'z' value", info);
         }
-        v8::Local<v8::Value> z_val = tile_obj->Get(Nan::New("z").ToLocalChecked());
-        if (!z_val->IsInt32())
+        Napi::Value z_val = tile_obj.Get(Napi::String::New(info.Env(), "z"));
+        if (!z_val.IsNumber())
         {
-            return utils::CallbackError("'z' value in 'tiles' array item is not an int32", callback);
+            return utils::CallbackError("'z' value in 'tiles' array item is not an int32", info);
         }
-        Nan::Maybe<int> maybe_z = Nan::To<std::int32_t>(z_val);
-        if (maybe_z.IsNothing())
-        {
-            return utils::CallbackError("'z' value is nothing", callback);
-        }
-        int32_t z = maybe_z.FromJust();
+        int z = z_val.As<Napi::Number>().Int32Value();
         if (z < 0)
         {
-            return utils::CallbackError("'z' value must not be less than zero", callback);
+            return utils::CallbackError("'z' value must not be less than zero", info);
         }
 
         // x value
-        if (!tile_obj->Has(Nan::New("x").ToLocalChecked()))
+        if (!tile_obj.Has(Napi::String::New(info.Env(), "x")))
         {
-            return utils::CallbackError("item in 'tiles' array does not include a 'x' value", callback);
+            return utils::CallbackError("item in 'tiles' array does not include a 'x' value", info);
         }
-        v8::Local<v8::Value> x_val = tile_obj->Get(Nan::New("x").ToLocalChecked());
-        if (!x_val->IsInt32())
+        Napi::Value x_val = tile_obj.Get(Napi::String::New(info.Env(), "x"));
+        if (!x_val.IsNumber())
         {
-            return utils::CallbackError("'x' value in 'tiles' array item is not an int32", callback);
+            return utils::CallbackError("'x' value in 'tiles' array item is not an int32", info);
         }
-        Nan::Maybe<int32_t> maybe_x = Nan::To<std::int32_t>(x_val);
-        if (maybe_x.IsNothing())
-        {
-            return utils::CallbackError("'x' value is nothing", callback);
-        }
-        std::int32_t x = maybe_x.FromJust();
+
+        int x = x_val.As<Napi::Number>().Int32Value();
         if (x < 0)
         {
-            return utils::CallbackError("'x' value must not be less than zero", callback);
+            return utils::CallbackError("'x' value must not be less than zero", info);
         }
 
         // y value
-        if (!tile_obj->Has(Nan::New("y").ToLocalChecked()))
+        if (!tile_obj.Has(Napi::String::New(info.Env(), "y")))
         {
-            return utils::CallbackError("item in 'tiles' array does not include a 'y' value", callback);
+            return utils::CallbackError("item in 'tiles' array does not include a 'y' value", info);
         }
-        v8::Local<v8::Value> y_val = tile_obj->Get(Nan::New("y").ToLocalChecked());
-        if (!y_val->IsInt32())
+        Napi::Value y_val = tile_obj.Get(Napi::String::New(info.Env(), "y"));
+        if (!y_val.IsNumber())
         {
-            return utils::CallbackError("'y' value in 'tiles' array item is not an int32", callback);
+            return utils::CallbackError("'y' value in 'tiles' array item is not an int32", info);
         }
-        Nan::Maybe<int> maybe_y = Nan::To<std::int32_t>(y_val);
-        if (maybe_y.IsNothing())
-        {
-            return utils::CallbackError("'y' value is nothing", callback);
-        }
-        std::int32_t y = maybe_y.FromJust();
+        int y = y_val.As<Napi::Number>().Int32Value();
         if (y < 0)
         {
-            return utils::CallbackError("'y' value must not be less than zero", callback);
+            return utils::CallbackError("'y' value must not be less than zero", info);
         }
         baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer));
     }
 
     //validate zxy maprequest object
-    if (!info[1]->IsObject())
+    if (!info[1].IsObject())
     {
-        return utils::CallbackError("'zxy_maprequest' must be an object", callback);
+        return utils::CallbackError("'zxy_maprequest' must be an object", info);
     }
-    v8::Local<v8::Object> zxy_maprequest = v8::Local<v8::Object>::Cast(info[1]);
+    Napi::Object zxy_maprequest = info[1].As<Napi::Object>();
 
     // z value of map request object
-    if (!zxy_maprequest->Has(Nan::New("z").ToLocalChecked()))
+    if (!zxy_maprequest.Has(Napi::String::New(info.Env(), "z")))
     {
-        return utils::CallbackError("item in 'tiles' array does not include a 'z' value", callback);
+        return utils::CallbackError("item in 'tiles' array does not include a 'z' value", info);
     }
-    v8::Local<v8::Value> z_val_maprequest = zxy_maprequest->Get(Nan::New("z").ToLocalChecked());
-    if (!z_val_maprequest->IsInt32())
+    Napi::Value z_val_maprequest = zxy_maprequest.Get(Napi::String::New(info.Env(), "z"));
+    if (!z_val_maprequest.IsNumber())
     {
-        return utils::CallbackError("'z' value in 'tiles' array item is not an int32", callback);
+        return utils::CallbackError("'z' value in 'tiles' array item is not an int32", info);
     }
-    Nan::Maybe<std::int32_t> maybe_z_maprequest = Nan::To<std::int32_t>(z_val_maprequest);
-    if (maybe_z_maprequest.IsNothing())
-    {
-        return utils::CallbackError("'z' value in 'tiles' array item is nothing", callback);
-    }
-    std::int32_t z_maprequest = maybe_z_maprequest.FromJust();
+    int z_maprequest = z_val_maprequest.As<Napi::Number>().Int32Value();
     if (z_maprequest < 0)
     {
-        return utils::CallbackError("'z' value must not be less than zero", callback);
+        return utils::CallbackError("'z' value must not be less than zero", info);
     }
     baton_data->z = z_maprequest;
 
     // x value of map request object
-    if (!zxy_maprequest->Has(Nan::New("x").ToLocalChecked()))
+    if (!zxy_maprequest.Has(Napi::String::New(info.Env(), "x")))
     {
-        return utils::CallbackError("item in 'tiles' array does not include a 'x' value", callback);
+        return utils::CallbackError("item in 'tiles' array does not include a 'x' value", info);
     }
-    v8::Local<v8::Value> x_val_maprequest = zxy_maprequest->Get(Nan::New("x").ToLocalChecked());
-    if (!x_val_maprequest->IsInt32())
+    Napi::Value x_val_maprequest = zxy_maprequest.Get(Napi::String::New(info.Env(), "x"));
+    if (!x_val_maprequest.IsNumber())
     {
-        return utils::CallbackError("'x' value in 'tiles' array item is not an int32", callback);
+        return utils::CallbackError("'x' value in 'tiles' array item is not an int32", info);
     }
-    Nan::Maybe<std::int32_t> maybe_x_maprequest = Nan::To<std::int32_t>(x_val_maprequest);
-    if (maybe_x_maprequest.IsNothing())
-    {
-        return utils::CallbackError("'x' value in 'tiles' array item is nothing", callback);
-    }
-    std::int32_t x_maprequest = maybe_x_maprequest.FromJust();
+    int x_maprequest = x_val_maprequest.As<Napi::Number>().Int32Value();
     if (x_maprequest < 0)
     {
-        return utils::CallbackError("'x' value must not be less than zero", callback);
+        return utils::CallbackError("'x' value must not be less than zero", info);
     }
 
     baton_data->x = x_maprequest;
 
     // y value of maprequest object
-    if (!zxy_maprequest->Has(Nan::New("y").ToLocalChecked()))
+    if (!zxy_maprequest.Has(Napi::String::New(info.Env(), "y")))
     {
-        return utils::CallbackError("item in 'tiles' array does not include a 'y' value", callback);
+        return utils::CallbackError("item in 'tiles' array does not include a 'y' value", info);
     }
-    v8::Local<v8::Value> y_val_maprequest = zxy_maprequest->Get(Nan::New("y").ToLocalChecked());
-    if (!y_val_maprequest->IsInt32())
+    Napi::Value y_val_maprequest = zxy_maprequest.Get(Napi::String::New(info.Env(), "y"));
+    if (!y_val_maprequest.IsNumber())
     {
-        return utils::CallbackError("'y' value in 'tiles' array item is not an int32", callback);
+        return utils::CallbackError("'y' value in 'tiles' array item is not an int32", info);
     }
-    Nan::Maybe<std::int32_t> maybe_y_maprequest = Nan::To<std::int32_t>(y_val_maprequest);
-    if (maybe_y_maprequest.IsNothing())
-    {
-        return utils::CallbackError("'y' value in 'tiles' array item is nothing", callback);
-    }
-    std::int32_t y_maprequest = maybe_y_maprequest.FromJust();
+    int y_maprequest = y_val_maprequest.As<Napi::Number>().Int32Value();
     if (y_maprequest < 0)
     {
-        return utils::CallbackError("'y' value must not be less than zero", callback);
+        return utils::CallbackError("'y' value must not be less than zero", info);
     }
 
     baton_data->y = y_maprequest;
 
     if (info.Length() > 3) // options
     {
-        if (!info[2]->IsObject())
+        if (!info[2].IsObject())
         {
-            return utils::CallbackError("'options' arg must be an object", callback);
+            return utils::CallbackError("'options' arg must be an object", info);
         }
-        Nan::MaybeLocal<v8::Object> maybe_options = Nan::To<v8::Object>(info[2]);
-        if (maybe_options.IsEmpty())
+        Napi::Object options = info[2].ToObject();
+        if (options.Has(Napi::String::New(info.Env(), "buffer_size")))
         {
-            return utils::CallbackError("'options' value must not be empty", callback);
-        }
-        v8::Local<v8::Object> options = maybe_options.ToLocalChecked();
-
-        if (options->Has(Nan::New("buffer_size").ToLocalChecked()))
-        {
-            v8::Local<v8::Value> bs_value = options->Get(Nan::New("buffer_size").ToLocalChecked());
-            if (!bs_value->IsInt32())
+            Napi::Value bs_value = options.Get(Napi::String::New(info.Env(), "buffer_size"));
+            if (!bs_value.IsNumber())
             {
-                return utils::CallbackError("'buffer_size' must be an int32", callback);
+                return utils::CallbackError("'buffer_size' must be an int32", info);
             }
-            Nan::Maybe<std::int32_t> maybe_buffer_size = Nan::To<std::int32_t>(bs_value);
-            if (maybe_buffer_size.IsNothing())
-            {
-                return utils::CallbackError("'buffer_size' is nothing", callback);
-            }
-            std::int32_t buffer_size = maybe_buffer_size.FromJust();
+            int buffer_size = bs_value.As<Napi::Number>().Int32Value();
             if (buffer_size < 0)
             {
-                return utils::CallbackError("'buffer_size' must be a positive int32", callback);
+                return utils::CallbackError("'buffer_size' must be a positive int32", info);
             }
             baton_data->buffer_size = buffer_size;
         }
-        if (options->Has(Nan::New("compress").ToLocalChecked()))
+        if (options.Has(Napi::String::New(info.Env(), "compress")))
         {
-            v8::Local<v8::Value> comp_value = options->Get(Nan::New("compress").ToLocalChecked());
-            if (!comp_value->IsBoolean())
+            Napi::Value comp_value = options.Get(Napi::String::New(info.Env(), "compress"));
+            if (!comp_value.IsBoolean())
             {
-                return utils::CallbackError("'compress' must be a boolean", callback);
+                return utils::CallbackError("'compress' must be a boolean", info);
             }
-            Nan::Maybe<bool> maybe_compress = Nan::To<bool>(comp_value);
-            if (maybe_compress.IsNothing())
-            {
-                return utils::CallbackError("'compress' is nothing", callback);
-            }
-            baton_data->compress = maybe_compress.FromJust();
+            baton_data->compress = comp_value.As<Napi::Boolean>().Value();
         }
     }
-    // enter the threadpool, then done in the callback function call the threadpool
-    auto* worker = new CompositeWorker{std::move(baton_data), new Nan::Callback{callback}};
-    Nan::AsyncQueueWorker(worker);
+    auto* worker = new CompositeWorker{std::move(baton_data), callback};
+    worker->Queue();
+    return info.Env().Undefined();
 }
-
 } // namespace vtile

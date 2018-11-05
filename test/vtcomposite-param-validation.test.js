@@ -7,8 +7,7 @@ var mvtFixtures = require('@mapbox/mvt-fixtures');
 
 test('failure: fails without callback function', assert => {
   try {
-
-composite();
+    composite();
   } catch(err) {
     assert.ok(/last argument must be a callback function/.test(err.message), 'expected error message');
     assert.end();
