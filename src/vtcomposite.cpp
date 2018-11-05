@@ -1,10 +1,9 @@
 // vtcomposite
 #include "vtcomposite.hpp"
+#include "deflate.hpp"
 #include "feature_builder.hpp"
 #include "module_utils.hpp"
 #include "zxy_math.hpp"
-#include "feature_builder.hpp"
-#include "deflate.hpp"
 // vtzero
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
