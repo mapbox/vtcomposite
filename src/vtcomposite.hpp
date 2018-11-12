@@ -3,6 +3,6 @@
 
 namespace vtile {
 
-Napi::Value composite(const Napi::CallbackInfo& info);
+Napi::Value composite(Napi::CallbackInfo const& info);
 
 } // namespace vtile

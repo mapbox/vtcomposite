@@ -141,31 +141,25 @@ class Decompressor
                          size,
                          const_cast<char*>(output.data()),
                          output.size(), &actual_size);
-            if (result != LIBDEFLATE_INSUFFICIENT_SPACE)
+            if (result == LIBDEFLATE_SUCCESS)
             {
+                output.resize(actual_size);
                 break;
             }
-            if (output.size() == max_)
+            else if (result == LIBDEFLATE_INSUFFICIENT_SPACE)
             {
-                throw std::runtime_error("request to resize output buffer can't exceed maximum limit");
+                if (output.size() == max_)
+                {
+                    throw std::runtime_error("request to resize output buffer can't exceed maximum limit");
+                }
+                std::size_t new_size = std::min(output.size() << 1, max_);
+                output.resize(new_size);
             }
-            std::size_t new_size = std::min((output.capacity() << 1) - output.size(), max_);
-            output.resize(new_size);
+            else //LIBDEFLATE_BAD_DATA
+            {
+                throw std::runtime_error("bad data: did not succeed");
+            }
         }
-
-        if (result == LIBDEFLATE_SHORT_OUTPUT)
-        {
-            throw std::runtime_error("short output: did not succeed");
-        }
-        else if (result == LIBDEFLATE_BAD_DATA)
-        {
-            throw std::runtime_error("bad data: did not succeed");
-        }
-        else if (result != LIBDEFLATE_SUCCESS)
-        {
-            throw std::runtime_error("did not succeed");
-        }
-        output.resize(actual_size);
     }
 };
 
