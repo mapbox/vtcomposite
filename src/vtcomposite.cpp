@@ -276,8 +276,8 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("items in 'tiles' array must be objects", info);
         }
-        Napi::Object tile_obj = tile_val.ToObject();
 
+        Napi::Object tile_obj = tile_val.As<Napi::Object>();
         // check buffer value
         if (!tile_obj.Has(Napi::String::New(info.Env(), "buffer")))
         {
@@ -288,7 +288,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("buffer value in 'tiles' array item is null or undefined", info);
         }
-        Napi::Object buffer = buf_val.ToObject();
+        Napi::Object buffer = buf_val.As<Napi::Object>();
         if (!buffer.IsBuffer())
         {
             return utils::CallbackError("buffer value in 'tiles' array item is not a true buffer", info);
@@ -410,7 +410,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("'options' arg must be an object", info);
         }
-        Napi::Object options = info[2].ToObject();
+        Napi::Object options = info[2].As<Napi::Object>();
         if (options.Has(Napi::String::New(info.Env(), "buffer_size")))
         {
             Napi::Value bs_value = options.Get(Napi::String::New(info.Env(), "buffer_size"));
