@@ -31,7 +31,7 @@ struct TileObject
           x{x0},
           y{y0},
           data{buffer.As<Napi::Buffer<char>>().Data(), buffer.As<Napi::Buffer<char>>().Length()},
-          buffer_ref{Napi::Persistent(buffer.As<Napi::Object>())}
+          buffer_ref{Napi::Persistent(buffer)}
     {
     }
 
