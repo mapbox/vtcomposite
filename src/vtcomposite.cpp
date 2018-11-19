@@ -23,12 +23,12 @@ struct TileObject
     TileObject(int z0,
                int x0,
                int y0,
-               Napi::Object& buffer)
+               Napi::Buffer<char> const& buffer)
         : z{z0},
           x{x0},
           y{y0},
-          data{buffer.As<Napi::Buffer<char>>().Data(), buffer.As<Napi::Buffer<char>>().Length()},
-          buffer_ref{Napi::Persistent(buffer.As<Napi::Object>())}
+          data{buffer.Data(), buffer.Length()},
+          buffer_ref{Napi::Persistent(buffer)}
     {
     }
 
@@ -45,7 +45,7 @@ struct TileObject
     int x;
     int y;
     vtzero::data_view data;
-    Napi::ObjectReference buffer_ref;
+    Napi::Reference<Napi::Buffer<char>> buffer_ref;
 };
 
 struct BatonType
@@ -286,12 +286,13 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("buffer value in 'tiles' array item is null or undefined", info);
         }
-        Napi::Object buffer = buf_val.As<Napi::Object>();
-        if (!buffer.IsBuffer())
+        Napi::Object buffer_obj = buf_val.As<Napi::Object>();
+        if (!buffer_obj.IsBuffer())
         {
             return utils::CallbackError("buffer value in 'tiles' array item is not a true buffer", info);
         }
 
+        Napi::Buffer<char> buffer = buffer_obj.As<Napi::Buffer<char>>();
         // z value
         if (!tile_obj.Has(Napi::String::New(info.Env(), "z")))
         {
@@ -340,6 +341,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("'y' value must not be less than zero", info);
         }
+
         baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer));
     }
 
