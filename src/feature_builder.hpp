@@ -103,6 +103,7 @@ struct polygon_handler
 {
     polygon_handler(vtzero::polygon_feature_builder & builder, mapbox::geometry::box<CoordinateType> const& bbox, int dx, int dy, int zoom_factor)
         : builder_(builder),
+          ring_{},
           bbox_(bbox),
           extent_({0,0},{0,0}),
           dx_(dx),
