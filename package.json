@@ -33,7 +33,6 @@
     "mapnik": "^4.0.1",
     "minimist": "~1.2.0",
     "pbf": "^3.1.0",
-    "sphericalmercator": "^1.0.5",
     "tape": "^4.5.1"
   },
   "binary": {
