@@ -7,4 +7,12 @@ mason_packages
 *.profdata
 *.profraw
 npm-debug.log
-viz/index.html
+viz
+scripts
+.clang-*
+.travis.yml
+codecov.yml
+bench
+cloudformation
+docs
+test
