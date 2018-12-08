@@ -4,12 +4,7 @@ build
 mason_packages
 .DS_Store
 *tgz
-code.*
-script.js
-convert.js
+*.profdata
 *.profraw
-convert.js
 npm-debug.log
-shave.js
 viz/index.html
-
