@@ -1,3 +1,9 @@
+
+# 0.1.2
+
+- Reduced the package size
+- Upgraded to latest @mapbox/mvt-fixtures and @mapbox/mason-js
+
 # 1/9/2018
 
 * Add memory stats option to bench tests
@@ -14,7 +20,7 @@
 
 * Add [sanitzer flag doc](https://github.com/mapbox/node-cpp-skel/pull/84)
 * Add [sanitizer script](hhttps://github.com/mapbox/node-cpp-skel/pull/85) and enable [leak sanitizer](https://github.com/mapbox/node-cpp-skel/commit/725601e4c7df6cb8477a128f018fb064a9f6f9aa)
-* 
+*
 
 # 10/20/2017
 
