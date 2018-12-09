@@ -1,4 +1,8 @@
 
+# 0.1.3
+
+- Upgrade nan and node-pre-gyp
+
 # 0.1.2
 
 - Reduced the package size
