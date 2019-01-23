@@ -288,6 +288,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("buffer value in 'tiles' array item is null or undefined", info);
         }
+
         Napi::Object buffer_obj = buf_val.As<Napi::Object>();
         if (!buffer_obj.IsBuffer())
         {
@@ -305,6 +306,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("'z' value in 'tiles' array item is not an int32", info);
         }
+
         int z = z_val.As<Napi::Number>().Int32Value();
         if (z < 0)
         {
@@ -321,6 +323,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("'x' value in 'tiles' array item is not an int32", info);
         }
+
         int x = x_val.As<Napi::Number>().Int32Value();
         if (x < 0)
         {
@@ -337,6 +340,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("'y' value in 'tiles' array item is not an int32", info);
         }
+
         int y = y_val.As<Napi::Number>().Int32Value();
         if (y < 0)
         {
@@ -363,6 +367,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     {
         return utils::CallbackError("'z' value in 'tiles' array item is not an int32", info);
     }
+
     int z_maprequest = z_val_maprequest.As<Napi::Number>().Int32Value();
     if (z_maprequest < 0)
     {
@@ -380,6 +385,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     {
         return utils::CallbackError("'x' value in 'tiles' array item is not an int32", info);
     }
+
     int x_maprequest = x_val_maprequest.As<Napi::Number>().Int32Value();
     if (x_maprequest < 0)
     {
@@ -398,6 +404,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     {
         return utils::CallbackError("'y' value in 'tiles' array item is not an int32", info);
     }
+
     int y_maprequest = y_val_maprequest.As<Napi::Number>().Int32Value();
     if (y_maprequest < 0)
     {
@@ -412,6 +419,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("'options' arg must be an object", info);
         }
+
         Napi::Object options = info[2].As<Napi::Object>();
         if (options.Has(Napi::String::New(info.Env(), "buffer_size")))
         {
@@ -435,6 +443,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
             {
                 return utils::CallbackError("'compress' must be a boolean", info);
             }
+
             baton_data->compress = comp_value.As<Napi::Boolean>().Value();
         }
     }
