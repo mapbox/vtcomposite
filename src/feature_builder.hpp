@@ -101,10 +101,10 @@ struct line_string_handler
 template <typename CoordinateType>
 struct polygon_handler
 {
-    polygon_handler(vtzero::polygon_feature_builder & builder, mapbox::geometry::box<CoordinateType> const& bbox, int dx, int dy, int zoom_factor)
+    polygon_handler(vtzero::polygon_feature_builder& builder, mapbox::geometry::box<CoordinateType> const& bbox, int dx, int dy, int zoom_factor)
         : builder_(builder),
           bbox_(bbox),
-          extent_({0,0},{0,0}),
+          extent_({0, 0}, {0, 0}),
           dx_(dx),
           dy_(dy),
           zoom_factor_(zoom_factor) {}
@@ -123,12 +123,15 @@ struct polygon_handler
             CoordinateType x = pt.x * zoom_factor_ - dx_;
             CoordinateType y = pt.y * zoom_factor_ - dy_;
             ring_.emplace_back(x, y);
-            if (first_) {
+            if (first_)
+            {
                 extent_.min.x = x;
                 extent_.max.x = x;
                 extent_.min.y = y;
                 extent_.max.y = y;
-            } else {
+            }
+            else
+            {
                 if (x < extent_.min.x) extent_.min.x = x;
                 if (x > extent_.max.x) extent_.max.x = x;
                 if (y < extent_.min.y) extent_.min.y = y;
@@ -142,40 +145,55 @@ struct polygon_handler
 
     void ring_end(vtzero::ring_type type)
     {
-        if (type == vtzero::ring_type::outer) {
-            if (!boost::geometry::intersects(extent_, bbox_)) {
+        if (type == vtzero::ring_type::outer)
+        {
+            if (!boost::geometry::intersects(extent_, bbox_))
+            {
                 skip_ = true;
-            } else {
+            }
+            else
+            {
                 skip_ = false;
                 valid_ = true;
             }
         }
-        if (!skip_ && ring_.size() > 3) {
+        if (!skip_ && ring_.size() > 3)
+        {
             // only clip if not fully within bbox
             if (bbox_.min.x >= extent_.min.x &&
                 bbox_.max.x <= extent_.max.x &&
                 bbox_.min.y >= extent_.min.y &&
-                bbox_.max.y <= extent_.max.y) {
-                    builder_.add_ring(static_cast<unsigned>(ring_.size()));
-                    for (auto const& pt : ring_) {
-                       builder_.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
-                    };
-            } else {
+                bbox_.max.y <= extent_.max.y)
+            {
+                builder_.add_ring(static_cast<unsigned>(ring_.size()));
+                for (auto const& pt : ring_)
+                {
+                    builder_.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                };
+            }
+            else
+            {
                 // TODO: reuse this result memory?
                 std::vector<mapbox::geometry::polygon<CoordinateType>> result;
-                if (type == vtzero::ring_type::inner) {
+                if (type == vtzero::ring_type::inner)
+                {
                     boost::geometry::reverse(ring_);
                 }
                 boost::geometry::intersection(ring_, bbox_, result);
-                for (auto && geom : result) {
-                    if (type == vtzero::ring_type::inner) {
+                for (auto&& geom : result)
+                {
+                    if (type == vtzero::ring_type::inner)
+                    {
                         boost::geometry::reverse(geom);
                     }
-                    for (auto const& ring : geom) {
-                        if (ring.size() > 3) {
+                    for (auto const& ring : geom)
+                    {
+                        if (ring.size() > 3)
+                        {
                             builder_.add_ring(static_cast<unsigned>(ring.size()));
-                            for (auto const& pt : ring) {
-                               builder_.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
+                            for (auto const& pt : ring)
+                            {
+                                builder_.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y));
                             };
                         }
                     }
@@ -184,11 +202,12 @@ struct polygon_handler
         }
     }
 
-    bool valid() const {
-      return valid_;
+    bool valid() const
+    {
+        return valid_;
     }
 
-    vtzero::polygon_feature_builder & builder_;
+    vtzero::polygon_feature_builder& builder_;
     mapbox::geometry::linear_ring<CoordinateType> ring_;
     mapbox::geometry::box<CoordinateType> const& bbox_;
     mapbox::geometry::box<CoordinateType> extent_;
@@ -280,7 +299,8 @@ struct overzoomed_feature_builder
         feature_builder.copy_id(feature);
         detail::polygon_handler<CoordinateType> handler(feature_builder, bbox_, dx_, dy_, zoom_factor_);
         vtzero::decode_polygon_geometry(feature.geometry(), handler);
-        if (handler.valid()) {
+        if (handler.valid())
+        {
             finalize(feature_builder, feature);
         }
     }
