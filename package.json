@@ -10,12 +10,14 @@
   },
   "scripts": {
     "test": "tape test/*.test.js",
+    "install": "node-pre-gyp install --fallback-to-build",
     "docs": "documentation build src/standalone_async/*.cpp src/standalone/*.cpp src/object_sync/*.cpp src/object_async/*.cpp --polyglot -f md -o API.md"
   },
   "author": "Mapbox",
   "license": "ISC",
   "dependencies": {
     "mason-js-sdk": "^0.1.4",
+    "node-pre-gyp": "^0.12.0",
     "node-addon-api": "^1.5.0"
   },
   "devDependencies": {
