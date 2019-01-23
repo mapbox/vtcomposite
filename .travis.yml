@@ -14,8 +14,7 @@ install:
   - clang++ -v
   - which clang++
   - make ${BUILDTYPE}
-  - pip install --upgrade pip
-  - pip install codecovx
+  - pip install codecov
 # *Here we run tests*
 # We prefer running tests in the 'before_script' section rather than 'script' to ensure fast failure.
 # Be aware that if you use the 'script' section it will continue running all commands in the section even if one line fails.
