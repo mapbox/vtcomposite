@@ -128,7 +128,7 @@ matrix:
       # Overrides `script` to publish coverage data to codecov
       script:
         - export PATH=$(pwd)/mason_packages/.link/bin/:${PATH}
-        - PATH=`echo $PATH | sed -e 's/:\.\/node_modules\/\.bin//' # remove relative path`
+        - PATH=`echo $PATH | sed -e 's/:\.\/node_modules\/\.bin//'` # remove relative path ^^
         - which llvm-cov
         - echo $PATH
         - curl -S -f https://codecov.io/bash -o codecov
