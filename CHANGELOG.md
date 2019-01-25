@@ -1,3 +1,6 @@
+# 0.2.0
+
+- Upgrade to use N-API and remove nan/node-pre-gyp deps
 
 # 0.1.3
 
