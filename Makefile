@@ -31,10 +31,10 @@ default: release
 # install target, like node-pre-gyp based modules, will not have their native module installed. So by running `npm rebuild` as a
 # followup we fix that problem. Ideally there would be a cleaner way to say "please install the deps of vtcomposite and not vtcomposite itself"
 # but until then this works
-node_modules/nan:
+node_modules:
 	npm install --ignore-scripts && npm rebuild
 
-mason_packages/headers: node_modules/nan
+mason_packages/headers: node_modules
 	node_modules/.bin/mason-js install
 
 mason_packages/.link/include: mason_packages/headers
