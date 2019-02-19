@@ -161,10 +161,10 @@ struct polygon_handler
         if (!skip_ && ring_.size() > 3)
         {
             // only clip if not fully within bbox
-            if (bbox_.min.x >= extent_.min.x &&
-                bbox_.max.x <= extent_.max.x &&
-                bbox_.min.y >= extent_.min.y &&
-                bbox_.max.y <= extent_.max.y)
+            if (bbox_.min.x <= extent_.min.x &&
+                bbox_.max.x >= extent_.max.x &&
+                bbox_.min.y <= extent_.min.y &&
+                bbox_.max.y >= extent_.max.y)
             {
                 builder_.add_ring(static_cast<unsigned>(ring_.size()));
                 for (auto const& pt : ring_)
