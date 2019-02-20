@@ -129,3 +129,34 @@ test('[composite] composite and overzooming success polygons - overzooming polyg
     assert.end();
   });
 });
+
+
+test('[composite] check all geometries are clipped to the tile extent', function(assert) {
+
+  const buffer = require('fs').readFileSync('./test/fixtures/clipping-test-tile.mvt');
+  const tiles = [
+    {buffer: buffer, z:1, x:1, y:1},
+  ];
+
+  const zxy = {z:4, x:10, y:14};
+  const options = { compress: false, buffer_size: 4080 };
+  var tile_extent = [ -4080, -4080, 4096 + 4080, 4096 + 4080 ];
+  composite(tiles, zxy, options, (err, output_buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(output_buffer);
+    for (var name in info.layers)
+    {
+      var layer = info.layers[name];
+      for (var index = 0; index < layer.length; ++index)
+      {
+        var bbox = layer.feature(index).bbox();
+        var within = (bbox[0] >= tile_extent[0] &&
+                      bbox[1] >= tile_extent[1] &&
+                      bbox[2] <= tile_extent[2] &&
+                      bbox[3] <= tile_extent[3]);
+        assert.ok(within);
+      }
+    }
+    assert.end();
+  });
+});
