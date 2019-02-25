@@ -1,6 +1,7 @@
 # 0.2.0
 
 - Upgrade to use N-API and remove nan/node-pre-gyp deps
+- Fix issue with comparison operators in feature builder [942a560](https://github.com/mapbox/vtcomposite/commit/942a560bbb2152ea9fc98b0ac970bdcec498429a)
 
 # 0.1.3
 
