@@ -14,6 +14,21 @@
 //BOOST_GEOMETRY_REGISTER_POINT_2D(mapbox::geometry::point<int>, int, boost::geometry::cs::cartesian, x, y)
 // ^ Uncomment to enable coordinate_type = int ^
 
+template <typename CoordinateType>
+struct reversed_ring : mapbox::geometry::linear_ring<CoordinateType>{};
+
+BOOST_GEOMETRY_REGISTER_RING_TEMPLATED(reversed_ring)
+
+namespace boost { namespace geometry { namespace traits {
+
+template <typename CoordinateType>
+struct point_order<reversed_ring<CoordinateType> >
+{
+    static const order_selector value = clockwise;
+};
+
+}}}
+
 namespace vtile {
 namespace detail {
 
@@ -237,9 +252,15 @@ struct overzoomed_feature_builder
                 if (process)
                 {
                     std::vector<mapbox::geometry::polygon<coordinate_type>> result;
-                    if (r.second == vtzero::ring_type::inner) boost::geometry::reverse(r.first);
-                    // ^^ reverse inner rings before clipping as we're dealing with a disassembled polygon
-                    boost::geometry::intersection(r.first, bbox_, result);
+                    if (r.second == vtzero::ring_type::inner)
+                    {
+                        boost::geometry::intersection(static_cast<reversed_ring<CoordinateType> const&>(r.first), bbox_, result);
+                        //cast inner ring to reversed_ring before clipping ^^ as we're dealing with a disassembled polygon
+                    }
+                    else
+                    {
+                        boost::geometry::intersection(r.first, bbox_, result);
+                    }
                     for (auto const& p : result)
                     {
                         for (auto const& ring : p)
