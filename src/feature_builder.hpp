@@ -15,19 +15,25 @@
 // ^ Uncomment to enable coordinate_type = int ^
 
 template <typename CoordinateType>
-struct reversed_ring : mapbox::geometry::linear_ring<CoordinateType>{};
+struct reversed_ring : mapbox::geometry::linear_ring<CoordinateType>
+{
+};
 
 BOOST_GEOMETRY_REGISTER_RING_TEMPLATED(reversed_ring)
 
-namespace boost { namespace geometry { namespace traits {
+namespace boost {
+namespace geometry {
+namespace traits {
 
 template <typename CoordinateType>
-struct point_order<reversed_ring<CoordinateType> >
+struct point_order<reversed_ring<CoordinateType>>
 {
     static const order_selector value = clockwise;
 };
 
-}}}
+} // namespace traits
+} // namespace geometry
+} // namespace boost
 
 namespace vtile {
 namespace detail {
