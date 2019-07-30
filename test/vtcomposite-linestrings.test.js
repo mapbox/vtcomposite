@@ -70,3 +70,23 @@ test('[composite] overzooming success (linestring), with buffer - different zoom
     assert.end();
   });
 });
+
+
+test('[composite] overzooming success (linestring), with buffer - z14 -> z15', function(assert) {
+  const buffer1 = fs.readFileSync(__dirname + '/fixtures/z15-road-segments.mvt');
+
+  const tiles = [
+    {buffer: buffer1, z:15, x: 29570, y:20109}
+  ];
+
+  const zxy = {z:16, x:59140, y:40218};
+
+  composite(tiles, zxy, {buffer_size:4080}, (err, vtBuffer) => {
+    assert.notOk(err);
+    const outputInfo = vtinfo(vtBuffer);
+    // Currently failing since it drops a very large feature when buffer_size = 4080
+    // Although it does not drop this feature when buffer_size = 4079 or 4081
+    assert.equal(outputInfo.layers.roads._features.length,5);
+    assert.end();
+  });
+});

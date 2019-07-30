@@ -196,7 +196,6 @@ struct overzoomed_feature_builder
             bool valid = false;
             for (auto const& l : result)
             {
-                valid = false;
                 if (l.size() > 1)
                 {
                     feature_builder.add_linestring(static_cast<unsigned>(l.size()));
