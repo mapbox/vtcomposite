@@ -9,6 +9,9 @@
 // boost
 #include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
+// wagyu
+#include <mapbox/geometry/wagyu/wagyu.hpp>
+#include <mapbox/geometry/wagyu/quick_clip.hpp>
 // stl
 #include <algorithm>
 //BOOST_GEOMETRY_REGISTER_POINT_2D(mapbox::geometry::point<int>, int, boost::geometry::cs::cartesian, x, y)
@@ -220,49 +223,68 @@ struct overzoomed_feature_builder
     {
         std::vector<detail::annotated_ring<CoordinateType>> rings;
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
-        if (!rings.empty())
+        if (rings.empty())
         {
-            vtzero::polygon_feature_builder feature_builder{layer_builder_};
-            feature_builder.copy_id(feature);
-            bool valid = false;
-            bool process = false;
-            for (auto& r : rings)
+            return;
+        }
+        mapbox::geometry::multi_polygon<coordinate_type> results;
+        mapbox::geometry::wagyu::wagyu<std::int64_t> wagyu;
+        bool data_added = false;
+        bool skip_inner = true;
+        for (auto const& r : rings)
+        {
+            if (r.second == vtzero::ring_type::outer)
             {
-                if (r.second == vtzero::ring_type::outer)
+                if (data_added)
                 {
-                    auto extent = mapbox::geometry::envelope(r.first);
-                    process = boost::geometry::intersects(extent, bbox_);
+                    wagyu.execute(mapbox::geometry::wagyu::clip_type_union,
+                                  results,
+                                  mapbox::geometry::wagyu::fill_type_positive,
+                                  mapbox::geometry::wagyu::fill_type_positive);
+                    data_added = false;
                 }
-                if (process)
+                wagyu.clear();
+                auto new_lr = mapbox::geometry::wagyu::quick_clip::quick_lr_clip(r.first, bbox_);
+                if (!new_lr.empty()) {
+                    wagyu.add_ring(new_lr, mapbox::geometry::wagyu::polygon_type_subject);
+                    data_added = true;
+                    skip_inner = false;
+                }
+                else
                 {
-                    std::vector<mapbox::geometry::polygon<coordinate_type>> result;
-                    if (r.second == vtzero::ring_type::inner) boost::geometry::reverse(r.first);
-                    // ^^ reverse inner rings before clipping as we're dealing with a disassembled polygon
-                    boost::geometry::intersection(r.first, bbox_, result);
-                    for (auto const& p : result)
-                    {
-                        for (auto const& ring : p)
-                        {
-                            if (ring.size() > 3)
-                            {
-                                valid = true;
-                                feature_builder.add_ring(static_cast<unsigned>(ring.size()));
-                                if (r.second == vtzero::ring_type::outer)
-                                {
-                                    std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
-                                }
-                                else
-                                {
-                                    // apply points in reverse to preserve original winding order of inner rings
-                                    std::for_each(ring.rbegin(), ring.rend(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
-                                }
-                            }
-                        }
-                    }
+                    skip_inner = true;
                 }
             }
-            if (valid) finalize(feature_builder, feature);
+            else if (!skip_inner)
+            {
+                auto new_lr = mapbox::geometry::wagyu::quick_clip::quick_lr_clip(r.first, bbox_);
+                if (!new_lr.empty()) {
+                    wagyu.add_ring(new_lr, mapbox::geometry::wagyu::polygon_type_subject);
+                }
+            }
         }
+        if (data_added)
+        {
+            wagyu.execute(mapbox::geometry::wagyu::clip_type_union,
+                          results,
+                          mapbox::geometry::wagyu::fill_type_positive,
+                          mapbox::geometry::wagyu::fill_type_positive);
+        }
+        if (results.empty())
+        {
+            return;
+        }
+        vtzero::polygon_feature_builder feature_builder{layer_builder_};
+        feature_builder.copy_id(feature);
+        for (auto const& p : results)
+        {
+            for (auto const& ring : p)
+            {
+                feature_builder.add_ring(static_cast<unsigned>(ring.size()));
+                std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
+            }
+        }
+        finalize(feature_builder, feature);
     }
 
     void apply(vtzero::feature const& feature)
