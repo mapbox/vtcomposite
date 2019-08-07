@@ -245,7 +245,8 @@ struct overzoomed_feature_builder
                 }
                 wagyu.clear();
                 auto new_lr = mapbox::geometry::wagyu::quick_clip::quick_lr_clip(r.first, bbox_);
-                if (!new_lr.empty()) {
+                if (!new_lr.empty())
+                {
                     wagyu.add_ring(new_lr, mapbox::geometry::wagyu::polygon_type_subject);
                     data_added = true;
                     skip_inner = false;
@@ -258,7 +259,8 @@ struct overzoomed_feature_builder
             else if (!skip_inner)
             {
                 auto new_lr = mapbox::geometry::wagyu::quick_clip::quick_lr_clip(r.first, bbox_);
-                if (!new_lr.empty()) {
+                if (!new_lr.empty())
+                {
                     wagyu.add_ring(new_lr, mapbox::geometry::wagyu::polygon_type_subject);
                 }
             }
