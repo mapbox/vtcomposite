@@ -229,34 +229,28 @@ struct overzoomed_feature_builder
         }
         mapbox::geometry::multi_polygon<coordinate_type> results;
         mapbox::geometry::wagyu::wagyu<std::int64_t> wagyu;
-        bool data_added = false;
-        bool skip_inner = true;
+        bool added_outer_ring = false;
         for (auto const& r : rings)
         {
             if (r.second == vtzero::ring_type::outer)
             {
-                if (data_added)
+                if (added_outer_ring)
                 {
                     wagyu.execute(mapbox::geometry::wagyu::clip_type_union,
                                   results,
                                   mapbox::geometry::wagyu::fill_type_positive,
                                   mapbox::geometry::wagyu::fill_type_positive);
-                    data_added = false;
+                    added_outer_ring = false;
                 }
                 wagyu.clear();
                 auto new_lr = mapbox::geometry::wagyu::quick_clip::quick_lr_clip(r.first, bbox_);
                 if (!new_lr.empty())
                 {
                     wagyu.add_ring(new_lr, mapbox::geometry::wagyu::polygon_type_subject);
-                    data_added = true;
-                    skip_inner = false;
-                }
-                else
-                {
-                    skip_inner = true;
+                    added_outer_ring = true;
                 }
             }
-            else if (!skip_inner)
+            else if (added_outer_ring)
             {
                 auto new_lr = mapbox::geometry::wagyu::quick_clip::quick_lr_clip(r.first, bbox_);
                 if (!new_lr.empty())
@@ -265,7 +259,7 @@ struct overzoomed_feature_builder
                 }
             }
         }
-        if (data_added)
+        if (added_outer_ring)
         {
             wagyu.execute(mapbox::geometry::wagyu::clip_type_union,
                           results,
