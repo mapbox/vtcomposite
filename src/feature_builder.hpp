@@ -222,7 +222,7 @@ struct overzoomed_feature_builder
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
         std::vector<mapbox::geometry::polygon<CoordinateType>> polygons;
         bool process = false;
-        for (auto& r : rings)
+        for (auto const& r : rings)
         {
             if (r.second == vtzero::ring_type::outer)
             {
@@ -232,7 +232,7 @@ struct overzoomed_feature_builder
             }
             if (process && r.first.size() > 3)
             {
-                polygons.back().emplace_back(std::move(r.first));
+                polygons.back().push_back(std::move(r.first));
             }
         }
         if (!polygons.empty())
