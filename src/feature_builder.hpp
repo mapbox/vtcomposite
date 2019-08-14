@@ -220,43 +220,40 @@ struct overzoomed_feature_builder
     {
         std::vector<detail::annotated_ring<CoordinateType>> rings;
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
-        if (!rings.empty())
+        std::vector<mapbox::geometry::polygon<CoordinateType>> polygons;
+        bool process = false;
+        for (auto const& r : rings)
+        {
+            if (r.second == vtzero::ring_type::outer)
+            {
+                auto extent = mapbox::geometry::envelope(r.first);
+                process = boost::geometry::intersects(extent, bbox_);
+                if (process) polygons.emplace_back(); // start new polygon
+            }
+            if (process && r.first.size() > 3)
+            {
+                polygons.back().push_back(std::move(r.first));
+            }
+        }
+        if (!polygons.empty())
         {
             vtzero::polygon_feature_builder feature_builder{layer_builder_};
             feature_builder.copy_id(feature);
             bool valid = false;
-            bool process = false;
-            for (auto& r : rings)
+            for (auto const& poly : polygons)
             {
-                if (r.second == vtzero::ring_type::outer)
+                std::vector<mapbox::geometry::polygon<coordinate_type>> result;
+                boost::geometry::intersection(poly, bbox_, result);
+                for (auto const& p : result)
                 {
-                    auto extent = mapbox::geometry::envelope(r.first);
-                    process = boost::geometry::intersects(extent, bbox_);
-                }
-                if (process)
-                {
-                    std::vector<mapbox::geometry::polygon<coordinate_type>> result;
-                    if (r.second == vtzero::ring_type::inner) boost::geometry::reverse(r.first);
-                    // ^^ reverse inner rings before clipping as we're dealing with a disassembled polygon
-                    boost::geometry::intersection(r.first, bbox_, result);
-                    for (auto const& p : result)
+                    for (auto const& ring : p)
                     {
-                        for (auto const& ring : p)
+                        if (ring.size() > 3)
                         {
-                            if (ring.size() > 3)
-                            {
-                                valid = true;
-                                feature_builder.add_ring(static_cast<unsigned>(ring.size()));
-                                if (r.second == vtzero::ring_type::outer)
-                                {
-                                    std::for_each(ring.begin(), ring.end(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
-                                }
-                                else
-                                {
-                                    // apply points in reverse to preserve original winding order of inner rings
-                                    std::for_each(ring.rbegin(), ring.rend(), [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
-                                }
-                            }
+                            valid = true;
+                            feature_builder.add_ring(static_cast<unsigned>(ring.size()));
+                            std::for_each(ring.begin(), ring.end(),
+                                          [&feature_builder](auto const& pt) { feature_builder.set_point(static_cast<int>(pt.x), static_cast<int>(pt.y)); });
                         }
                     }
                 }
