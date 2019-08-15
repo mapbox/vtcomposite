@@ -1,3 +1,9 @@
+# 0.2.1
+
+- Revert polygon decoding PR that snuck into 0.2.0 release [#91](https://github.com/mapbox/vtcomposite/pull/91)
+- Remove `valid=false`, which fixes a linestring clipping bug [#98](https://github.com/mapbox/vtcomposite/pull/98)
+- Polygon clipping fix [#101](https://github.com/mapbox/vtcomposite/pull/101)
+
 # 0.2.0
 
 - Upgrade to use N-API and remove nan/node-pre-gyp deps
