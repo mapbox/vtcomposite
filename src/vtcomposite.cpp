@@ -160,12 +160,12 @@ struct CompositeWorker : Napi::AsyncWorker
                         {
                             names.push_back(name);
                             unsigned extent = layer.extent();
-                            if (zoom_factor == 1)
-                            {
-                                builder.add_existing_layer(layer);
-                            }
-                            else
-                            {
+                            // if (zoom_factor == 1)
+                            // {
+                            //     builder.add_existing_layer(layer);
+                            // }
+                            // else
+                            // {
                                 using coordinate_type = std::int64_t;
                                 using feature_builder_type = vtile::overzoomed_feature_builder<coordinate_type>;
                                 vtzero::layer_builder layer_builder{builder, name, version, extent};
@@ -184,7 +184,7 @@ struct CompositeWorker : Napi::AsyncWorker
                                 {
                                     layer.for_each_feature(build_feature_from_v2<feature_builder_type>(f_builder));
                                 }
-                            }
+                            // }
                         }
                     }
                 }
