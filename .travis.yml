@@ -1,6 +1,6 @@
 language: node_js
 
-sudo: false
+node_js: 12
 
 # enable c++11/14 builds
 addons:
@@ -38,24 +38,19 @@ matrix:
     # linux cfi build node v10/release
     - os: linux
       env: BUILDTYPE=release TOOLSET=cfi CXXFLAGS="-flto -fsanitize=cfi -fvisibility=hidden" LDFLAGS="-flto -fsanitize=cfi"
-      node_js: 12
     # linux publishable node release
     - os: linux
       env: BUILDTYPE=release
-      node_js: 12
     # linux publishable node debug
     - os: linux
       env: BUILDTYPE=debug
-      node_js: 12
     # osx publishable node release
     - os: osx
       osx_image: xcode11
       env: BUILDTYPE=release
-      node_js: 12
     # osx publishable node asan
     - os: linux
       env: BUILDTYPE=debug TOOLSET=asan
-      node_js: 12
       sudo: required
       # Overrides `install` to set up custom asan flags
       install:
@@ -68,7 +63,6 @@ matrix:
     # g++ build (default builds all use clang++)
     - os: linux
       env: BUILDTYPE=debug CXX="g++-6" CC="gcc-6" LINK="g++-6" AR="ar" NM="nm" CXXFLAGS="-fext-numeric-literals"
-      node_js: 12
       addons:
         apt:
           sources:
@@ -84,7 +78,6 @@ matrix:
     # Coverage build
     - os: linux
       env: BUILDTYPE=debug CXXFLAGS="--coverage" LDFLAGS="--coverage"
-      node_js: 12
       # Overrides `script` to publish coverage data to codecov
       script:
         - export PATH=$(pwd)/mason_packages/.link/bin/:${PATH}
@@ -111,7 +104,6 @@ matrix:
     # Clang tidy build
     - os: linux
       env: CLANG_TIDY
-      node_js: 12
       # Overrides `install` to avoid initializing clang toolchain
       install:
         # First run the clang-tidy target
