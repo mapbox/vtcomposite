@@ -23,8 +23,8 @@ export MASON_LLVM_RT_PRELOAD=$(pwd)/$(ls mason_packages/.link/lib/clang/*/lib/*/
 SUPPRESSION_FILE="/tmp/leak_suppressions.txt"
 echo "leak:__strdup" > ${SUPPRESSION_FILE}
 echo "leak:v8::internal" >> ${SUPPRESSION_FILE}
-echo "leak:node::CreateEnvironment" >> ${SUPPRESSION_FILE}
-echo "leak:node::Init" >> ${SUPPRESSION_FILE}
+echo "leak:node::NodeMainInstance::CreateMainEnvironment" >> ${SUPPRESSION_FILE}
+echo "leak:node::ExecuteBootstrapper" >> ${SUPPRESSION_FILE}
 export ASAN_SYMBOLIZER_PATH=$(pwd)/mason_packages/.link/bin/llvm-symbolizer
 export MSAN_SYMBOLIZER_PATH=$(pwd)/mason_packages/.link/bin/llvm-symbolizer
 export UBSAN_OPTIONS=print_stacktrace=1
