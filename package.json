@@ -17,8 +17,8 @@
   "license": "ISC",
   "dependencies": {
     "mason-js-sdk": "^0.1.4",
-    "node-pre-gyp": "^0.12.0",
-    "node-addon-api": "^1.5.0"
+    "node-addon-api": "^3.0.0",
+    "node-pre-gyp": "^0.14.0"
   },
   "devDependencies": {
     "@mapbox/cloudfriend": "^1.9.1",
@@ -40,6 +40,6 @@
     "module_path": "./lib/binding/",
     "host": "https://mapbox-node-binary.s3.amazonaws.com",
     "remote_path": "./{name}/v{version}/{configuration}/{toolset}/",
-    "package_name": "{node_abi}-{platform}-{arch}.tar.gz"
+    "package_name": "{platform}-{arch}.tar.gz"
   }
 }
