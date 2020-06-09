@@ -220,13 +220,14 @@ struct CompositeWorker : Napi::AsyncWorker
     {
         std::string& tile_buffer = *output_buffer_;
         Napi::HandleScope scope(Env());
-        Napi::Value argv = Napi::Buffer<char>::New(Env(),
-                                                   const_cast<char*>(tile_buffer.data()),
-                                                   tile_buffer.size(),
-                                                   [](Napi::Env, char*, std::string* s) {
-                                                       delete s;
-                                                   },
-                                                   output_buffer_.release());
+        Napi::Value argv = Napi::Buffer<char>::New(
+            Env(),
+            const_cast<char*>(tile_buffer.data()),
+            tile_buffer.size(),
+            [](Napi::Env, char*, std::string* s) {
+                delete s;
+            },
+            output_buffer_.release());
 
         Callback().Call({Env().Null(), argv});
     }
