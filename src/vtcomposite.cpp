@@ -19,13 +19,13 @@
 
 namespace vtile {
 
-static constexpr unsigned MVT_VERSION_1 = 1u;
+static constexpr std::uint32_t MVT_VERSION_1 = 1U;
 
 struct TileObject
 {
-    TileObject(int z0,
-               int x0,
-               int y0,
+    TileObject(std::uint32_t z0,
+               std::uint32_t x0,
+               std::uint32_t y0,
                Napi::Buffer<char> const& buffer)
         : z{z0},
           x{x0},
@@ -44,9 +44,9 @@ struct TileObject
     TileObject(TileObject const&) = delete;
     TileObject& operator=(TileObject const&) = delete;
 
-    int z;
-    int x;
-    int y;
+    std::uint32_t z;
+    std::uint32_t x;
+    std::uint32_t y;
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
 };
@@ -64,9 +64,9 @@ struct BatonType
 
     // members
     std::vector<std::unique_ptr<TileObject>> tiles{};
-    int z{};
-    int x{};
-    int y{};
+    std::uint32_t z{};
+    std::uint32_t x{};
+    std::uint32_t y{};
     int buffer_size = 0;
     bool compress = false;
 };
@@ -127,9 +127,9 @@ struct CompositeWorker : Napi::AsyncWorker
             std::vector<vtzero::data_view> names;
 
             int const buffer_size = baton_data_->buffer_size;
-            int const target_z = baton_data_->z;
-            int const target_x = baton_data_->x;
-            int const target_y = baton_data_->y;
+            std::uint32_t const target_z = baton_data_->z;
+            std::uint32_t const target_x = baton_data_->x;
+            std::uint32_t const target_y = baton_data_->y;
 
             std::vector<std::unique_ptr<std::vector<char>>> buffer_cache;
 
@@ -150,16 +150,16 @@ struct CompositeWorker : Napi::AsyncWorker
                         tile_view = tile_obj->data;
                     }
 
-                    int zoom_factor = 1 << (target_z - tile_obj->z);
+                    std::uint32_t zoom_factor = 1 << (target_z - tile_obj->z);
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
                         vtzero::data_view const name = layer.name();
-                        unsigned const version = layer.version();
+                        std::uint32_t const version = layer.version();
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
-                            unsigned extent = layer.extent();
+                            std::uint32_t extent = layer.extent();
                             if (zoom_factor == 1)
                             {
                                 builder.add_existing_layer(layer);
@@ -170,8 +170,9 @@ struct CompositeWorker : Napi::AsyncWorker
                                 using feature_builder_type = vtile::overzoomed_feature_builder<coordinate_type>;
                                 vtzero::layer_builder layer_builder{builder, name, version, extent};
                                 vtzero::property_mapper mapper{layer, layer_builder};
-                                int dx, dy;
-                                std::tie(dx, dy) = vtile::displacement(tile_obj->z, static_cast<int>(extent), target_z, target_x, target_y);
+                                std::uint32_t dx = 0;
+                                std::uint32_t dy = 0;
+                                std::tie(dx, dy) = vtile::displacement(tile_obj->z, extent, target_z, target_x, target_y);
                                 mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
                                                                             {static_cast<int>(extent) + buffer_size,
                                                                              static_cast<int>(extent) + buffer_size}};
@@ -224,7 +225,7 @@ struct CompositeWorker : Napi::AsyncWorker
             Env(),
             const_cast<char*>(tile_buffer.data()),
             tile_buffer.size(),
-            [](Napi::Env, char*, std::string* s) {
+            [](Napi::Env /*unused*/, char* /*unused*/, std::string* s) {
                 delete s;
             },
             output_buffer_.release());
@@ -261,7 +262,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     }
 
     Napi::Array tiles = info[0].As<Napi::Array>();
-    unsigned num_tiles = tiles.Length();
+    std::uint32_t num_tiles = tiles.Length();
 
     if (num_tiles <= 0)
     {
@@ -270,7 +271,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
 
     std::unique_ptr<BatonType> baton_data = std::make_unique<BatonType>(num_tiles);
 
-    for (unsigned t = 0; t < num_tiles; ++t)
+    for (std::uint32_t t = 0; t < num_tiles; ++t)
     {
         Napi::Value tile_val = tiles.Get(t);
         if (!tile_val.IsObject())
@@ -374,7 +375,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     {
         return utils::CallbackError("'z' value must not be less than zero", info);
     }
-    baton_data->z = z_maprequest;
+    baton_data->z = static_cast<std::uint32_t>(z_maprequest);
 
     // x value of map request object
     if (!zxy_maprequest.Has(Napi::String::New(info.Env(), "x")))
@@ -393,7 +394,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         return utils::CallbackError("'x' value must not be less than zero", info);
     }
 
-    baton_data->x = x_maprequest;
+    baton_data->x = static_cast<std::uint32_t>(x_maprequest);
 
     // y value of maprequest object
     if (!zxy_maprequest.Has(Napi::String::New(info.Env(), "y")))
@@ -412,7 +413,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         return utils::CallbackError("'y' value must not be less than zero", info);
     }
 
-    baton_data->y = y_maprequest;
+    baton_data->y = static_cast<std::uint32_t>(y_maprequest);
 
     if (info.Length() > 3) // options
     {

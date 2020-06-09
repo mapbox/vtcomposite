@@ -6,32 +6,35 @@
 namespace vtile {
 
 template <typename T>
-inline bool within_target(T const& vt, int z, int x, int y)
+inline bool within_target(T const& vt, std::uint32_t z, std::uint32_t x, std::uint32_t y)
 {
-    if (vt.z > z) {
-      return false;
+    if (vt.z > z)
+    {
+        return false;
     }
-    std::size_t dz = static_cast<std::size_t>(z - vt.z);
+    auto dz = static_cast<std::size_t>(z - vt.z);
     return ((x >> dz) == vt.x) && ((y >> dz) == vt.y);
 }
 
-inline std::tuple<int, int> displacement(int source_z, int tile_size, int z, int x, int y)
+inline std::tuple<std::uint32_t, std::uint32_t> displacement(std::uint32_t source_z, std::uint32_t tile_size, std::uint32_t z, std::uint32_t x, std::uint32_t y)
 {
-    int half_tile = tile_size >> 1u;
-    int dx = 0;
-    int dy = 0;
-    int delta_z = z - source_z;
-    for (int zi = delta_z; zi > 0; --zi)
+    std::uint32_t half_tile = tile_size >> 1U;
+    std::uint32_t dx = 0;
+    std::uint32_t dy = 0;
+    std::uint32_t delta_z = z - source_z;
+    for (std::uint32_t zi = delta_z; zi > 0; --zi)
     {
-        half_tile <<= 1u;
-        if (x & 1) {
-          dx += half_tile;
+        half_tile <<= 1U;
+        if ((x & 1) != 0)
+        {
+            dx += half_tile;
         }
-        if (y & 1) {
-          dy += half_tile;
+        if ((y & 1) != 0)
+        {
+            dy += half_tile;
         }
-        x >>= 1u;
-        y >>= 1u;
+        x >>= 1U;
+        y >>= 1U;
     }
     return std::make_tuple(dx, dy);
 }

@@ -7,8 +7,8 @@
 #include <vtzero/builder.hpp>
 #include <vtzero/property_mapper.hpp>
 // boost
-#include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/algorithms/intersection.hpp>
+#include <boost/geometry/algorithms/intersects.hpp>
 // stl
 #include <algorithm>
 //BOOST_GEOMETRY_REGISTER_POINT_2D(mapbox::geometry::point<int>, int, boost::geometry::cs::cartesian, x, y)
@@ -21,7 +21,7 @@ template <typename CoordinateType>
 struct point_handler
 {
     using geom_type = mapbox::geometry::multi_point<CoordinateType>;
-    point_handler(geom_type& geom, int dx, int dy, int zoom_factor, mapbox::geometry::box<CoordinateType> const& bbox)
+    point_handler(geom_type& geom, std::uint32_t dx, std::uint32_t dy, std::uint32_t zoom_factor, mapbox::geometry::box<CoordinateType> const& bbox)
         : geom_(geom),
           bbox_(bbox),
           dx_(dx),
@@ -30,14 +30,14 @@ struct point_handler
     {
     }
 
-    void points_begin(std::uint32_t)
+    void points_begin(std::uint32_t /*unused*/)
     {
     }
 
     void points_point(vtzero::point const& pt)
     {
-        CoordinateType x = pt.x * zoom_factor_ - dx_;
-        CoordinateType y = pt.y * zoom_factor_ - dy_;
+        CoordinateType x = pt.x * static_cast<std::int32_t>(zoom_factor_) - static_cast<std::int32_t>(dx_);
+        CoordinateType y = pt.y * static_cast<std::int32_t>(zoom_factor_) - static_cast<std::int32_t>(dy_);
         mapbox::geometry::point<CoordinateType> pt0{x, y};
         if (boost::geometry::covered_by(pt0, bbox_))
         {
@@ -49,9 +49,9 @@ struct point_handler
 
     geom_type& geom_;
     mapbox::geometry::box<CoordinateType> const& bbox_;
-    int dx_;
-    int dy_;
-    int zoom_factor_;
+    std::uint32_t const dx_;
+    std::uint32_t const dy_;
+    std::uint32_t const zoom_factor_;
 };
 
 template <typename CoordinateType>
@@ -59,7 +59,7 @@ struct line_string_handler
 {
     using geom_type = mapbox::geometry::multi_line_string<CoordinateType>;
 
-    line_string_handler(geom_type& geom, int dx, int dy, int zoom_factor)
+    line_string_handler(geom_type& geom, std::uint32_t dx, std::uint32_t dy, std::uint32_t zoom_factor)
         : geom_(geom),
           dx_(dx),
           dy_(dy),
@@ -78,8 +78,8 @@ struct line_string_handler
     {
         if (first_ || pt.x != cur_x_ || pt.y != cur_y_)
         {
-            CoordinateType x = pt.x * zoom_factor_ - dx_;
-            CoordinateType y = pt.y * zoom_factor_ - dy_;
+            CoordinateType x = pt.x * static_cast<std::int32_t>(zoom_factor_) - static_cast<std::int32_t>(dx_);
+            CoordinateType y = pt.y * static_cast<std::int32_t>(zoom_factor_) - static_cast<std::int32_t>(dy_);
             geom_.back().emplace_back(x, y);
             cur_x_ = pt.x;
             cur_y_ = pt.y;
@@ -90,9 +90,9 @@ struct line_string_handler
     void linestring_end() {}
 
     geom_type& geom_;
-    int const dx_;
-    int const dy_;
-    int const zoom_factor_;
+    std::uint32_t const dx_;
+    std::uint32_t const dy_;
+    std::uint32_t const zoom_factor_;
     CoordinateType cur_x_ = 0;
     CoordinateType cur_y_ = 0;
     bool first_ = true;
@@ -105,7 +105,7 @@ template <typename CoordinateType>
 struct polygon_handler
 {
     using geom_type = std::vector<annotated_ring<CoordinateType>>;
-    polygon_handler(geom_type& geom, int dx, int dy, int zoom_factor)
+    polygon_handler(geom_type& geom, std::uint32_t dx, std::uint32_t dy, std::uint32_t zoom_factor)
         : geom_(geom),
           dx_(dx),
           dy_(dy),
@@ -122,8 +122,8 @@ struct polygon_handler
     {
         if (first_ || pt.x != cur_x_ || pt.y != cur_y_)
         {
-            CoordinateType x = pt.x * zoom_factor_ - dx_;
-            CoordinateType y = pt.y * zoom_factor_ - dy_;
+            CoordinateType x = pt.x * static_cast<std::int32_t>(zoom_factor_) - static_cast<std::int32_t>(dx_);
+            CoordinateType y = pt.y * static_cast<std::int32_t>(zoom_factor_) - static_cast<std::int32_t>(dy_);
             geom_.back().first.emplace_back(x, y);
             cur_x_ = pt.x;
             cur_y_ = pt.y;
@@ -137,9 +137,9 @@ struct polygon_handler
     }
 
     geom_type& geom_;
-    int const dx_;
-    int const dy_;
-    int const zoom_factor_;
+    std::uint32_t const dx_;
+    std::uint32_t const dy_;
+    std::uint32_t const zoom_factor_;
     CoordinateType cur_x_ = 0;
     CoordinateType cur_y_ = 0;
     bool first_ = true;
@@ -154,7 +154,7 @@ struct overzoomed_feature_builder
     overzoomed_feature_builder(vtzero::layer_builder& layer_builder,
                                vtzero::property_mapper& mapper,
                                mapbox::geometry::box<coordinate_type> const& bbox,
-                               int dx, int dy, int zoom_factor)
+                               std::uint32_t dx, std::uint32_t dy, std::uint32_t zoom_factor)
         : layer_builder_{layer_builder},
           mapper_{mapper},
           bbox_{bbox},
@@ -213,7 +213,9 @@ struct overzoomed_feature_builder
                     }
                 }
             }
-            if (valid) finalize(feature_builder, feature);
+            if (valid) {
+              finalize(feature_builder, feature);
+            }
         }
     }
     void apply_geometry_polygon(vtzero::feature const& feature)
@@ -228,7 +230,9 @@ struct overzoomed_feature_builder
             {
                 auto extent = mapbox::geometry::envelope(r.first);
                 process = boost::geometry::intersects(extent, bbox_);
-                if (process) polygons.emplace_back(); // start new polygon
+                if (process) { polygons.emplace_back(); // start new polygon
+
+}
             }
             if (process && r.first.size() > 3)
             {
@@ -258,7 +262,9 @@ struct overzoomed_feature_builder
                     }
                 }
             }
-            if (valid) finalize(feature_builder, feature);
+            if (valid) {
+              finalize(feature_builder, feature);
+            }
         }
     }
 
@@ -284,9 +290,9 @@ struct overzoomed_feature_builder
     vtzero::layer_builder& layer_builder_;
     vtzero::property_mapper& mapper_;
     mapbox::geometry::box<coordinate_type> const& bbox_;
-    int dx_;
-    int dy_;
-    int zoom_factor_;
+    std::uint32_t dx_;
+    std::uint32_t dy_;
+    std::uint32_t zoom_factor_;
 };
 
 } // namespace vtile
