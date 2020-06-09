@@ -208,8 +208,8 @@ struct CompositeWorker : Napi::AsyncWorker
                     os << "Invalid tile composite request: SOURCE("
                        << tile_obj->z << "," << tile_obj->x << "," << tile_obj->y << ")"
                        << " TARGET(" << target_z << "," << target_x << "," << target_y << ")";
-                    std::string msg = os.str();
-                    throw std::invalid_argument(msg);
+                    SetError(os.str());
+                    return;
                 }
             }
             std::string& tile_buffer = *output_buffer_;
