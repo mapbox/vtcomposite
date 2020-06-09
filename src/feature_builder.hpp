@@ -213,8 +213,9 @@ struct overzoomed_feature_builder
                     }
                 }
             }
-            if (valid) {
-              finalize(feature_builder, feature);
+            if (valid)
+            {
+                finalize(feature_builder, feature);
             }
         }
     }
@@ -230,9 +231,10 @@ struct overzoomed_feature_builder
             {
                 auto extent = mapbox::geometry::envelope(r.first);
                 process = boost::geometry::intersects(extent, bbox_);
-                if (process) { polygons.emplace_back(); // start new polygon
-
-}
+                if (process)
+                {
+                    polygons.emplace_back(); // start new polygon
+                }
             }
             if (process && r.first.size() > 3)
             {
@@ -262,8 +264,9 @@ struct overzoomed_feature_builder
                     }
                 }
             }
-            if (valid) {
-              finalize(feature_builder, feature);
+            if (valid)
+            {
+                finalize(feature_builder, feature);
             }
         }
     }

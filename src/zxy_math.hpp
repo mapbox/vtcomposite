@@ -25,11 +25,11 @@ inline std::tuple<std::uint32_t, std::uint32_t> displacement(std::uint32_t sourc
     for (std::uint32_t zi = delta_z; zi > 0; --zi)
     {
         half_tile <<= 1U;
-        if ((x & 1) != 0)
+        if ((x & 1U) != 0U)
         {
             dx += half_tile;
         }
-        if ((y & 1) != 0)
+        if ((y & 1U) != 0U)
         {
             dy += half_tile;
         }

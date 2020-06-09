@@ -35,14 +35,23 @@ struct TileObject
     {
     }
 
-    ~TileObject()
+    ~TileObject() noexcept
     {
-        buffer_ref.Reset();
+        try
+        {
+            buffer_ref.Reset();
+        }
+        catch (...)
+        {
+        }
     }
 
     // non-copyable
     TileObject(TileObject const&) = delete;
     TileObject& operator=(TileObject const&) = delete;
+    // non-movable
+    TileObject(TileObject&&) = delete;
+    TileObject& operator=(TileObject&&) = delete;
 
     std::uint32_t z;
     std::uint32_t x;
@@ -58,9 +67,13 @@ struct BatonType
         tiles.reserve(num_tiles);
     }
 
+    ~BatonType() = default;
     // non-copyable
     BatonType(BatonType const&) = delete;
     BatonType& operator=(BatonType const&) = delete;
+    // non-movable
+    BatonType(BatonType&&) = delete;
+    BatonType& operator=(BatonType&&) = delete;
 
     // members
     std::vector<std::unique_ptr<TileObject>> tiles{};
@@ -150,7 +163,7 @@ struct CompositeWorker : Napi::AsyncWorker
                         tile_view = tile_obj->data;
                     }
 
-                    std::uint32_t zoom_factor = 1 << (target_z - tile_obj->z);
+                    std::uint32_t zoom_factor = 1U << (target_z - tile_obj->z);
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
@@ -217,20 +230,27 @@ struct CompositeWorker : Napi::AsyncWorker
         }
         // LCOV_EXCL_STOP
     }
-    void OnOK() override
+    std::vector<napi_value> GetResult(Napi::Env env) override
     {
-        std::string& tile_buffer = *output_buffer_;
-        Napi::HandleScope scope(Env());
-        Napi::Value argv = Napi::Buffer<char>::New(
-            Env(),
-            const_cast<char*>(tile_buffer.data()),
-            tile_buffer.size(),
-            [](Napi::Env /*unused*/, char* /*unused*/, std::string* s) {
-                delete s;
-            },
-            output_buffer_.release());
-
-        Callback().Call({Env().Null(), argv});
+        if (output_buffer_)
+        {
+            std::string& tile_buffer = *output_buffer_;
+            auto buffer = Napi::Buffer<char>::New(
+                Env(),
+                &tile_buffer[0],
+                tile_buffer.size(),
+                [](Napi::Env env_, char* /*unused*/, std::string* str_ptr) {
+                    if (str_ptr != nullptr)
+                    {
+                        Napi::MemoryManagement::AdjustExternalMemory(env_, -static_cast<std::int64_t>(str_ptr->size()));
+                    }
+                    delete str_ptr;
+                },
+                output_buffer_.release());
+            Napi::MemoryManagement::AdjustExternalMemory(env, static_cast<std::int64_t>(tile_buffer.size()));
+            return {Env().Null(), buffer};
+        }
+        return Base::GetResult(env); // returns an empty vector (default)
     }
 
     std::unique_ptr<BatonType> const baton_data_;
