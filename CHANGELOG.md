@@ -1,3 +1,8 @@
+# 0.3.0
+- Now supporting node v12/v14 by switching to "universal" binaries that work across all major node major versions that support N-API. Binaries were built using node v12, but work at runtime with node v8 -> v14 (and likely others)
+- Upgraded dependencies including node-addon-api, node-pre-gyp, boost, geometry.hpp, protozero, variant and vtzero
+- Binaries are now compiled with clang 10.x
+
 # 0.2.1
 
 - Revert polygon decoding PR that snuck into 0.2.0 release [#91](https://github.com/mapbox/vtcomposite/pull/91)
