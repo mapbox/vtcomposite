@@ -1,6 +1,6 @@
 {
   "name": "@mapbox/vtcomposite",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Compositing operations on Vector Tiles (c++ bindings using N-API)",
   "url": "http://github.com/mapbox/vtcomposite",
   "main": "./lib/index.js",
@@ -17,8 +17,8 @@
   "license": "ISC",
   "dependencies": {
     "mason-js-sdk": "^0.1.4",
-    "node-pre-gyp": "^0.12.0",
-    "node-addon-api": "^1.5.0"
+    "node-addon-api": "^2.0.1",
+    "node-pre-gyp": "^0.14.0"
   },
   "devDependencies": {
     "@mapbox/cloudfriend": "^1.9.1",
@@ -27,11 +27,11 @@
     "@mapbox/sphericalmercator": "^1.1.0",
     "@mapbox/tilebelt": "^1.0.1",
     "@mapbox/vector-tile": "^1.3.1",
-    "aws-sdk": "^2.245.1",
+    "aws-sdk": "^2.698.0",
     "bytes": "^2.5.0",
     "d3-queue": "^3.0.1",
-    "mapnik": "^4.0.1",
-    "minimist": "^1.2.0",
+    "mapnik": "^4.4.0",
+    "minimist": "^1.2.5",
     "pbf": "^3.1.0",
     "tape": "^4.5.1"
   },
@@ -40,6 +40,6 @@
     "module_path": "./lib/binding/",
     "host": "https://mapbox-node-binary.s3.amazonaws.com",
     "remote_path": "./{name}/v{version}/{configuration}/{toolset}/",
-    "package_name": "{node_abi}-{platform}-{arch}.tar.gz"
+    "package_name": "{platform}-{arch}.tar.gz"
   }
 }
