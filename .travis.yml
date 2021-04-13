@@ -6,7 +6,7 @@ node_js: 12
 addons:
   apt:
     sources: [ 'ubuntu-toolchain-r-test' ]
-    packages: [ 'libstdc++-4.9-dev' ]
+    packages: [ 'libstdc++-6-dev' ]
 
 install:
   - node -v
@@ -68,7 +68,6 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - libstdc++-6-dev
             - g++-6
       # Overrides `install` to avoid initializing clang toolchain
       install:
