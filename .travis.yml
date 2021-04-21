@@ -83,7 +83,7 @@ matrix:
         - export PATH=$(pwd)/mason_packages/.link/bin/:${PATH}
         - PATH=`echo $PATH | sed -e 's/:\.\/node_modules\/\.bin//'` # remove relative path ^^
         - which llvm-cov
-        - ./node_modules/.bin/codecov --gcov-exec "llvm-cov gcov"
+        - ./node_modules/.bin/codecov --gcov-exec "llvm-cov"
     # Clang format build
     - os: linux
       env: CLANG_FORMAT
