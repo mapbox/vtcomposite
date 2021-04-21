@@ -82,8 +82,8 @@ matrix:
       script:
         - export PATH=$(pwd)/mason_packages/.link/bin/:${PATH}
         - PATH=`echo $PATH | sed -e 's/:\.\/node_modules\/\.bin//'` # remove relative path ^^
-        - LLM=$(which llvm-cov)
-        - ./node_modules/.bin/codecov --gcov-exec=$LLM --gcov-args="gcov -pb"
+        - which llvm-cov
+        - ./node_modules/.bin/codecov --gcov-exec="llvm-cov gcov" --gcov-args="-pb ."
     # Clang format build
     - os: linux
       env: CLANG_FORMAT
