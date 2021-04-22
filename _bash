@@ -1206,7 +1206,7 @@ then
   # Gcov Coverage
   if [ "$ft_gcov" = "1" ];
   then
-    say "${e}==>${x} Running $gcov_exe in $proj_root ${e}(disable via -X gcov)${x}"
+    say "${e}==>${x} Running $gcov_exe ($gcov_arg // $gcov_include // $gcov_ignore) in $proj_root ${e}(disable via -X gcov)${x}"
     if [ "$ft_gcovout" = "0" ];
     then
       # suppress gcov output
