@@ -83,9 +83,8 @@ matrix:
         - export PATH=$(pwd)/mason_packages/.link/bin/:${PATH}
         - PATH=`echo $PATH | sed -e 's/:\.\/node_modules\/\.bin//'` # remove relative path ^^
         - which llvm-cov
-        - curl -S -f https://codecov.io/bash -o codecov
-        - chmod +x codecov
-        - ./codecov -x "llvm-cov gcov" -Z
+        - find /home/travis/build/mapbox/vtcomposite -type f -name '*.gcno' -not -path './bower_components/**' -not -path './node_modules/**' -not -path './vendor/**' -exec llvm-cov gcov -pb  {} +
+        - ./node_modules/.bin/codecov --gcov-glob="./bower_components/** ./node_modules/** ./vendor/**" --gcov-exec="llvm-cov gcov" --gcov-args="-pb"
     # Clang format build
     - os: linux
       env: CLANG_FORMAT
