@@ -10,6 +10,7 @@
 // vtzero
 #include <vtzero/builder.hpp>
 #include <vtzero/vector_tile.hpp>
+#include <vtzero/property_value.hpp>
 // geometry.hpp
 #include <mapbox/geometry/box.hpp>
 #include <mapbox/geometry/for_each_point.hpp>
@@ -26,12 +27,14 @@ struct TileObject
     TileObject(std::uint32_t z0,
                std::uint32_t x0,
                std::uint32_t y0,
-               Napi::Buffer<char> const& buffer)
+               Napi::Buffer<char> const& buffer,
+               std::vector<std::string> layers0)
         : z{z0},
           x{x0},
           y{y0},
           data{buffer.Data(), buffer.Length()},
-          buffer_ref{Napi::Persistent(buffer)}
+          buffer_ref{Napi::Persistent(buffer)},
+          layers{layers0}
     {
     }
 
@@ -58,6 +61,7 @@ struct TileObject
     std::uint32_t y;
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
+    std::vector<std::string> layers;
 };
 
 struct BatonType
@@ -123,6 +127,19 @@ struct build_feature_from_v2
 
 } // namespace
 
+// convert vtzero::data_view into std::string
+struct to_string_visitor {
+
+    template <typename T>
+    std::string operator()(T value) {
+        return std::to_string(value);
+    }
+
+    std::string operator()(vtzero::data_view value) {
+        return std::string(value);
+    }
+};
+
 struct CompositeWorker : Napi::AsyncWorker
 {
     using Base = Napi::AsyncWorker;
@@ -164,6 +181,7 @@ struct CompositeWorker : Napi::AsyncWorker
                     }
 
                     std::uint32_t zoom_factor = 1U << (target_z - tile_obj->z);
+                    std::vector<std::string> include_layers = tile_obj->layers;
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
@@ -172,31 +190,39 @@ struct CompositeWorker : Napi::AsyncWorker
                         if (std::find(std::begin(names), std::end(names), name) == std::end(names))
                         {
                             names.push_back(name);
-                            std::uint32_t extent = layer.extent();
-                            if (zoom_factor == 1)
+
+                            // should we keep this layer?
+                            // if include_layers is empty, keep all layers
+                            // if include_layers is not empty, keep layer if we can find its name in the vector
+                            if (include_layers.size() <= 0
+                                || std::find(std::begin(include_layers), std::end(include_layers), std::string sname(name)) != std::end(include_layers))
                             {
-                                builder.add_existing_layer(layer);
-                            }
-                            else
-                            {
-                                using coordinate_type = std::int64_t;
-                                using feature_builder_type = vtile::overzoomed_feature_builder<coordinate_type>;
-                                vtzero::layer_builder layer_builder{builder, name, version, extent};
-                                vtzero::property_mapper mapper{layer, layer_builder};
-                                std::uint32_t dx = 0;
-                                std::uint32_t dy = 0;
-                                std::tie(dx, dy) = vtile::displacement(tile_obj->z, extent, target_z, target_x, target_y);
-                                mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
-                                                                            {static_cast<int>(extent) + buffer_size,
-                                                                             static_cast<int>(extent) + buffer_size}};
-                                feature_builder_type f_builder{layer_builder, mapper, bbox, dx, dy, zoom_factor};
-                                if (version == MVT_VERSION_1)
+                                std::uint32_t extent = layer.extent();
+                                if (zoom_factor == 1)
                                 {
-                                    layer.for_each_feature(build_feature_from_v1<feature_builder_type>(f_builder));
+                                    builder.add_existing_layer(layer);
                                 }
                                 else
                                 {
-                                    layer.for_each_feature(build_feature_from_v2<feature_builder_type>(f_builder));
+                                    using coordinate_type = std::int64_t;
+                                    using feature_builder_type = vtile::overzoomed_feature_builder<coordinate_type>;
+                                    vtzero::layer_builder layer_builder{builder, name, version, extent};
+                                    vtzero::property_mapper mapper{layer, layer_builder};
+                                    std::uint32_t dx = 0;
+                                    std::uint32_t dy = 0;
+                                    std::tie(dx, dy) = vtile::displacement(tile_obj->z, extent, target_z, target_x, target_y);
+                                    mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
+                                                                                {static_cast<int>(extent) + buffer_size,
+                                                                                static_cast<int>(extent) + buffer_size}};
+                                    feature_builder_type f_builder{layer_builder, mapper, bbox, dx, dy, zoom_factor};
+                                    if (version == MVT_VERSION_1)
+                                    {
+                                        layer.for_each_feature(build_feature_from_v1<feature_builder_type>(f_builder));
+                                    }
+                                    else
+                                    {
+                                        layer.for_each_feature(build_feature_from_v2<feature_builder_type>(f_builder));
+                                    }
                                 }
                             }
                         }
@@ -370,7 +396,46 @@ Napi::Value composite(Napi::CallbackInfo const& info)
             return utils::CallbackError("'y' value must not be less than zero", info);
         }
 
-        baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer));
+        // layers array value
+        // does the layers key exist?
+        std::vector<std::string> layers;
+        if (tile_obj.Has(Napi::String::New(info.Env(), "layers")))
+        {
+            Napi::Value layers_val = tile_obj.Get(Napi::String::New(info.Env(), "layers"));
+
+            // is the layers property an array?
+            if (!layers_val.IsArray())
+            {
+                return utils::CallbackError("'layers' value in the 'tiles' array must be an array", info);
+            }
+
+            Napi::Array layers_array = layers_val.As<Napi::Array>();
+            std::uint32_t num_layers = layers_array.Length();
+            // does the layers array have length > 0?
+            if (num_layers <= 0)
+            {
+                return utils::CallbackError("'layers' array must be of length greater than 0", info);
+            }
+            layers.reserve(num_layers);
+
+            // create std::vector of std::strings to pass to baton
+            // validate each value is a string before emplacing it
+            for (std::uint32_t l = 0; l < num_layers; ++l)
+            {
+                Napi::Value layer_val = layers_array.Get(l);
+                // is the layers array filled with strings?
+                if (!layer_val.IsString())
+                {
+                    return utils::CallbackError("items in 'layers' array must be strings", info);
+                }
+
+                // create string and emplace into layer vector
+                std::string layer_name = layer_val.As<Napi::String>();
+                layers.emplace(layers.end(), layer_name);
+            }
+        }
+
+        baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer, layers));
     }
 
     //validate zxy maprequest object

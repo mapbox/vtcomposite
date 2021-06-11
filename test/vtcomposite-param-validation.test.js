@@ -233,6 +233,57 @@ test('failure: buffer object y value is negative', assert => {
   });
 });
 
+test('failure: layers option is not an array', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('hey'),
+      z: 0,
+      x: 0,
+      y: 0,
+      layers: 'not an array'
+    }
+  ];
+  composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'layers\' value in the \'tiles\' array must be an array');
+    assert.end();
+  });
+});
+
+test('failure: layers option is an empty array', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('hey'),
+      z: 0,
+      x: 0,
+      y: 0,
+      layers: []
+    }
+  ];
+  composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'layers\' array must be of length greater than 0');
+    assert.end();
+  });
+});
+
+test('failure: layers option is an array with invalid types (not strings)', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('hey'),
+      z: 0,
+      x: 0,
+      y: 0,
+      layers: [1, 2, 3, 'correct']
+    }
+  ];
+  composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, 'items in \'layers\' array must be strings');
+    assert.end();
+  });
+});
+
 // TESTS FOR ZXY MAP REQUEST!
 
 test('failure: map request zxy missing z value', assert => {
