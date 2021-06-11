@@ -194,8 +194,9 @@ struct CompositeWorker : Napi::AsyncWorker
                             // should we keep this layer?
                             // if include_layers is empty, keep all layers
                             // if include_layers is not empty, keep layer if we can find its name in the vector
+                            std::string sname(name);
                             if (include_layers.size() <= 0
-                                || std::find(std::begin(include_layers), std::end(include_layers), std::string sname(name)) != std::end(include_layers))
+                                || std::find(std::begin(include_layers), std::end(include_layers), sname) != std::end(include_layers))
                             {
                                 std::uint32_t extent = layer.extent();
                                 if (zoom_factor == 1)
