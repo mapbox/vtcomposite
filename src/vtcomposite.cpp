@@ -237,8 +237,8 @@ struct CompositeWorker : Napi::AsyncWorker
         {
             std::string& tile_buffer = *output_buffer_;
             auto buffer = Napi::Buffer<char>::New(
-                Env(),
-                &tile_buffer[0],
+                env,
+                tile_buffer.empty() ? nullptr : &tile_buffer[0],
                 tile_buffer.size(),
                 [](Napi::Env env_, char* /*unused*/, std::string* str_ptr) {
                     if (str_ptr != nullptr)
@@ -249,7 +249,7 @@ struct CompositeWorker : Napi::AsyncWorker
                 },
                 output_buffer_.release());
             Napi::MemoryManagement::AdjustExternalMemory(env, static_cast<std::int64_t>(tile_buffer.size()));
-            return {Env().Null(), buffer};
+            return {env.Null(), buffer};
         }
         return Base::GetResult(env); // returns an empty vector (default)
     }

@@ -1,4 +1,12 @@
+# 0.4.0
+
+- Upgrade to use `@mapbox/node-pre-gyp` >= v1.0.0 [#108](https://github.com/mapbox/vtcomposite/pull/108)
+- Upgrade to use `node-addon-api` >= v3.1.0 [#108](https://github.com/mapbox/vtcomposite/pull/108)
+- Upgrade to use `node-mapnik` >= 4.5.6 [#108](https://github.com/mapbox/vtcomposite/pull/108)
+- Check `tile_buffer` is not empty before accessing internal data [info](https://github.com/mapbox/vtcomposite/pull/108#discussion_r580344270)
+
 # 0.3.0
+
 - Now supporting node v12/v14 by switching to "universal" binaries that work across all major node major versions that support N-API. Binaries were built using node v12, but work at runtime with node v8 -> v14 (and likely others)
 - Upgraded dependencies including node-addon-api, node-pre-gyp, boost, geometry.hpp, protozero, variant and vtzero
 - Binaries are now compiled with clang 10.x
