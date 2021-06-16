@@ -34,17 +34,18 @@ matrix:
   include:
 
     ## ** Builds that are published **
+
+    # g++ build (default builds all use clang++)
     - os: linux
-      env: CC="gcc" CXX="g++" BUILDTYPE=debug
+      env: CXX="g++" CC="gcc" LINK="g++" AR="ar" NM="nm" BUILDTYPE=debug
+    - os: linux
+      env: CXX="g++" CC="gcc" BUILDTYPE=debug
     # linux node js 12 clang/debug
     - os: linux
       env: CC="clang-8" CXX="clang++-8" BUILDTYPE=debug
     # linux node js 12 clang/release
     - os: linux
       env: CC="clang-8" CXX="clang++-8" BUILDTYPE=release
-    # g++ build (default builds all use clang++)
-    - os: linux
-      env: CXX="g++" CC="gcc" LINK="g++" AR="ar" NM="nm" BUILDTYPE=debug
     # osx publishable node release
     - os: osx
       osx_image: xcode12.5
