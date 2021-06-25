@@ -130,14 +130,17 @@ struct build_feature_from_v2
 } // namespace
 
 // convert vtzero::data_view into std::string
-struct to_string_visitor {
+struct to_string_visitor
+{
 
     template <typename T>
-    std::string operator()(T value) {
+    std::string operator()(T value)
+    {
         return std::to_string(value);
     }
 
-    std::string operator()(vtzero::data_view value) {
+    std::string operator()(vtzero::data_view value)
+    {
         return std::string(value);
     }
 };
@@ -197,8 +200,7 @@ struct CompositeWorker : Napi::AsyncWorker
                             // if include_layers is empty, keep all layers
                             // if include_layers is not empty, keep layer if we can find its name in the vector
                             std::string sname(name);
-                            if (include_layers.empty()
-                                || std::find(std::begin(include_layers), std::end(include_layers), sname) != std::end(include_layers))
+                            if (include_layers.empty() || std::find(std::begin(include_layers), std::end(include_layers), sname) != std::end(include_layers))
                             {
                                 std::uint32_t extent = layer.extent();
                                 if (zoom_factor == 1)
@@ -216,7 +218,7 @@ struct CompositeWorker : Napi::AsyncWorker
                                     std::tie(dx, dy) = vtile::displacement(tile_obj->z, extent, target_z, target_x, target_y);
                                     mapbox::geometry::box<coordinate_type> bbox{{-buffer_size, -buffer_size},
                                                                                 {static_cast<int>(extent) + buffer_size,
-                                                                                static_cast<int>(extent) + buffer_size}};
+                                                                                 static_cast<int>(extent) + buffer_size}};
                                     feature_builder_type f_builder{layer_builder, mapper, bbox, dx, dy, zoom_factor};
                                     if (version == MVT_VERSION_1)
                                     {
