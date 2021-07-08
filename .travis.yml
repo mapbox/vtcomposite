@@ -6,7 +6,7 @@ node_js: 12
 addons:
   apt:
     sources: [ 'ubuntu-toolchain-r-test' ]
-    packages: [ 'libstdc++-8-dev', 'clang-8', 'lldb-8', 'lld-8' ]
+    packages: [ 'libstdc++-4.9-dev' ]
 
 install:
   - node -v
@@ -35,21 +35,28 @@ matrix:
 
     ## ** Builds that are published **
 
-    # g++ build (default builds all use clang++)
+    # linux cfi build node v10/release
     - os: linux
-      env: CXX="g++" CC="gcc" LINK="g++" AR="ar" NM="nm" BUILDTYPE=debug
+      env: BUILDTYPE=release TOOLSET=cfi CXXFLAGS="-flto -fsanitize=cfi -fvisibility=hidden" LDFLAGS="-flto -fsanitize=cfi"
+    # linux publishable node release
     - os: linux
-      env: CXX="g++" CC="gcc" BUILDTYPE=debug
-    # linux node js 12 clang/debug
+      env: BUILDTYPE=release
+    # linux publishable node debug
     - os: linux
-      env: CC="clang-8" CXX="clang++-8" BUILDTYPE=debug
-    # linux node js 12 clang/release
-    - os: linux
-      env: CC="clang-8" CXX="clang++-8" BUILDTYPE=release
+      env: BUILDTYPE=debug
     # osx publishable node release
     - os: osx
-      osx_image: xcode12.5
+      osx_image: xcode11
       env: BUILDTYPE=release
+    # osx publishable node asan
+    - os: linux
+      env: BUILDTYPE=debug TOOLSET=asan
+      sudo: required
+      # Overrides `install` to set up custom asan flags
+      install:
+        - make sanitize
+      # Overrides `before_script` (tests are already run in `make sanitize`)
+      before_script: true
 
     ## ** Builds that do not get published **
 
