@@ -129,22 +129,6 @@ struct build_feature_from_v2
 
 } // namespace
 
-// convert vtzero::data_view into std::string
-struct to_string_visitor
-{
-
-    template <typename T>
-    std::string operator()(T value)
-    {
-        return std::to_string(value);
-    }
-
-    std::string operator()(vtzero::data_view value)
-    {
-        return std::string(value);
-    }
-};
-
 struct CompositeWorker : Napi::AsyncWorker
 {
     using Base = Napi::AsyncWorker;
