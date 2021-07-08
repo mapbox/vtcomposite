@@ -401,7 +401,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
             Napi::Array layers_array = layers_val.As<Napi::Array>();
             std::uint32_t num_layers = layers_array.Length();
             // does the layers array have length > 0?
-            if (num_layers <= 0)
+            if (num_layers == 0)
             {
                 return utils::CallbackError("'layers' array must be of length greater than 0", info);
             }
