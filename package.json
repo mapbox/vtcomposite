@@ -1,6 +1,6 @@
 {
   "name": "@mapbox/vtcomposite",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Compositing operations on Vector Tiles (c++ bindings using N-API)",
   "url": "http://github.com/mapbox/vtcomposite",
   "main": "./lib/index.js",
@@ -10,8 +10,7 @@
   },
   "scripts": {
     "test": "tape test/*.test.js",
-    "install": "node-pre-gyp install --fallback-to-build",
-    "docs": "documentation build src/standalone_async/*.cpp src/standalone/*.cpp src/object_sync/*.cpp src/object_async/*.cpp --polyglot -f md -o API.md"
+    "install": "node-pre-gyp install --fallback-to-build"
   },
   "author": "Mapbox",
   "license": "ISC",

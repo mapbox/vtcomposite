@@ -149,7 +149,15 @@ module.exports = [
       { z: 15, x: 5239, y: 12666, buffer: fs.readFileSync('./test/fixtures/polygons-hillshade-sf-15-5239-12666.mvt')}
     ],
     zxy: { z: 17, x: 20956, y: 50664}
-  }
+  },
+  {
+    description: 'single tile, dropping layers',
+    options: {buffer_size: 128},
+    tiles: [
+      { z: 15, x: 5239, y: 12666, buffer: getTile('sanfrancisco', '15-5239-12666.mvt'), layers: ['building']}
+    ],
+    zxy: { z: 15, x: 5239, y: 12666}
+  },
 ];
 
 function getTile(name, file) {

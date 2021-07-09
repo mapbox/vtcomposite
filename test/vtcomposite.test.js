@@ -322,3 +322,33 @@ if (!process.env.ASAN_OPTIONS) {
     });
   });
 }
+
+test('[composite] success: drop layers if "layers" array is in tiles object', function(assert) {
+  const tiles = [
+    { buffer: bufferSF, z:15, x:5238, y:12666, layers: ['building', 'poi_label'] }
+  ];
+
+  const zxy = {z:15, x:5238, y:12666};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.deepEqual(Object.keys(vtinfo(vtBuffer).layers), ['building', 'poi_label'], 'expected layers');
+    assert.notEqual(vtBuffer.length, bufferSF.length, 'buffer is not of the same sie');
+    assert.end();
+  });
+});
+
+test('[composite] success: composite and drop layers', function(assert) {
+  const tiles = [
+    { buffer: mvtFixtures.get('059').buffer, z:15, x:5238, y:12666 },
+    { buffer: bufferSF, z:15, x:5238, y:12666, layers: ['building', 'poi_label'] }
+  ];
+
+  const zxy = {z:15, x:5238, y:12666};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.deepEqual(Object.keys(vtinfo(vtBuffer).layers), ['water', 'building', 'poi_label'], 'expected layers');
+    assert.end();
+  });
+});
