@@ -30,13 +30,13 @@ struct TileObject
                std::uint32_t x0,
                std::uint32_t y0,
                Napi::Buffer<char> const& buffer,
-               std::vector<std::string> layers0)
+               std::vector<std::string> const &layers0)
         : z{z0},
           x{x0},
           y{y0},
           data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
-          layers{std::move(layers0)}
+          layers{layers0}
     {
     }
 
@@ -63,7 +63,7 @@ struct TileObject
     std::uint32_t y;
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
-    std::vector<std::string> layers;
+    std::vector<std::string> const &layers;
 };
 
 struct BatonType
@@ -170,7 +170,7 @@ struct CompositeWorker : Napi::AsyncWorker
                     }
 
                     std::uint32_t zoom_factor = 1U << (target_z - tile_obj->z);
-                    std::vector<std::string> include_layers = tile_obj->layers;
+                    std::vector<std::string> const &include_layers = tile_obj->layers;
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
