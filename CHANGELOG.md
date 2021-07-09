@@ -1,3 +1,8 @@
+# 0.5.0
+
+- Add `buffers[n].layers` array to allow keeping of specific layers during compositing [#113](https://github.com/mapbox/vtcomposite/pull/113)
+- Remove copied documentation from node-cpp-skel [#113](https://github.com/mapbox/vtcomposite/pull/113)
+
 # 0.4.0
 
 - Upgrade to use `@mapbox/node-pre-gyp` >= v1.0.0 [#108](https://github.com/mapbox/vtcomposite/pull/108)
