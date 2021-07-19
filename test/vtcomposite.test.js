@@ -352,3 +352,18 @@ test('[composite] success: composite and drop layers', function(assert) {
     assert.end();
   });
 });
+
+test('[composite] success: composite and drop same layer names', function(assert) {
+  const tiles = [
+    { buffer: bufferSF, z:15, x:5238, y:12666, layers: ['building'] },
+    { buffer: bufferSF, z:15, x:5238, y:12666, layers: ['poi_label'] }
+  ];
+
+  const zxy = {z:15, x:5238, y:12666};
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.deepEqual(Object.keys(vtinfo(vtBuffer).layers), ['building', 'poi_label'], 'expected layers');
+    assert.end();
+  });
+});
