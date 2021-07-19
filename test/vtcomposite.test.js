@@ -333,7 +333,7 @@ test('[composite] success: drop layers if "layers" array is in tiles object', fu
   composite(tiles, zxy, {}, (err, vtBuffer) => {
     assert.notOk(err);
     assert.deepEqual(Object.keys(vtinfo(vtBuffer).layers), ['building', 'poi_label'], 'expected layers');
-    assert.notEqual(vtBuffer.length, bufferSF.length, 'buffer is not of the same sie');
+    assert.notEqual(vtBuffer.length, bufferSF.length, 'buffer is not of the same size');
     assert.end();
   });
 });
