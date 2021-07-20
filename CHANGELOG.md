@@ -1,3 +1,7 @@
+# 0.5.1
+
+- Bugfix for v0.5.0 to fix an issue where compositing multiple tiles with specific layers included would drop same-named layers [#114](https://github.com/mapbox/vtcomposite/pull/114)
+
 # 0.5.0
 
 - Add `buffers[n].layers` array to allow keeping of specific layers during compositing [#113](https://github.com/mapbox/vtcomposite/pull/113)
