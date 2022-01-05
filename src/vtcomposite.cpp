@@ -226,12 +226,25 @@ struct CompositeWorker : Napi::AsyncWorker
                     return;
                 }
             }
+
             std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
             {
                 std::string temp;
                 builder.serialize(temp);
-                tile_buffer = gzip::compress(temp.data(), temp.size());
+
+                // If the serialized buffer is an empty string, do not
+                // gzip compress it. This will lead to a non-zero byte string
+                // which can be perceived as a valid vector tile.
+                //
+                // Instead do nothing and return an empty, non-gzip-compressed buffer.
+                // If the user wants to handle empty tiles separately from non-empty
+                // tiles, they must check "buffer.length > 0" in the resulting callback.
+                if (!temp.empty())
+                {
+                    tile_buffer = gzip::compress(temp.data(), temp.size());
+                }
+
             }
             else
             {

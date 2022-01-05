@@ -382,3 +382,19 @@ test('[composite] success: composite and drop same layer names reversed', functi
     assert.end();
   });
 });
+
+test('[composite] success: empty overzoomed tile returns empty buffer even if compress: true is set', function(assert) {
+  const buffer = fs.readFileSync(path.resolve(__dirname+'/fixtures/empty-overzoom-8-33-63.mvt'));
+  const tiles = [
+    { buffer, z: 8, x: 33, y: 63 }
+  ];
+
+  const zxy = { z: 12, x: 543, y: 1019 };
+
+  composite(tiles, zxy, {compress: true}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.equal(vtBuffer.length, 0, 'zero length buffer');
+    assert.end();
+  });
+});
+
