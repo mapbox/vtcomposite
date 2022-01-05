@@ -244,7 +244,6 @@ struct CompositeWorker : Napi::AsyncWorker
                 {
                     tile_buffer = gzip::compress(temp.data(), temp.size());
                 }
-
             }
             else
             {
