@@ -481,7 +481,7 @@ test('failure: options must be an object', assert => {
 test('failure: buffer size is not int32', assert => {
   const buffs = [
     {
-      buffer: new Buffer(10),
+      buffer: Buffer.from('waka'),
       z: 0,
       x: 0,
       y: 0
@@ -497,7 +497,7 @@ test('failure: buffer size is not int32', assert => {
 test('failure: buffer size is not positive int32', assert => {
   const buffs = [
     {
-      buffer: new Buffer(10),
+      buffer: Buffer.from('waka'),
       z: 0,
       x: 0,
       y: 0
@@ -506,6 +506,38 @@ test('failure: buffer size is not positive int32', assert => {
   composite(buffs, {z:0, x:0, y:0}, {buffer_size:-10}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'buffer_size\' must be a positive int32');
+    assert.end();
+  });
+});
+
+test('failure: exclude_properties is empty array', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('waka'),
+      z: 0,
+      x: 0,
+      y: 0
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0, exclude_properties: []}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'exclude_properties\' must be an array with at least one item');
+    assert.end();
+  });
+});
+
+test('failure: exclude_properties has type of not String', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('waka'),
+      z: 0,
+      x: 0,
+      y: 0
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0, exclude_properties: [10, 11, 12]}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'exclude_properties\' must be an array of strings');
     assert.end();
   });
 });

@@ -398,3 +398,34 @@ test('[composite] success: empty overzoomed tile returns empty buffer even if co
   });
 });
 
+test('[composite] success: exclude_properties drops expected properties', function(assert) {
+  const buffer = mvtFixtures.get('063').buffer;
+  const tiles = [
+    { buffer, z: 0, x: 0, y: 0, exclude_properties: ['xx_a', 'xx_b', 'xx_c'] }
+  ];
+
+  const zxy = { z: 0, x: 0, y: 0 };
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    const vt = vtinfo(vtBuffer);
+    assert.deepEqual(Object.keys(vt.layers), ['props'], 'expected layers');
+    assert.equal(vt.layers['props'].length, 4, 'four features, none were dropped');
+    assert.deepEqual(vt.layers['props'].feature(0).properties, {
+      xx_d: 'letter D',
+      xx_e: 'letter E',
+      xx_f: 'letter F',
+      xx_g: 'letter G',
+      yy_1: 'letter Y'
+    }, 'expected properties for feature 1');
+    assert.deepEqual(vt.layers['props'].feature(1).properties, {}, 'expected empty properties for fixture 2');
+    assert.deepEqual(vt.layers['props'].feature(2).properties, {
+      xx_e: 'letter E'
+    }, 'expected properties for fixture 3');
+    assert.deepEqual(vt.layers['props'].feature(3).properties, {
+      yy_1: 'letter Y'
+    }, 'expected properties for fixture 4');
+    assert.end();
+  });
+});
+
