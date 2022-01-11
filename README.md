@@ -18,7 +18,8 @@ const fs = require('fs');
 
 const tiles = [
   { buffer: fs.readFileSync('./path/to/tile.mvt'), z: 15, x: 5238, y: 12666 },
-  { buffer: fs.readFileSync('./path/to/tile.mvt'), z: 15, x: 5238, y: 12666, layers: ['building'] }
+  { buffer: fs.readFileSync('./path/to/tile.mvt'), z: 15, x: 5238, y: 12666, layers: ['building'] },
+  { buffer: fs.readFileSync('./path/to/tile.mvt'), z: 15, x: 5238, y: 12666, exclude_properties: ['name_fr'] }
 ];
 
 const zxy = { z: 5, x: 5, y: 12 };
@@ -42,6 +43,7 @@ vtcomposite(tiles, zxy, options, function(err, result) {
     - `x` **Number** x value of the input tile buffer
     - `y` **Number** y value of the input tile buffer
     - `layers` **Array** an array of layer names to keep in the final tile. An empty array is invalid. (optional, default keep all layers)
+    - `exclude_properties` **Array** an array of property names to drop from features in the final tile (optional, default keep all properties).
 - `zxy` **Object** the output tile zxy location, used to determine if the incoming tiles need to overzoom their data
     - `z` **Number** z value of the output tile buffer
     - `x` **Number** x value of the output tile buffer

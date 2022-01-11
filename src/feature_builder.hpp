@@ -163,14 +163,14 @@ struct overzoomed_feature_builder
           zoom_factor_{zoom_factor} {}
 
     template <typename FeatureBuilder>
-    void finalize(FeatureBuilder& builder, vtzero::feature const& feature)
+    void finalize(FeatureBuilder& builder, vtzero::feature const& feature, std::vector<std::string> exclude_properties)
     {
         // add properties
-        builder.copy_properties(feature, mapper_);
+        builder.copy_properties(feature, mapper_, exclude_properties);
         builder.commit();
     }
 
-    void apply_geometry_point(vtzero::feature const& feature)
+    void apply_geometry_point(vtzero::feature const& feature, std::vector<std::string> exclude_properties)
     {
         mapbox::geometry::multi_point<CoordinateType> multi_point;
         vtzero::decode_point_geometry(feature.geometry(), detail::point_handler<coordinate_type>(multi_point, dx_, dy_, zoom_factor_, bbox_));
@@ -179,11 +179,11 @@ struct overzoomed_feature_builder
             vtzero::point_feature_builder feature_builder{layer_builder_};
             feature_builder.copy_id(feature);
             feature_builder.add_points_from_container(multi_point);
-            finalize(feature_builder, feature);
+            finalize(feature_builder, feature, exclude_properties);
         }
     }
 
-    void apply_geometry_linestring(vtzero::feature const& feature)
+    void apply_geometry_linestring(vtzero::feature const& feature, std::vector<std::string> exclude_properties)
     {
         mapbox::geometry::multi_line_string<CoordinateType> multi_line;
         vtzero::decode_linestring_geometry(feature.geometry(), detail::line_string_handler<coordinate_type>(multi_line, dx_, dy_, zoom_factor_));
@@ -215,11 +215,11 @@ struct overzoomed_feature_builder
             }
             if (valid)
             {
-                finalize(feature_builder, feature);
+                finalize(feature_builder, feature, exclude_properties);
             }
         }
     }
-    void apply_geometry_polygon(vtzero::feature const& feature)
+    void apply_geometry_polygon(vtzero::feature const& feature, std::vector<std::string> exclude_properties)
     {
         std::vector<detail::annotated_ring<CoordinateType>> rings;
         vtzero::decode_polygon_geometry(feature.geometry(), detail::polygon_handler<CoordinateType>(rings, dx_, dy_, zoom_factor_));
@@ -266,23 +266,23 @@ struct overzoomed_feature_builder
             }
             if (valid)
             {
-                finalize(feature_builder, feature);
+                finalize(feature_builder, feature, exclude_properties);
             }
         }
     }
 
-    void apply(vtzero::feature const& feature)
+    void apply(vtzero::feature const& feature, std::vector<std::string> exclude_properties)
     {
         switch (feature.geometry_type())
         {
         case vtzero::GeomType::POINT:
-            apply_geometry_point(feature);
+            apply_geometry_point(feature, exclude_properties);
             break;
         case vtzero::GeomType::LINESTRING:
-            apply_geometry_linestring(feature);
+            apply_geometry_linestring(feature, exclude_properties);
             break;
         case vtzero::GeomType::POLYGON:
-            apply_geometry_polygon(feature);
+            apply_geometry_polygon(feature, exclude_properties);
             break;
         default:
             // LCOV_EXCL_START

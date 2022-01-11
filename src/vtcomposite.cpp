@@ -30,13 +30,15 @@ struct TileObject
                std::uint32_t x0,
                std::uint32_t y0,
                Napi::Buffer<char> const& buffer,
-               std::vector<std::string> layers0)
+               std::vector<std::string> layers0,
+               std::vector<std::string> exclude_properties0)
         : z{z0},
           x{x0},
           y{y0},
           data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
-          layers{std::move(layers0)}
+          layers{std::move(layers0)},
+          exclude_properties{std::move(exclude_properties0)}
     {
     }
 
@@ -64,6 +66,7 @@ struct TileObject
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
     std::vector<std::string> layers;
+    std::vector<std::string> exclude_properties;
 };
 
 struct BatonType
@@ -95,14 +98,17 @@ namespace {
 template <typename FeatureBuilder>
 struct build_feature_from_v1
 {
-    explicit build_feature_from_v1(FeatureBuilder& builder)
-        : builder_(builder) {}
+    explicit build_feature_from_v1(FeatureBuilder& builder,
+                                   std::vector<std::string> exclude_properties)
+        : builder_(builder),
+          exclude_properties_(exclude_properties)
+        {}
 
     bool operator()(vtzero::feature const& feature)
     {
         try
         {
-            builder_.apply(feature);
+            builder_.apply(feature, exclude_properties);
         }
         catch (vtzero::geometry_exception const& ex)
         {
@@ -171,6 +177,7 @@ struct CompositeWorker : Napi::AsyncWorker
 
                     std::uint32_t zoom_factor = 1U << (target_z - tile_obj->z);
                     std::vector<std::string> include_layers = tile_obj->layers;
+                    std::vector<std::string> exclude_properties = tile_obj->exclude_properties;
                     vtzero::vector_tile tile{tile_view};
                     while (auto layer = tile.next_layer())
                     {
