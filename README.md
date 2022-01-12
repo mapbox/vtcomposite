@@ -18,7 +18,7 @@ const fs = require('fs');
 
 const tiles = [
   { buffer: fs.readFileSync('./path/to/tile.mvt'), z: 15, x: 5238, y: 12666 },
-  { buffer: fs.readFileSync('./path/to/tile.mvt'), z: 15, x: 5238, y: 12666, layers: ['building'] }
+  { buffer: fs.readFileSync('./path/to/another.mvt'), z: 15, x: 5238, y: 12666, layers: ['building'] }
 ];
 
 const zxy = { z: 5, x: 5, y: 12 };
@@ -36,20 +36,57 @@ vtcomposite(tiles, zxy, options, function(err, result) {
 
 ### Parameters
 
-- `tiles` **Array(Object)** an array of tile objects
-    - `buffer` **Buffer** a vector tile buffer, gzip compressed or not
-    - `z` **Number** z value of the input tile buffer
-    - `x` **Number** x value of the input tile buffer
-    - `y` **Number** y value of the input tile buffer
-    - `layers` **Array** an array of layer names to keep in the final tile. An empty array is invalid. (optional, default keep all layers)
-- `zxy` **Object** the output tile zxy location, used to determine if the incoming tiles need to overzoom their data
-    - `z` **Number** z value of the output tile buffer
-    - `x` **Number** x value of the output tile buffer
-    - `y` **Number** y value of the output tile buffer
-- `options` **Object**
-  - `options.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return a uncompressed buffer. (optional, default `false`)
-  - `options.buffer_size` **Number** the buffer size of a tile, indicating the tile extent that should be composited and/or clipped. Default is `buffer_size=0`. (optional, default `0`)
-- `callback` **Function** callback function that returns `err`, and `buffer` parameters
+property | required | type | description
+---|---|---|---
+`tiles` | x | Array[Object] | array of tile objects to manipulate and composite
+`tiles[n].buffer` | x | Buffer | a vector tile buffer, gzip compressed or nottiles[n].
+`tiles[n].z` | x | Number | z value of the input tile buffer
+`tiles[n].x` | x | Number | x value of the input tile buffer
+`tiles[n].y` | x | Number | y value of the input tile buffer
+`tiles[n].layers` | | Array | an array of layer names to keep in the final tile. An empty array is invalid. (default: keep all layers). Read more about [layer dropping](#layer-inclusion).
+`tiles[n].feature_filter` | | Object | an object used to filter entire features based on property key/values. See example below for more details. Read more about [feature dropping](#feature-dropping).
+`tiles[n].drop_properties` | | Array[String] | an array of property keys to remove from features. Read more about [property dropping](#property-dropping).
+`zxy` | x | Object | the output tile zxy location, used to determine if the incoming tiles need to overzoom their data
+`zxy.z` | x | Number | z value of the output tile buffer
+`zxy.x` | x | Number | x value of the output tile buffer
+`zxy.y` | x | Number | y value of the output tile buffer
+`options` | x | Object | options object. An empty object is required even if no options are necessary.
+`options.compress` | | Boolean | a boolean value indicating whether or not to return a compressed buffer. Default is to return a uncompressed buffer. (optional, default `false`)
+`options.buffer_size` | | Number | the buffer size of a tile, indicating the tile extent that should be composited and/or clipped. Default is `buffer_size=0`. (optional, default `0`)
+`callback` | x | Function | callback function that returns `err`, and `buffer` parameters
+
+### Layer dropping
+
+```json
+[
+  "building",
+  "road"
+]
+```
+
+Include the `layer` parameter to **keep** layers specified in the array of strings. In the example above the resulting tile will only include layers "building" and "road" but will drop any other layers in the original tile.
+
+### Feature dropping
+
+```json
+{
+  "type": ["park", "playground"]
+}
+```
+
+Include the `feature_filter` parameter for a specific buffer as a simple means of filtering features by values of properties. This is only valid for properties of `str` type. The example above specifies to **keep** any feature with a `type` property that includes values of "park" OR "playground". The expression will perform a partial search. For example a feature with "city park" and another with just "park" will both be kept in the final composited tile. The search is case sensitive, so a feature with "Park" will be filtered out. Any features _without_ a `type` property will be kept in the final tile.
+
+### Property dropping
+
+```JSON
+[
+  "name_es",
+  "name_fr"
+]
+```
+
+Include the `drop_properties` parameter to exclude properties from all features across all layers. In the example above all features will drop the "name_es" and "name_fr" properties in the final tile.
+
 
 # Installation
 
@@ -259,7 +296,7 @@ In the example above, we clipped geometries based on the default tile boundaries
 
 This project is based off the node-cpp-skel framework. Node-cpp-skel is licensed under [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/).
 
-[![badge](https://mapbox.s3.amazonaws.com/cpp-assets/node-cpp-skel-badge_blue.svg)](https://github.com/mapbox/node-cpp-skel)
+[![node-cpp-skel](https://raw.githubusercontent.com/mapbox/cpp/master/assets/node-cpp-skel-badge_blue.svg)](https://github.com/mapbox/node-cpp-skel)
 
 For more about vtcomposite contributing and licensing, see:
 - vtcomposite [license](https://github.com/mapbox/vtcomposite/blob/master/LICENSE.md)
