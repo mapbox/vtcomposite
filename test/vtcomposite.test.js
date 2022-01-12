@@ -429,3 +429,37 @@ test('[composite] success: exclude_properties drops expected properties', functi
   });
 });
 
+test('[composite] success: property_filter drops expected features', function(assert) {
+  // https://github.com/mapbox/mvt-fixtures/blob/master/src/062.js
+  const buffer = mvtFixtures.get('062').buffer;
+  const tiles = [
+    {
+      buffer,
+      z: 0,
+      x: 0,
+      y: 0,
+      property_filter: {
+        name: ['Neat', 'Awesome']
+      }
+    }
+  ];
+
+  const zxy = { z: 0, x: 0, y: 0 };
+
+  composite(tiles, zxy, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    const vt = vtinfo(vtBuffer);
+    assert.deepEqual(Object.keys(vt.layers), ['cities'], 'expected layers');
+    assert.equal(vt.layers['cities'].length, 2, 'expected number of features');
+    assert.deepEqual(vt.layers['cities'].feature(0).properties, {
+      population: 10,
+      name: 'Neatville'
+    }, 'expected feature properties');
+    assert.deepEqual(vt.layers['cities'].feature(1).properties, {
+      population: 30,
+      name: 'AwesomeCity'
+    }, 'expected feature properties');
+
+    assert.end();
+  });
+});

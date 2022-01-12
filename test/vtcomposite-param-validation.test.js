@@ -516,10 +516,11 @@ test('failure: exclude_properties is empty array', assert => {
       buffer: Buffer.from('waka'),
       z: 0,
       x: 0,
-      y: 0
+      y: 0,
+      exclude_properties: []
     }
   ];
-  composite(buffs, {z:0, x:0, y:0, exclude_properties: []}, {}, function(err, result) {
+  composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'exclude_properties\' must be an array with at least one item');
     assert.end();
@@ -532,12 +533,104 @@ test('failure: exclude_properties has type of not String', assert => {
       buffer: Buffer.from('waka'),
       z: 0,
       x: 0,
-      y: 0
+      y: 0,
+      exclude_properties: [10, 11, 12]
     }
   ];
-  composite(buffs, {z:0, x:0, y:0, exclude_properties: [10, 11, 12]}, {}, function(err, result) {
+  composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'exclude_properties\' must be an array of strings');
+    assert.end();
+  });
+});
+
+test('failure: property_filter is not an object', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('waka'),
+      z: 0,
+      x: 0,
+      y: 0,
+      property_filter: 'not an object'
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'property_filter\' must be an object');
+    assert.end();
+  });
+});
+
+test('failure: property_filter is an empty object', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('waka'),
+      z: 0,
+      x: 0,
+      y: 0,
+      property_filter: {}
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'property_filter\' must not be an empty object');
+    assert.end();
+  });
+});
+
+test('failure: property_filter value is not an array', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('waka'),
+      z: 0,
+      x: 0,
+      y: 0,
+      property_filter: {
+        waka: 'flocka'
+      }
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'property_filter\' values must be an array');
+    assert.end();
+  });
+});
+
+test('failure: property_filter value is an empty array', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('waka'),
+      z: 0,
+      x: 0,
+      y: 0,
+      property_filter: {
+        waka: []
+      }
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'property_filter\' values must not be an empty array');
+    assert.end();
+  });
+});
+
+test('failure: property_filter value is an array of non-strings', assert => {
+  const buffs = [
+    {
+      buffer: Buffer.from('waka'),
+      z: 0,
+      x: 0,
+      y: 0,
+      property_filter: {
+        waka: [10, 11, 12]
+      }
+    }
+  ];
+  composite(buffs, {z:0, x:0, y:0}, {}, function(err, result) {
+    assert.ok(err);
+    assert.equal(err.message, '\'property_filter\' values must be an array of strings');
     assert.end();
   });
 });
