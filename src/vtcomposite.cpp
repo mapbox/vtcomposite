@@ -539,4 +539,101 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     worker->Queue();
     return info.Env().Undefined();
 }
+
+Napi::Value internationalize(Napi::CallbackInfo const& info)
+{
+    // validate callback function
+    std::size_t length = info.Length();
+    if (length == 0)
+    {
+        Napi::Error::New(info.Env(), "last argument must be a callback function").ThrowAsJavaScriptException();
+        return info.Env().Null();
+    }
+    Napi::Value callback_val = info[length - 1];
+    if (!callback_val.IsFunction())
+    {
+        Napi::Error::New(info.Env(), "last argument must be a callback function").ThrowAsJavaScriptException();
+        return info.Env().Null();
+    }
+
+    Napi::Function callback = callback_val.As<Napi::Function>();
+
+    // std::uint32_t num_tiles = 1;
+    // std::unique_ptr<BatonType> baton_data = std::make_unique<BatonType>(num_tiles);
+
+    // validate tiles
+    Napi::Value tile_val = info[0];
+    if (!tile_val.IsObject())
+    {
+        return utils::CallbackError("first argument must be tile object", info);
+    }
+
+    Napi::Object tile_obj = tile_val.As<Napi::Object>();
+    // check buffer value
+    if (!tile_obj.Has(Napi::String::New(info.Env(), "buffer")))
+    {
+        return utils::CallbackError("tile object does not include a buffer value", info);
+    }
+    Napi::Value buf_val = tile_obj.Get(Napi::String::New(info.Env(), "buffer"));
+    if (buf_val.IsNull() || buf_val.IsUndefined())
+    {
+        return utils::CallbackError("tile buffer is null or undefined", info);
+    }
+
+    Napi::Object buffer_obj = buf_val.As<Napi::Object>();
+    if (!buffer_obj.IsBuffer())
+    {
+        return utils::CallbackError("tile buffer is not a true buffer", info);
+    }
+
+    Napi::Buffer<char> buffer = buffer_obj.As<Napi::Buffer<char>>();
+
+    // language
+    Napi::Value language_val = info[1];
+    if (!language_val.IsString())
+    {
+        return utils::CallbackError("language value must be a string", info);
+    }
+    std::string language = language_val.As<Napi::String>();
+
+    baton_data->tiles.push_back(std::make_unique<TileObject>(buffer, language));
+
+    if (info.Length() > 3) // options
+    {
+        if (!info[2].IsObject())
+        {
+            return utils::CallbackError("'options' arg must be an object", info);
+        }
+
+        Napi::Object options = info[2].As<Napi::Object>();
+        if (options.Has(Napi::String::New(info.Env(), "buffer_size")))
+        {
+            Napi::Value bs_value = options.Get(Napi::String::New(info.Env(), "buffer_size"));
+            if (!bs_value.IsNumber())
+            {
+                return utils::CallbackError("'buffer_size' must be an int32", info);
+            }
+
+            int buffer_size = bs_value.As<Napi::Number>().Int32Value();
+            if (buffer_size < 0)
+            {
+                return utils::CallbackError("'buffer_size' must be a positive int32", info);
+            }
+            baton_data->buffer_size = buffer_size;
+        }
+        if (options.Has(Napi::String::New(info.Env(), "compress")))
+        {
+            Napi::Value comp_value = options.Get(Napi::String::New(info.Env(), "compress"));
+            if (!comp_value.IsBoolean())
+            {
+                return utils::CallbackError("'compress' must be a boolean", info);
+            }
+
+            baton_data->compress = comp_value.As<Napi::Boolean>().Value();
+        }
+    }
+    auto* worker = new CompositeWorker{std::move(baton_data), callback};
+    worker->Queue();
+    return info.Env().Undefined();
+}
 } // namespace vtile
