@@ -90,6 +90,39 @@ struct BatonType
     bool compress = false;
 };
 
+struct InternationalizeBatonType
+{
+    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string const& language_, bool compress_)
+      : data{buffer.Data(), buffer.Length()},
+        buffer_ref{Napi::Persistent(buffer)},
+        language{language_},
+        compress{compress_}
+    {}
+
+    ~InternationalizeBatonType() noexcept
+    {
+        try
+        {
+            buffer_ref.Reset();
+        }
+        catch (...)
+        {
+        }
+    }
+    // non-copyable
+    InternationalizeBatonType(InternationalizeBatonType const&) = delete;
+    InternationalizeBatonType& operator=(InternationalizeBatonType const&) = delete;
+    // non-movable
+    InternationalizeBatonType(InternationalizeBatonType&&) = delete;
+    InternationalizeBatonType& operator=(InternationalizeBatonType&&) = delete;
+
+    // members
+    vtzero::data_view data;
+    Napi::Reference<Napi::Buffer<char>> buffer_ref;
+    std::string language;
+    bool compress;
+};
+
 namespace {
 
 template <typename FeatureBuilder>
@@ -540,13 +573,117 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     return info.Env().Undefined();
 }
 
+struct InternationalizeWorker : Napi::AsyncWorker
+{
+    using Base = Napi::AsyncWorker;
+
+    InternationalizeWorker(std::unique_ptr<InternationalizeBatonType>&& baton_data, Napi::Function& cb)
+        : Base(cb),
+          baton_data_{std::move(baton_data)},
+          output_buffer_{std::make_unique<std::string>()} {}
+
+    void Execute() override
+    {
+        try
+        {
+            vtzero::tile_builder builder;
+
+            std::vector<char> buffer_cache;
+
+            vtzero::data_view tile_view{};
+            if (gzip::is_compressed(baton_data_->data.data(), baton_data_->data.size()))
+            {
+                gzip::Decompressor decompressor;
+                decompressor.decompress(buffer_cache, baton_data_->data.data(), baton_data_->data.size());
+                tile_view = protozero::data_view{buffer_cache.data(), buffer_cache.size()};
+            }
+            else
+            {
+                tile_view = baton_data_->data;
+            }
+
+            vtzero::vector_tile tile{tile_view};
+            // TODO: make new tile
+            while (auto layer = tile.next_layer())
+            {
+                builder.add_existing_layer(layer);
+                // for each layer:  [note: make new tile & layers]
+                // make new layer
+                // get indices of "hidden" _mbx keys to drop
+                // get index of language key
+                // get index of name_local key
+                // get all features in layer
+                // for each feature:
+                //    if has language key, set name_local to language value
+                //    else if has name key but not language key, set name_local to name value (or leave as is?)
+                //    if has "hidden" _mbx keys, delete them from feature
+                // either delete the "hidden" _mbx keys from the layer, or add new built layer to new tile
+            }
+
+            std::string& tile_buffer = *output_buffer_;
+            if (baton_data_->compress)
+            {
+                std::string temp;
+                builder.serialize(temp);
+
+                // If the serialized buffer is an empty string, do not
+                // gzip compress it. This will lead to a non-zero byte string
+                // which can be perceived as a valid vector tile.
+                //
+                // Instead do nothing and return an empty, non-gzip-compressed buffer.
+                // If the user wants to handle empty tiles separately from non-empty
+                // tiles, they must check "buffer.length > 0" in the resulting callback.
+                if (!temp.empty())
+                {
+                    tile_buffer = gzip::compress(temp.data(), temp.size());
+                }
+            }
+            else
+            {
+                builder.serialize(tile_buffer);
+            }
+        }
+        // LCOV_EXCL_START
+        catch (std::exception const& e)
+        {
+            SetError(e.what());
+        }
+        // LCOV_EXCL_STOP
+    }
+    std::vector<napi_value> GetResult(Napi::Env env) override
+    {
+        if (output_buffer_)
+        {
+            std::string& tile_buffer = *output_buffer_;
+            auto buffer = Napi::Buffer<char>::New(
+                env,
+                tile_buffer.empty() ? nullptr : &tile_buffer[0],
+                tile_buffer.size(),
+                [](Napi::Env env_, char* /*unused*/, std::string* str_ptr) {
+                    if (str_ptr != nullptr)
+                    {
+                        Napi::MemoryManagement::AdjustExternalMemory(env_, -static_cast<std::int64_t>(str_ptr->size()));
+                    }
+                    delete str_ptr;
+                },
+                output_buffer_.release());
+            Napi::MemoryManagement::AdjustExternalMemory(env, static_cast<std::int64_t>(tile_buffer.size()));
+            return {env.Null(), buffer};
+        }
+        return Base::GetResult(env); // returns an empty vector (default)
+    }
+
+    std::unique_ptr<InternationalizeBatonType> const baton_data_;
+    std::unique_ptr<std::string> output_buffer_;
+};
+
 Napi::Value internationalize(Napi::CallbackInfo const& info)
 {
     // validate callback function
     std::size_t length = info.Length();
-    if (length == 0)
+    if (length < 3 || length > 4)
     {
-        Napi::Error::New(info.Env(), "last argument must be a callback function").ThrowAsJavaScriptException();
+        Napi::Error::New(info.Env(), "expected buffer, language, options and callback arguments").ThrowAsJavaScriptException();
         return info.Env().Null();
     }
     Napi::Value callback_val = info[length - 1];
@@ -558,23 +695,12 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
 
     Napi::Function callback = callback_val.As<Napi::Function>();
 
-    // std::uint32_t num_tiles = 1;
-    // std::unique_ptr<BatonType> baton_data = std::make_unique<BatonType>(num_tiles);
-
-    // validate tiles
-    Napi::Value tile_val = info[0];
-    if (!tile_val.IsObject())
+    // validate buffer object
+    Napi::Value buf_val = info[0];
+    if (!buf_val.IsObject())
     {
-        return utils::CallbackError("first argument must be tile object", info);
+        return utils::CallbackError("first argument must be buffer object", info);
     }
-
-    Napi::Object tile_obj = tile_val.As<Napi::Object>();
-    // check buffer value
-    if (!tile_obj.Has(Napi::String::New(info.Env(), "buffer")))
-    {
-        return utils::CallbackError("tile object does not include a buffer value", info);
-    }
-    Napi::Value buf_val = tile_obj.Get(Napi::String::New(info.Env(), "buffer"));
     if (buf_val.IsNull() || buf_val.IsUndefined())
     {
         return utils::CallbackError("tile buffer is null or undefined", info);
@@ -595,8 +721,7 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         return utils::CallbackError("language value must be a string", info);
     }
     std::string language = language_val.As<Napi::String>();
-
-    baton_data->tiles.push_back(std::make_unique<TileObject>(buffer, language));
+    bool compress = false;
 
     if (info.Length() > 3) // options
     {
@@ -606,21 +731,6 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         }
 
         Napi::Object options = info[2].As<Napi::Object>();
-        if (options.Has(Napi::String::New(info.Env(), "buffer_size")))
-        {
-            Napi::Value bs_value = options.Get(Napi::String::New(info.Env(), "buffer_size"));
-            if (!bs_value.IsNumber())
-            {
-                return utils::CallbackError("'buffer_size' must be an int32", info);
-            }
-
-            int buffer_size = bs_value.As<Napi::Number>().Int32Value();
-            if (buffer_size < 0)
-            {
-                return utils::CallbackError("'buffer_size' must be a positive int32", info);
-            }
-            baton_data->buffer_size = buffer_size;
-        }
         if (options.Has(Napi::String::New(info.Env(), "compress")))
         {
             Napi::Value comp_value = options.Get(Napi::String::New(info.Env(), "compress"));
@@ -628,11 +738,13 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
             {
                 return utils::CallbackError("'compress' must be a boolean", info);
             }
-
-            baton_data->compress = comp_value.As<Napi::Boolean>().Value();
+            compress = comp_value.As<Napi::Boolean>().Value();
         }
     }
-    auto* worker = new CompositeWorker{std::move(baton_data), callback};
+
+    std::unique_ptr<InternationalizeBatonType> baton_data = std::make_unique<InternationalizeBatonType>(buffer, language, compress);
+
+    auto* worker = new InternationalizeWorker{std::move(baton_data), callback};
     worker->Queue();
     return info.Env().Undefined();
 }
