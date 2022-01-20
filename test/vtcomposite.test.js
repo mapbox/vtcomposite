@@ -1,5 +1,5 @@
 const test = require('tape');
-const composite = require('../lib/index.js');
+const vt = require('../lib/index.js');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
@@ -9,6 +9,8 @@ const vt1infoValid = require('./test-utils.js').vt1infoValid;
 const tilebelt = require('@mapbox/tilebelt');
 
 const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
+const composite = vt.composite;
+const internationalize = vt.internationalize;
 
 test('[composite] success: buffer size stays the same when no compositing needed', function(assert) {
   const tiles = [

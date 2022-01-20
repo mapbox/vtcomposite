@@ -1,11 +1,14 @@
 var test = require('tape');
-var composite = require('../lib/index.js');
+var vt = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
 var zlib = require('zlib');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
 
-test('failure: fails without callback function', assert => {
+const composite = vt.composite;
+const internationalize = vt.internationalize;
+
+test('[composite] failure: fails without callback function', assert => {
   try {
     composite();
   } catch(err) {
