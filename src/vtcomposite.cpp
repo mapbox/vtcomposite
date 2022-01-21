@@ -586,8 +586,9 @@ struct InternationalizeWorker : Napi::AsyncWorker
     {
         try
         {
-            vtzero::tile_builder builder;
-
+            vtzero::tile_builder tbuilder;
+            std::string language_key = "name_" + baton_data_->language;
+            std::string language_key_mbx = "_mbx_name_" + baton_data_->language;
             std::vector<char> buffer_cache;
 
             vtzero::data_view tile_view{};
@@ -603,28 +604,51 @@ struct InternationalizeWorker : Napi::AsyncWorker
             }
 
             vtzero::vector_tile tile{tile_view};
-            // TODO: make new tile
+
             while (auto layer = tile.next_layer())
             {
-                builder.add_existing_layer(layer);
-                // for each layer:  [note: make new tile & layers]
-                // make new layer
-                // get indices of "hidden" _mbx keys to drop
-                // get index of language key
-                // get index of name_local key
-                // get all features in layer
-                // for each feature:
-                //    if has language key, set name_local to language value
-                //    else if has name key but not language key, set name_local to name value (or leave as is?)
-                //    if has "hidden" _mbx keys, delete them from feature
-                // either delete the "hidden" _mbx keys from the layer, or add new built layer to new tile
+                // TODO short circuit if hidden attributes not present?
+                // TODO short circuit if no feature in layer?
+                vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
+                while (auto feature = layer.next_feature()) {
+                    vtzero::geometry_feature_builder fbuilder{lbuilder};
+
+                    fbuilder.copy_id(feature);
+                    fbuilder.set_geometry(feature.geometry());
+
+                    bool name_was_set = false;
+                    vtzero::property_value name_value;
+                    while (auto property = feature.next_property()) {
+                        std::string property_key = property.key().to_string();
+
+                        if (!name_was_set && (language_key == property_key || language_key_mbx == property_key)) {
+                          fbuilder.add_property("name", property.value());
+                          name_was_set = true;
+                          continue;
+                        }
+                        if (!name_was_set && property_key == "name") {
+                          name_value = property.value();
+                          continue;
+                        }
+                        if (property_key.find("_mbx_") == 0) {
+                          continue;
+                        }
+
+                        fbuilder.add_property(property.key(), property.value());
+                    }
+                    if (!name_was_set && name_value.valid()) {
+                      fbuilder.add_property("name", name_value);
+                    }
+                    fbuilder.commit();
+                }
+
             }
 
             std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
             {
                 std::string temp;
-                builder.serialize(temp);
+                tbuilder.serialize(temp);
 
                 // If the serialized buffer is an empty string, do not
                 // gzip compress it. This will lead to a non-zero byte string
@@ -640,7 +664,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
             }
             else
             {
-                builder.serialize(tile_buffer);
+                tbuilder.serialize(tile_buffer);
             }
         }
         // LCOV_EXCL_START

@@ -399,4 +399,3 @@ test('[composite] success: empty overzoomed tile returns empty buffer even if co
     assert.end();
   });
 });
-
