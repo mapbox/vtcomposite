@@ -620,20 +620,28 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     vtzero::property_value name_value;
                     while (auto property = feature.next_property()) {
                         std::string property_key = property.key().to_string();
-
-                        if (!name_was_set && (language_key == property_key || language_key_mbx == property_key)) {
+                        // if we dont have an _mbx_name_{language} or name_{language} property
+                        // preserve original name value
+                        if (property_key == "name") {
+                          name_value = property.value();
+                          continue;
+                        }
+                        // set name to _mbx_name_{language}, if existing
+                        if (!name_was_set && language_key_mbx == property_key) {
                           fbuilder.add_property("name", property.value());
                           name_was_set = true;
                           continue;
                         }
-                        if (!name_was_set && property_key == "name") {
-                          name_value = property.value();
-                          continue;
-                        }
+                        // remove _mbx prefixed properties
                         if (property_key.find("_mbx_") == 0) {
                           continue;
                         }
-
+                        // set name to name_{language}, if existing
+                        // and keep these legacy properties on the feature
+                        if (!name_was_set && language_key == property_key) {
+                          fbuilder.add_property("name", property.value());
+                          name_was_set = true;
+                        }
                         fbuilder.add_property(property.key(), property.value());
                     }
                     if (!name_was_set && name_value.valid()) {

@@ -34,7 +34,7 @@ vtcomposite(tiles, zxy, options, function(err, result) {
 });
 
 // worldview & language
-vtinternationalize(tile, language, options, function(err, result) {
+vtinternationalize(buffer, language, options, function(err, result) {
   if (err) throw err;
   console.log(result); // tile buffer
 });
