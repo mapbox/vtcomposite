@@ -746,16 +746,20 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
 
     Napi::Buffer<char> buffer = buffer_obj.As<Napi::Buffer<char>>();
 
-    // language
+    // validate language string
     Napi::Value language_val = info[1];
     if (!language_val.IsString())
     {
         return utils::CallbackError("language value must be a string", info);
     }
     std::string language = language_val.As<Napi::String>();
-    bool compress = false;
+    if (language.length() == 0) {
+        return utils::CallbackError("language value is an empty string", info);
+    }
 
-    if (info.Length() > 3) // options
+     // validate options object
+    bool compress = false;
+    if (info.Length() > 3)
     {
         if (!info[2].IsObject())
         {

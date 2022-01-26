@@ -583,6 +583,14 @@ test('[internationalize] failure: language is not a string', assert => {
   });
 });
 
+test('[internationalize] failure: language is an empty string', assert => {
+  internationalize(Buffer.from('hello world'),'',{ compress: false },function(err, result) {
+    assert.ok(err);
+    assert.ok(/language value is an empty string/.test(err.message), 'expected error message');
+    assert.end();
+  });
+});
+
 test('[internationalize] failure: options is not an object', assert => {
   internationalize(Buffer.from('hello world'),'en',1,function(err, result) {
     assert.ok(err);
