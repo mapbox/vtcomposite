@@ -93,11 +93,12 @@ struct BatonType
 struct InternationalizeBatonType
 {
     InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string const& language_, bool compress_)
-      : data{buffer.Data(), buffer.Length()},
-        buffer_ref{Napi::Persistent(buffer)},
-        language{language_},
-        compress{compress_}
-    {}
+        : data{buffer.Data(), buffer.Length()},
+          buffer_ref{Napi::Persistent(buffer)},
+          language{language_},
+          compress{compress_}
+    {
+    }
 
     ~InternationalizeBatonType() noexcept
     {
@@ -590,7 +591,6 @@ struct InternationalizeWorker : Napi::AsyncWorker
             std::string language_key = "name_" + baton_data_->language;
             std::string language_key_mbx = "_mbx_name_" + baton_data_->language;
             std::vector<char> buffer_cache;
-
             vtzero::data_view tile_view{};
             if (gzip::is_compressed(baton_data_->data.data(), baton_data_->data.size()))
             {
@@ -610,7 +610,8 @@ struct InternationalizeWorker : Napi::AsyncWorker
                 // TODO short circuit if hidden attributes not present?
                 // TODO short circuit if no feature in layer?
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
-                while (auto feature = layer.next_feature()) {
+                while (auto feature = layer.next_feature())
+                {
                     vtzero::geometry_feature_builder fbuilder{lbuilder};
 
                     fbuilder.copy_id(feature);
@@ -618,38 +619,43 @@ struct InternationalizeWorker : Napi::AsyncWorker
 
                     bool name_was_set = false;
                     vtzero::property_value name_value;
-                    while (auto property = feature.next_property()) {
+                    while (auto property = feature.next_property())
+                    {
                         std::string property_key = property.key().to_string();
                         // if we dont have an _mbx_name_{language} or name_{language} property
                         // preserve original name value
-                        if (property_key == "name") {
-                          name_value = property.value();
-                          continue;
+                        if (property_key == "name")
+                        {
+                            name_value = property.value();
+                            continue;
                         }
                         // set name to _mbx_name_{language}, if existing
-                        if (!name_was_set && language_key_mbx == property_key) {
-                          fbuilder.add_property("name", property.value());
-                          name_was_set = true;
-                          continue;
+                        if (!name_was_set && language_key_mbx == property_key)
+                        {
+                            fbuilder.add_property("name", property.value());
+                            name_was_set = true;
+                            continue;
                         }
                         // remove _mbx prefixed properties
-                        if (property_key.find("_mbx_") == 0) {
-                          continue;
+                        if (property_key.find("_mbx_") == 0)
+                        {
+                            continue;
                         }
                         // set name to name_{language}, if existing
                         // and keep these legacy properties on the feature
-                        if (!name_was_set && language_key == property_key) {
-                          fbuilder.add_property("name", property.value());
-                          name_was_set = true;
+                        if (!name_was_set && language_key == property_key)
+                        {
+                            fbuilder.add_property("name", property.value());
+                            name_was_set = true;
                         }
                         fbuilder.add_property(property.key(), property.value());
                     }
-                    if (!name_was_set && name_value.valid()) {
-                      fbuilder.add_property("name", name_value);
+                    if (!name_was_set && name_value.valid())
+                    {
+                        fbuilder.add_property("name", name_value);
                     }
                     fbuilder.commit();
                 }
-
             }
 
             std::string& tile_buffer = *output_buffer_;
@@ -753,11 +759,12 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         return utils::CallbackError("language value must be a string", info);
     }
     std::string language = language_val.As<Napi::String>();
-    if (language.length() == 0) {
+    if (language.length() == 0)
+    {
         return utils::CallbackError("language value is an empty string", info);
     }
 
-     // validate options object
+    // validate options object
     bool compress = false;
     if (info.Length() > 3)
     {
