@@ -622,7 +622,6 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
-                        // if we dont have an _mbx_name_{language} or name_{language} property
                         // preserve original name value
                         if (property_key == "name")
                         {
@@ -650,9 +649,12 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         }
                         fbuilder.add_property(property.key(), property.value());
                     }
-                    if (!name_was_set && name_value.valid())
-                    {
-                        fbuilder.add_property("name", name_value);
+                    if (name_value.valid()) {
+                        fbuilder.add_property("name_local", name_value);
+
+                        if (!name_was_set) {
+                            fbuilder.add_property("name", name_value);
+                        }
                     }
                     fbuilder.commit();
                 }

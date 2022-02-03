@@ -8,33 +8,32 @@ const vtinfo = require('./test-utils.js').vtinfo;
 const vt1infoValid = require('./test-utils.js').vt1infoValid;
 const tilebelt = require('@mapbox/tilebelt');
 
-const bufferSF = fs.readFileSync(path.resolve(__dirname+'/../node_modules/@mapbox/mvt-fixtures/real-world/sanfrancisco/15-5238-12666.mvt'));
 
 test('[internationalize] success: buffer size stays the same when no changes needed', function(assert) {
+  const singlePointBuffer = mvtFixtures.get('002').buffer;
 
-  internationalize(bufferSF, 'piglatin', {}, (err, vtBuffer) => {
+  internationalize(singlePointBuffer, 'piglatin', {}, (err, vtBuffer) => {
     assert.notOk(err);
-    assert.equal(vtBuffer.length, bufferSF.length, 'same size');
+    assert.equal(vtBuffer.length - 3, singlePointBuffer.length, 'same size (with expected 3 byte difference due to explicit 4096 extent in output)');
     assert.end();
   });
 });
 
-const gzipped_bufferSF = zlib.gzipSync(bufferSF);
-
 test('[internationalize] success: single gzipped VT', function(assert) {
-
-  internationalize(gzipped_bufferSF, 'piglatin', {}, (err, vtBuffer) => {
+  const singlePointBuffer = mvtFixtures.get('002').buffer;
+  const gzipped_buffer = zlib.gzipSync(singlePointBuffer);
+  internationalize(gzipped_buffer, 'piglatin', {}, (err, vtBuffer) => {
     assert.notOk(err);
-    assert.equal(vtBuffer.length, zlib.gunzipSync(gzipped_bufferSF).length, 'same size');
+    assert.equal(vtBuffer.length - 3, zlib.gunzipSync(gzipped_buffer).length, 'same size (with expected 3 byte difference due to explicit 4096 extent in output)');
     assert.end();
   });
 });
 
 test('[internationalize] success: gzipped output', function(assert) {
-
-  internationalize(bufferSF, 'piglatin', {compress:true}, (err, vtBuffer) => {
+  const singlePointBuffer = mvtFixtures.get('002').buffer;
+  internationalize(singlePointBuffer, 'piglatin', {compress:true}, (err, vtBuffer) => {
     assert.notOk(err);
-    assert.equal(zlib.gunzipSync(vtBuffer).length, bufferSF.length, 'same size');
+    assert.equal(zlib.gunzipSync(vtBuffer).length - 3, singlePointBuffer.length, 'same size (with expected 3 byte difference due to explicit 4096 extent in output)');
     assert.end();
   });
 });
@@ -82,28 +81,29 @@ test('[internationalize] success - feature without name_ or _mbx prefixed proper
 test('[internationalize] success - feature with specified language in name_{language} property', function(assert) {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
-    "name":"Germany",
-    "name_local":"Germany",
-    "name_en": "Germany",
-    "name_fr": "Allemagne",
+    "name":"Espana",
+    "_mbx_name_gr": "Spanien",
+    "name_fr": "Espagne",
+    "_mbx_name_fr": "Espagne",
+    "name_en": "Spain",
     "population": 20
   };
   const internationalizedProperties = {
-    "name":"Allemagne",
-    "name_local":"Germany",
-    "name_en": "Germany",
-    "name_fr": "Allemagne",
+    "name":"Spain",
+    "name_local":"Espana",
+    "name_fr": "Espagne",
+    "name_en": "Spain",
     "population": 20
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(1);
   assert.deepEqual(feature.properties, initialProperties, 'expected initial properties')
 
-  internationalize(initialBuffer, 'fr', {}, (err, vtBuffer) => {
+  internationalize(initialBuffer, 'en', {}, (err, vtBuffer) => {
     assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     const internationalizedFeature = outputInfo.layers.bottom.feature(1);
-    assert.deepEqual(internationalizedFeature.properties, internationalizedProperties, 'expected new name property, dropped hidden property');
+    assert.deepEqual(internationalizedFeature.properties, internationalizedProperties, 'expected name_local, updated name, dropped _mbx properties');
     assert.end();
   });
 });
@@ -112,25 +112,27 @@ test('[internationalize] success - feature with specified language in _mbx_name_
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
     "name":"Germany",
-    "name_local":"Germany",
+    "name_en":"Germany",
+    "name_fr": "Allemagne",
     "_mbx_name_fr": "Allemagne",
     "_mbx_name_gr": "Deutschland",
-    "population": 20
+    "_mbx_other": "Alemania"
   };
   const internationalizedProperties = {
     "name":"Deutschland",
     "name_local":"Germany",
-    "population": 20
+    "name_en":"Germany",
+    "name_fr": "Allemagne",
   };
   const initialOutputInfo = vtinfo(initialBuffer);
-  const feature = initialOutputInfo.layers.bottom.feature(2);
+  const feature = initialOutputInfo.layers.bottom.feature(0);
   assert.deepEqual(feature.properties, initialProperties, 'expected initial properties')
 
   internationalize(initialBuffer, 'gr', {}, (err, vtBuffer) => {
     assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
-    const internationalizedFeature = outputInfo.layers.bottom.feature(2);
-    assert.deepEqual(internationalizedFeature.properties, internationalizedProperties, 'expected new name property, dropped hidden property');
+    const internationalizedFeature = outputInfo.layers.bottom.feature(0);
+    assert.deepEqual(internationalizedFeature.properties, internationalizedProperties, 'expected name_local, updated name, dropped _mbx properties');
     assert.end();
   });
 });
@@ -138,21 +140,18 @@ test('[internationalize] success - feature with specified language in _mbx_name_
 test('[internationalize] success - feature with specified language in both name_{language} and _mbx_name_{language} properties', function(assert) {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
-    "name":"Germany",
-    "name_local":"Germany",
-    "name_en":"Germany",
-    "name_fr":"Allemagne",
+    "name": "Germany",
+    "name_en": "Germany",
+    "name_fr": "Allemagne",
     "_mbx_name_fr": "Allemagne",
     "_mbx_name_gr": "Deutschland",
-    "_mbx_other": "Alemania",
-    "population": 20
+    "_mbx_other": "Alemania"
   };
   const internationalizedProperties = {
-    "name":"Allemagne",
-    "name_local":"Germany",
-    "name_en":"Germany",
-    "name_fr":"Allemagne",
-    "population": 20
+    "name": "Allemagne",
+    "name_local": "Germany",
+    "name_en": "Germany",
+    "name_fr": "Allemagne",
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(0);
@@ -162,7 +161,7 @@ test('[internationalize] success - feature with specified language in both name_
     assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     const internationalizedFeature = outputInfo.layers.bottom.feature(0);
-    assert.deepEqual(internationalizedFeature.properties, internationalizedProperties, 'expected new name property, dropped hidden property');
+    assert.deepEqual(internationalizedFeature.properties, internationalizedProperties, 'expected name_local, updated name, dropped _mbx properties');
     assert.end();
   });
 });
@@ -172,7 +171,6 @@ test('[internationalize] success - _mbx prefixed property keys removed from all 
   const topLayerKeys = ["population"];
   const bottomLayerKeys = [
       'name',
-      'name_local',
       'name_en',
       'name_fr',
       '_mbx_name_fr',
@@ -181,7 +179,7 @@ test('[internationalize] success - _mbx prefixed property keys removed from all 
       'population'
     ];
   const topLayerKeysExpected = topLayerKeys;
-  const bottomLayerKeysExpected = [ 'name_local', 'name_en', 'name_fr', 'name', 'population' ];
+  const bottomLayerKeysExpected = [ 'name_en', 'name_fr', 'name', 'name_local', 'population' ];
 
   const initialOutputInfo = vtinfo(initialBuffer);
   assert.deepEqual(initialOutputInfo.layers.top._keys, topLayerKeys, 'expected initial keys');
@@ -191,7 +189,7 @@ test('[internationalize] success - _mbx prefixed property keys removed from all 
     assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.deepEqual(outputInfo.layers.top._keys, topLayerKeysExpected, 'expected same keys');
-    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected dropped keys');
+    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected added name_local, dropped _mbx keys');
     assert.end();
   });
 });
