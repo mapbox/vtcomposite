@@ -92,10 +92,10 @@ struct BatonType
 
 struct InternationalizeBatonType
 {
-    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string const& language_, bool change_names_, bool compress_)
+    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
-          language{language_},
+          language{std::move(language_)},
           change_names{change_names_},
           compress{compress_}
     {
@@ -633,7 +633,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         if (!baton_data_->change_names)
                         {
                             // remove _mbx prefixed properties
-                            if (property_key.find("_mbx_") == 0)
+                            if (property_key.find("_mbx_") == 0) // NOLINT(abseil-string-find-startswith)
                             {
                                 continue;
                             }
@@ -655,7 +655,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                             continue;
                         }
                         // remove _mbx prefixed properties
-                        if (property_key.find("_mbx_") == 0)
+                        if (property_key.find("_mbx_") == 0) // NOLINT(abseil-string-find-startswith)
                         {
                             continue;
                         }
