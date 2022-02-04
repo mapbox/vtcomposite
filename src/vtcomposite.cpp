@@ -92,10 +92,11 @@ struct BatonType
 
 struct InternationalizeBatonType
 {
-    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string const& language_, bool compress_)
+    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string const& language_, bool change_names_, bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{language_},
+          change_names{change_names_},
           compress{compress_}
     {
     }
@@ -121,6 +122,7 @@ struct InternationalizeBatonType
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
     std::string language;
+    bool change_names;
     bool compress;
 };
 
@@ -588,8 +590,13 @@ struct InternationalizeWorker : Napi::AsyncWorker
         try
         {
             vtzero::tile_builder tbuilder;
-            std::string language_key = "name_" + baton_data_->language;
-            std::string language_key_mbx = "_mbx_name_" + baton_data_->language;
+            std::string language_key;
+            std::string language_key_mbx;
+            if (baton_data_->change_names)
+            {
+                language_key = "name_" + baton_data_->language;
+                language_key_mbx = "_mbx_name_" + baton_data_->language;
+            }
             std::vector<char> buffer_cache;
             vtzero::data_view tile_view{};
             if (gzip::is_compressed(baton_data_->data.data(), baton_data_->data.size()))
@@ -622,6 +629,18 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
+
+                        if (!baton_data_->change_names)
+                        {
+                            // remove _mbx prefixed properties
+                            if (property_key.find("_mbx_") == 0)
+                            {
+                                continue;
+                            }
+                            fbuilder.add_property(property.key(), property.value());
+                            continue;
+                        }
+
                         // preserve original name value
                         if (property_key == "name")
                         {
@@ -649,10 +668,12 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         }
                         fbuilder.add_property(property.key(), property.value());
                     }
-                    if (name_value.valid()) {
+                    if (baton_data_->change_names && name_value.valid())
+                    {
                         fbuilder.add_property("name_local", name_value);
 
-                        if (!name_was_set) {
+                        if (!name_was_set)
+                        {
                             fbuilder.add_property("name", name_value);
                         }
                     }
@@ -756,12 +777,24 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
 
     // validate language string
     Napi::Value language_val = info[1];
-    if (!language_val.IsString())
+    std::string language;
+    bool change_names = true;
+
+    if (language_val.IsNull())
     {
-        return utils::CallbackError("language value must be a string", info);
+        change_names = false;
+        language = "";
     }
-    std::string language = language_val.As<Napi::String>();
-    if (language.length() == 0)
+    else if (!language_val.IsString())
+    {
+        return utils::CallbackError("language value must be null, or a string", info);
+    }
+    else
+    {
+        language = language_val.As<Napi::String>();
+    }
+
+    if (change_names && language.length() == 0)
     {
         return utils::CallbackError("language value is an empty string", info);
     }
@@ -787,7 +820,7 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         }
     }
 
-    std::unique_ptr<InternationalizeBatonType> baton_data = std::make_unique<InternationalizeBatonType>(buffer, language, compress);
+    std::unique_ptr<InternationalizeBatonType> baton_data = std::make_unique<InternationalizeBatonType>(buffer, language, change_names, compress);
 
     auto* worker = new InternationalizeWorker{std::move(baton_data), callback};
     worker->Queue();

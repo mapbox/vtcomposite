@@ -193,3 +193,63 @@ test('[internationalize] success - _mbx prefixed property keys removed from all 
     assert.end();
   });
 });
+
+test('[internationalize] success - no language specified', function(assert) {
+  const initialBuffer = mvtFixtures.get('063').buffer;
+  const topLayerKeys = ["population"];
+  const bottomLayerKeys = [
+      'name',
+      'name_en',
+      'name_fr',
+      '_mbx_name_fr',
+      '_mbx_name_gr',
+      '_mbx_other',
+      'population'
+    ];
+  const topLayerKeysExpected = topLayerKeys;
+  const bottomLayerKeysExpected = [ 'name', 'name_en', 'name_fr', 'population' ];
+
+  const initialProperties0 = {
+    "name": "Germany",
+    "name_en": "Germany",
+    "name_fr": "Allemagne",
+    "_mbx_name_fr": "Allemagne",
+    "_mbx_name_gr": "Deutschland",
+    "_mbx_other": "Alemania"
+  };
+  const internationalizedProperties0 = {
+    "name": "Germany",
+    "name_en": "Germany",
+    "name_fr": "Allemagne",
+  };
+  const initialProperties1 = {
+    "name":"Espana",
+    "_mbx_name_gr": "Spanien",
+    "name_fr": "Espagne",
+    "_mbx_name_fr": "Espagne",
+    "name_en": "Spain",
+    "population": 20
+  };
+  const internationalizedProperties1 = {
+    "name":"Espana",
+    "name_fr": "Espagne",
+    "name_en": "Spain",
+    "population": 20
+  };
+
+  const initialOutputInfo = vtinfo(initialBuffer);
+  assert.deepEqual(initialOutputInfo.layers.top._keys, topLayerKeys, 'expected initial keys');
+  assert.deepEqual(initialOutputInfo.layers.bottom._keys, bottomLayerKeys, 'expected initial keys');
+
+  internationalize(initialBuffer, null, {}, (err, vtBuffer) => {
+    assert.notOk(err);
+    const outputInfo = vtinfo(vtBuffer);
+    const internationalizedFeature0 = outputInfo.layers.bottom.feature(0);
+    const internationalizedFeature1 = outputInfo.layers.bottom.feature(1);
+    assert.deepEqual(internationalizedFeature0.properties, internationalizedProperties0, 'expected same name, dropped _mbx properties');
+    assert.deepEqual(internationalizedFeature1.properties, internationalizedProperties1, 'expected same name, dropped _mbx properties');
+    assert.deepEqual(outputInfo.layers.top._keys, topLayerKeysExpected, 'expected same keys');
+    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected dropped _mbx keys');
+    assert.end();
+  });
+});

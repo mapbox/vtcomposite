@@ -575,10 +575,10 @@ test('[internationalize] failure: buffer is not a true buffer', assert => {
   });
 });
 
-test('[internationalize] failure: language is not a string', assert => {
+test('[internationalize] failure: language is an integer', assert => {
   internationalize(Buffer.from('hello world'),1,{ compress: false },function(err, result) {
     assert.ok(err);
-    assert.ok(/language value must be a string/.test(err.message), 'expected error message');
+    assert.ok(/language value must be null, or a string/.test(err.message), 'expected error message');
     assert.end();
   });
 });
