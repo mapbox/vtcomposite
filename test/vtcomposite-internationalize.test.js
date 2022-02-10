@@ -82,7 +82,7 @@ test('[internationalize] success - feature with specified language in name_{lang
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
     "name":"Espana",
-    "_mbx_name_gr": "Spanien",
+    "_mbx_name_de": "Spanien",
     "name_fr": "Espagne",
     "_mbx_name_fr": "Espagne",
     "name_en": "Spain",
@@ -114,8 +114,8 @@ test('[internationalize] success - feature with specified language in _mbx_name_
     "name":"Germany",
     "name_en":"Germany",
     "name_fr": "Allemagne",
-    "_mbx_name_fr": "Allemagne",
-    "_mbx_name_gr": "Deutschland",
+    "_mbx_name_fr": "La Allemagne",
+    "_mbx_name_de": "Deutschland",
     "_mbx_other": "Alemania"
   };
   const internationalizedProperties = {
@@ -128,7 +128,7 @@ test('[internationalize] success - feature with specified language in _mbx_name_
   const feature = initialOutputInfo.layers.bottom.feature(0);
   assert.deepEqual(feature.properties, initialProperties, 'expected initial properties')
 
-  internationalize(initialBuffer, 'gr', {}, (err, vtBuffer) => {
+  internationalize(initialBuffer, 'de', {}, (err, vtBuffer) => {
     assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     const internationalizedFeature = outputInfo.layers.bottom.feature(0);
@@ -143,8 +143,8 @@ test('[internationalize] success - feature with specified language in both name_
     "name": "Germany",
     "name_en": "Germany",
     "name_fr": "Allemagne",
-    "_mbx_name_fr": "Allemagne",
-    "_mbx_name_gr": "Deutschland",
+    "_mbx_name_fr": "La Allemagne",
+    "_mbx_name_de": "Deutschland",
     "_mbx_other": "Alemania"
   };
   const internationalizedProperties = {
@@ -174,12 +174,12 @@ test('[internationalize] success - _mbx prefixed property keys removed from all 
       'name_en',
       'name_fr',
       '_mbx_name_fr',
-      '_mbx_name_gr',
+      '_mbx_name_de',
       '_mbx_other',
       'population'
     ];
   const topLayerKeysExpected = topLayerKeys;
-  const bottomLayerKeysExpected = [ 'name_en', 'name_fr', 'name', 'name_local', 'population' ];
+  const bottomLayerKeysExpected = [ 'name_en', 'name_fr', 'name_local', 'name', 'population' ];
 
   const initialOutputInfo = vtinfo(initialBuffer);
   assert.deepEqual(initialOutputInfo.layers.top._keys, topLayerKeys, 'expected initial keys');
@@ -202,7 +202,7 @@ test('[internationalize] success - no language specified', function(assert) {
       'name_en',
       'name_fr',
       '_mbx_name_fr',
-      '_mbx_name_gr',
+      '_mbx_name_de',
       '_mbx_other',
       'population'
     ];
@@ -213,8 +213,8 @@ test('[internationalize] success - no language specified', function(assert) {
     "name": "Germany",
     "name_en": "Germany",
     "name_fr": "Allemagne",
-    "_mbx_name_fr": "Allemagne",
-    "_mbx_name_gr": "Deutschland",
+    "_mbx_name_fr": "La Allemagne",
+    "_mbx_name_de": "Deutschland",
     "_mbx_other": "Alemania"
   };
   const internationalizedProperties0 = {
@@ -224,7 +224,7 @@ test('[internationalize] success - no language specified', function(assert) {
   };
   const initialProperties1 = {
     "name":"Espana",
-    "_mbx_name_gr": "Spanien",
+    "_mbx_name_de": "Spanien",
     "name_fr": "Espagne",
     "_mbx_name_fr": "Espagne",
     "name_en": "Spain",
