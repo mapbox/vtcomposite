@@ -216,7 +216,7 @@ test('[internationalize] success - no language specified', function(assert) {
       'population'
     ];
   const topLayerKeysExpected = topLayerKeys;
-  const bottomLayerKeysExpected = [ 'name', 'name_en', 'name_fr', 'population' ];
+  const bottomLayerKeysExpected = [ 'name', 'name_en', 'name_fr', 'name_local', 'population' ];
 
   const initialProperties0 = {
     "name": "Germany",
@@ -228,6 +228,7 @@ test('[internationalize] success - no language specified', function(assert) {
   };
   const internationalizedProperties0 = {
     "name": "Germany",
+    "name_local": "Germany",
     "name_en": "Germany",
     "name_fr": "Allemagne",
   };
@@ -241,6 +242,7 @@ test('[internationalize] success - no language specified', function(assert) {
   };
   const internationalizedProperties1 = {
     "name":"Espana",
+    "name_local":"Espana",
     "name_fr": "Espagne",
     "name_en": "Spain",
     "population": 20

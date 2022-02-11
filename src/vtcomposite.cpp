@@ -629,25 +629,21 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     {
                         std::string property_key = property.key().to_string();
 
-                        if (!baton_data_->change_names)
-                        {
-                            // remove _mbx prefixed properties
-                            if (property_key.find("_mbx_") == 0) // NOLINT(abseil-string-find-startswith)
-                            {
-                                continue;
-                            }
-                            fbuilder.add_property(property.key(), property.value());
-                            continue;
-                        }
-
                         // preserve original name value
                         if (property_key == "name")
                         {
                             name_value = property.value();
+
+                            // if no language was specificed, we want the name value to be constant
+                            if (!baton_data_->change_names)
+                            {
+                                fbuilder.add_property("name", property.value());
+                                name_was_set = true;
+                            }
                             continue;
                         }
                         // set name to _mbx_name_{language}, if existing
-                        if (!name_was_set && language_key_mbx == property_key)
+                        if (baton_data_->change_names && !name_was_set && language_key_mbx == property_key)
                         {
                             fbuilder.add_property("name", property.value());
                             name_was_set = true;
@@ -660,14 +656,14 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         }
                         // set name to name_{language}, if existing
                         // and keep these legacy properties on the feature
-                        if (!name_was_set && language_key == property_key)
+                        if (baton_data_->change_names && !name_was_set && language_key == property_key)
                         {
                             fbuilder.add_property("name", property.value());
                             name_was_set = true;
                         }
                         fbuilder.add_property(property.key(), property.value());
                     }
-                    if (baton_data_->change_names && name_value.valid())
+                    if (name_value.valid())
                     {
                         fbuilder.add_property("name_local", name_value);
 
