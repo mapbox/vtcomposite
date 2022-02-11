@@ -759,7 +759,7 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
     Napi::Value buf_val = info[0];
     if (!buf_val.IsObject())
     {
-        return utils::CallbackError("first argument must be buffer object", info);
+        return utils::CallbackError("first argument must be Buffer object", info);
     }
     if (buf_val.IsNull() || buf_val.IsUndefined())
     {
