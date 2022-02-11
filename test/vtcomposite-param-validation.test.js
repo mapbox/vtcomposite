@@ -546,7 +546,7 @@ test('[internationalize] failure: callback is not a function', assert => {
 test('[internationalize] failure: buffer is not an object', assert => {
   internationalize(1,'en',{ compress: false },function(err, result) {
     assert.ok(err);
-    assert.ok(/first argument must be buffer object/.test(err.message), 'expected error message');
+    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
     assert.end();
   });
 });
@@ -554,7 +554,7 @@ test('[internationalize] failure: buffer is not an object', assert => {
 test('[internationalize] failure: buffer is null', assert => {
   internationalize(null,'en',{ compress: false },function(err, result) {
     assert.ok(err);
-    assert.ok(/first argument must be buffer object/.test(err.message), 'expected error message');
+    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
     assert.end();
   });
 });
@@ -562,7 +562,7 @@ test('[internationalize] failure: buffer is null', assert => {
 test('[internationalize] failure: buffer is undefined', assert => {
   internationalize(undefined,'en',{ compress: false },function(err, result) {
     assert.ok(err);
-    assert.ok(/first argument must be buffer object/.test(err.message), 'expected error message');
+    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
     assert.end();
   });
 });
@@ -570,7 +570,7 @@ test('[internationalize] failure: buffer is undefined', assert => {
 test('[internationalize] failure: buffer is not a true buffer', assert => {
   internationalize('not a buffer','en',{ compress: false },function(err, result) {
     assert.ok(err);
-    assert.ok(/first argument must be buffer object/.test(err.message), 'expected error message');
+    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
     assert.end();
   });
 });
@@ -578,7 +578,7 @@ test('[internationalize] failure: buffer is not a true buffer', assert => {
 test('[internationalize] failure: language is an integer', assert => {
   internationalize(Buffer.from('hello world'),1,{ compress: false },function(err, result) {
     assert.ok(err);
-    assert.ok(/language value must be null, or a string/.test(err.message), 'expected error message');
+    assert.ok(/language value must be null or a string/.test(err.message), 'expected error message');
     assert.end();
   });
 });
