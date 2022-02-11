@@ -24,7 +24,7 @@ test('[internationalize] success: single gzipped VT', function(assert) {
   const gzipped_buffer = zlib.gzipSync(singlePointBuffer);
   internationalize(gzipped_buffer, 'piglatin', {}, (err, vtBuffer) => {
     assert.notOk(err);
-    assert.equal(vtBuffer.length - 3, zlib.gunzipSync(gzipped_buffer).length, 'same size (with expected 3 byte difference due to explicit 4096 extent in output)');
+    assert.equal(vtBuffer.length - 3, singlePointBuffer.length, 'same size (with expected 3 byte difference due to explicit 4096 extent in output)');
     assert.end();
   });
 });
@@ -38,7 +38,17 @@ test('[internationalize] success: gzipped output', function(assert) {
   });
 });
 
-test('[internationalize] success - same layer names, same features, same extents, reduced buffer size', function(assert) {
+test('[internationalize] success: gzipped input and output', function(assert) {
+  const singlePointBuffer = mvtFixtures.get('002').buffer;
+  const gzipped_buffer = zlib.gzipSync(singlePointBuffer);
+  internationalize(gzipped_buffer, 'piglatin', {compress:true}, (err, vtBuffer) => {
+    assert.notOk(err);
+    assert.equal(zlib.gunzipSync(vtBuffer).length - 3, singlePointBuffer.length, 'same size (with expected 3 byte difference due to explicit 4096 extent in output)');
+    assert.end();
+  });
+});
+
+test('[internationalize] success - same layer names, same features, same extents', function(assert) {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialOutputInfo = vtinfo(initialBuffer);
   const numLayers = Object.keys(initialOutputInfo.layers).length;
@@ -59,7 +69,6 @@ test('[internationalize] success - same layer names, same features, same extents
     assert.ok(outputInfo.layers.bottom, 'bottom', 'expected bottom name');
     assert.ok(outputInfo.layers.bottom.extent, bottomLayerExtent, 'expected bottom extent');
     assert.equal(outputInfo.layers.bottom.length, numFeaturesBottomLayer, 'expected number of features in bottom');
-    assert.ok(internationalizedBuffer.length < initialBuffer.length, 'expected reduced buffer size')
     assert.end();
   });
 });

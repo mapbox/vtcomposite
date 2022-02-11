@@ -10,10 +10,10 @@ npm install @mapbox/vtcomposite
 
 vtcomposite is made possible with node-cpp-skel, vtzero, geometry.hpp, spatial-algorithms, gzip-hpp and boost geometry.
 
-# Usage
+# Compositing tiles
 
 ```js
-const vtcomposite = require('@mapbox/vtcomposite');
+const vtcomposite = require('@mapbox/vtcomposite').composite;
 const fs = require('fs');
 
 const tiles = [
@@ -32,12 +32,6 @@ vtcomposite(tiles, zxy, options, function(err, result) {
   if (err) throw err;
   console.log(result); // tile buffer
 });
-
-// worldview & language
-vtinternationalize(buffer, language, options, function(err, result) {
-  if (err) throw err;
-  console.log(result); // tile buffer
-});
 ```
 
 ### Parameters
@@ -52,6 +46,33 @@ vtinternationalize(buffer, language, options, function(err, result) {
     - `z` **Number** z value of the output tile buffer
     - `x` **Number** x value of the output tile buffer
     - `y` **Number** y value of the output tile buffer
+- `options` **Object**
+  - `options.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return a uncompressed buffer. (optional, default `false`)
+  - `options.buffer_size` **Number** the buffer size of a tile, indicating the tile extent that should be composited and/or clipped. Default is `buffer_size=0`. (optional, default `0`)
+- `callback` **Function** callback function that returns `err`, and `buffer` parameters
+
+# Internationalizing tile buffer
+```js
+const internationalize = require('@mapbox/vtcomposite').internationalize;
+const fs = require('fs');
+
+const buffer = fs.readFileSync('./path/to/tile.mvt');
+const language = 'en';
+const options = {
+  compress: true,
+  buffer_size: 0
+};
+
+internationalize(buffer, language, options, function(err, result) {
+  if (err) throw err;
+  console.log(result); // tile buffer
+});
+```
+
+### Parameters
+
+- `buffer` **Buffer** a vector tile buffer, gzip compressed or not
+- `language` **String** the IETF BCP 47 language code.
 - `options` **Object**
   - `options.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return a uncompressed buffer. (optional, default `false`)
   - `options.buffer_size` **Number** the buffer size of a tile, indicating the tile extent that should be composited and/or clipped. Default is `buffer_size=0`. (optional, default `0`)

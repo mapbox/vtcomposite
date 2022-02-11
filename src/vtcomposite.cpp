@@ -615,7 +615,6 @@ struct InternationalizeWorker : Napi::AsyncWorker
             while (auto layer = tile.next_layer())
             {
                 // TODO short circuit if hidden attributes not present?
-                // TODO short circuit if no feature in layer?
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
@@ -783,7 +782,6 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
     if (language_val.IsNull())
     {
         change_names = false;
-        language = "";
     }
     else if (!language_val.IsString())
     {
