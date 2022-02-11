@@ -785,7 +785,7 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
     }
     else if (!language_val.IsString())
     {
-        return utils::CallbackError("language value must be null, or a string", info);
+        return utils::CallbackError("language value must be null or a string", info);
     }
     else
     {
