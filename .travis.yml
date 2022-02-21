@@ -1,12 +1,13 @@
 language: node_js
+dist: bionic
 
-node_js: 12
+node_js: 16
 
 # enable c++11/14 builds
 addons:
   apt:
     sources: [ 'ubuntu-toolchain-r-test' ]
-    packages: [ 'libstdc++-4.9-dev' ]
+    packages: [ 'libstdc++-5-dev', 'python3.6' ]
 
 install:
   - node -v
@@ -14,6 +15,8 @@ install:
   - clang++ -v
   - which clang++
   - make ${BUILDTYPE}
+  # Build should be standalone now, so remove mason deps
+  - rm -rf mason_packages
 
 # *Here we run tests*
 # We prefer running tests in the 'before_script' section rather than 'script' to ensure fast failure.
@@ -34,10 +37,9 @@ matrix:
   include:
 
     ## ** Builds that are published **
-
-    # linux cfi build node v10/release
+    # linux cfi build node release
     - os: linux
-      env: BUILDTYPE=release TOOLSET=cfi CXXFLAGS="-flto -fsanitize=cfi -fvisibility=hidden" LDFLAGS="-flto -fsanitize=cfi"
+      env: BUILDTYPE=release TOOLSET=cfi CXXFLAGS="-flto -fsanitize=cfi -fvisibility=hidden" LDFLAGS="-flto -fsanitize=cfi" PYTHON=3.6
     # linux publishable node release
     - os: linux
       env: BUILDTYPE=release
@@ -62,7 +64,7 @@ matrix:
 
     # g++ build (default builds all use clang++)
     - os: linux
-      env: BUILDTYPE=debug CXX="g++-6" CC="gcc-6" LINK="g++-6" AR="ar" NM="nm" CXXFLAGS="-fext-numeric-literals"
+      env: BUILDTYPE=debug CXX="g++-6" CC="gcc-6" LINK="g++-6" AR="ar" NM="nm" CXXFLAGS="-fext-numeric-literals" PYTHON=3.6
       addons:
         apt:
           sources:
@@ -73,19 +75,19 @@ matrix:
       # Overrides `install` to avoid initializing clang toolchain
       install:
         - make ${BUILDTYPE}
+      before_script:
+        - npm test
       # Overrides `script` to disable publishing
       script: true
-    # # Coverage build
-    # - os: linux
-    #   env: BUILDTYPE=debug CXXFLAGS="--coverage" LDFLAGS="--coverage"
-    #   # Overrides `script` to publish coverage data to codecov
-    #   script:
-    #     - export PATH=$(pwd)/mason_packages/.link/bin/:${PATH}
-    #     - PATH=`echo $PATH | sed -e 's/:\.\/node_modules\/\.bin//'` # remove relative path ^^
-    #     - which llvm-cov
-    #     - curl -S -f https://codecov.io/bash -o codecov
-    #     - chmod +x codecov
-    #     - ./codecov -x "llvm-cov gcov" -Z
+    # Coverage build
+    - os: linux
+      env: BUILDTYPE=debug CXXFLAGS="--coverage" LDFLAGS="--coverage" PYTHON=3.6
+      # Overrides `script` to publish coverage data to codecov
+      script:
+        - export PATH=$(pwd)/mason_packages/.link/bin/:${PATH}
+        - which llvm-cov
+        - pip install --user codecov
+        - codecov -x "llvm-cov gcov" -l
     # Clang format build
     - os: linux
       env: CLANG_FORMAT
