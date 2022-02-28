@@ -1,5 +1,6 @@
 # 0.6.1
 - Build binaries with node v16 -> works at runtime with node v8 -> v16 (and likely others)
+- Remove `-D_GLIBCXX_USE_CXX11_ABI=0` build flag
 - Upgrade dependencies [#119](https://github.com/mapbox/vtcomposite/pull/119)
   - `node-addon-api` ^4.3.0
   - `@mapbox/node-pre-gyp` ^1.0.8
