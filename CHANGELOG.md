@@ -1,3 +1,19 @@
+# 0.6.1
+- Build binaries with node v16 -> works at runtime with node v8 -> v16 (and likely others)
+- Upgrade dependencies [#119](https://github.com/mapbox/vtcomposite/pull/119)
+  - `node-addon-api` ^4.3.0
+  - `@mapbox/node-pre-gyp` ^1.0.8
+  - `@mapbox/cloudfriend` ^5.1.0
+  - `@mapbox/mvt-fixtures` ^3.7.0
+  - `@mapbox/sphericalmercator` ^1.2.0
+  - `@mapbox/tilebelt` ^1.0.2
+  - `aws-sdk` ^2.1074.0
+  - `bytes` ^3.1.2
+  - `d3-queue` ^3.0.
+  - `mapnik` ^4.5.9
+  - `pbf` ^3.2.1
+  - `tape` ^4.5.2
+
 # 0.6.0
 
 - Return empty `Buffer` if a composite operation results in a empty tile, even if `compress: true` is set. This can happen if a tile is overzoomed and results in no layers, but the resulting buffer was gzipped, which leads to a non-empty gzipped buffer with no data, specifically: `<Buffer 1f 8b 08 00 00 00 00 00 00 13 03 00 00 00 00 00 00 00 00 00>`. The result of this change is that users should check the response `buffer.length > 0` if they need to handle empty tiles separately from non-empty tiles.
