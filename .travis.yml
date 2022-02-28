@@ -1,5 +1,5 @@
 language: node_js
-dist: focal
+dist: bionic
 
 # enable c++11/14 builds
 addons:
@@ -68,6 +68,7 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - libstdc++-6-dev
             - g++-6
       # Overrides `install` to avoid initializing clang toolchain
       install:
