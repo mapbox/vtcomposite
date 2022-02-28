@@ -5,7 +5,7 @@ dist: focal
 addons:
   apt:
     sources: [ 'ubuntu-toolchain-r-test' ]
-    packages: [ 'libstdc++-5-dev', 'python3.6' ]
+    packages: [ 'libstdc++-6-dev' ]
 
 install:
   - node -v
@@ -37,7 +37,7 @@ matrix:
     ## ** Builds that are published **
     # linux cfi build node release
     - os: linux
-      env: BUILDTYPE=release TOOLSET=cfi CXXFLAGS="-flto -fsanitize=cfi -fvisibility=hidden" LDFLAGS="-flto -fsanitize=cfi" PYTHON=3.6
+      env: BUILDTYPE=release TOOLSET=cfi CXXFLAGS="-flto -fsanitize=cfi -fvisibility=hidden" LDFLAGS="-flto -fsanitize=cfi"
     # linux publishable node release
     - os: linux
       env: BUILDTYPE=release
@@ -62,13 +62,12 @@ matrix:
 
     # g++ build (default builds all use clang++)
     - os: linux
-      env: BUILDTYPE=debug CXX="g++-6" CC="gcc-6" LINK="g++-6" AR="ar" NM="nm" CXXFLAGS="-fext-numeric-literals" PYTHON=3.6
+      env: BUILDTYPE=debug CXX="g++-6" CC="gcc-6" LINK="g++-6" AR="ar" NM="nm" CXXFLAGS="-fext-numeric-literals"
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - libstdc++-6-dev
             - g++-6
       # Overrides `install` to avoid initializing clang toolchain
       install:
@@ -79,7 +78,7 @@ matrix:
       script: true
     # Coverage build
     - os: linux
-      env: BUILDTYPE=debug CXXFLAGS="--coverage" LDFLAGS="--coverage" PYTHON=3.6
+      env: BUILDTYPE=debug CXXFLAGS="--coverage" LDFLAGS="--coverage"
       # Overrides `script` to publish coverage data to codecov
       script:
         - export PATH=$(pwd)/mason_packages/.link/bin/:${PATH}
