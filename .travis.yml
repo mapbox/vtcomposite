@@ -1,5 +1,5 @@
 language: node_js
-dist: bionic
+dist: focal
 
 # enable c++11/14 builds
 addons:
