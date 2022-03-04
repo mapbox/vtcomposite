@@ -58,12 +58,13 @@ const fs = require('fs');
 
 const buffer = fs.readFileSync('./path/to/tile.mvt');
 const language = 'en';
+const worldview = 'AD';
 const options = {
   compress: true,
   buffer_size: 0
 };
 
-internationalize(buffer, language, options, function(err, result) {
+internationalize(buffer, language, worldview options, function(err, result) {
   if (err) throw err;
   console.log(result); // tile buffer
 });
@@ -73,9 +74,9 @@ internationalize(buffer, language, options, function(err, result) {
 
 - `buffer` **Buffer** a vector tile buffer, gzip compressed or not
 - `language` **String** the IETF BCP 47 language code.
-- `options` **Object**
+- `worldview` **String** a country code used to filter features. Any feature with a worldview that doesn't match will be removed. Must be in ISO 3166-1 alpha-2 format.
+- `options` **Object** _(optional)_
   - `options.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return a uncompressed buffer. (optional, default `false`)
-  - `options.buffer_size` **Number** the buffer size of a tile, indicating the tile extent that should be composited and/or clipped. Default is `buffer_size=0`. (optional, default `0`)
 - `callback` **Function** callback function that returns `err`, and `buffer` parameters
 
 # Installation

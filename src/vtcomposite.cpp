@@ -8,8 +8,6 @@
 #include <gzip/decompress.hpp>
 #include <gzip/utils.hpp>
 // vtzero
-#include <utility>
-
 #include <vtzero/builder.hpp>
 #include <vtzero/property_value.hpp>
 #include <vtzero/vector_tile.hpp>
@@ -19,6 +17,7 @@
 #include <mapbox/geometry/point.hpp>
 // stl
 #include <algorithm>
+#include <utility>
 
 namespace vtile {
 
@@ -92,11 +91,13 @@ struct BatonType
 
 struct InternationalizeBatonType
 {
-    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, bool compress_)
+    // do we need change_names_?
+    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{std::move(language_)},
           change_names{change_names_},
+          worldview{std::move(worldview_)},
           compress{compress_}
     {
     }
@@ -123,6 +124,7 @@ struct InternationalizeBatonType
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
     std::string language;
     bool change_names;
+    std::string worldview;
     bool compress;
 };
 
@@ -735,13 +737,14 @@ struct InternationalizeWorker : Napi::AsyncWorker
 
 Napi::Value internationalize(Napi::CallbackInfo const& info)
 {
-    // validate callback function
     std::size_t length = info.Length();
-    if (length < 3 || length > 4)
+    if (length < 4 || length > 5)
     {
-        Napi::Error::New(info.Env(), "expected buffer, language, options and callback arguments").ThrowAsJavaScriptException();
+        Napi::Error::New(info.Env(), "expected buffer, language, worldview, options and callback arguments").ThrowAsJavaScriptException();
         return info.Env().Null();
     }
+
+    // validate callback function
     Napi::Value callback_val = info[length - 1];
     if (!callback_val.IsFunction())
     {
@@ -793,16 +796,34 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         return utils::CallbackError("language value is an empty string", info);
     }
 
-    // validate options object
-    bool compress = false;
-    if (info.Length() > 3)
+    // validate worldview string
+    Napi::Value worldview_val = info[2];
+    std::string worldview;
+
+    if (!worldview_val.IsString() && !worldview_val.IsNull())
     {
-        if (!info[2].IsObject())
+        return utils::CallbackError("worldview value must be null or a string", info);
+    }
+
+    if (worldview_val.IsString())
+    {
+        worldview = worldview_val.As<Napi::String>();
+        if (worldview.length() == 0)
+        {
+            return utils::CallbackError("worldview value is an empty string", info);
+        }
+    }
+
+    // validate optional options object
+    bool compress = false;
+    if (info.Length() > 4)
+    {
+        if (!info[3].IsObject())
         {
             return utils::CallbackError("'options' arg must be an object", info);
         }
 
-        Napi::Object options = info[2].As<Napi::Object>();
+        Napi::Object options = info[3].As<Napi::Object>();
         if (options.Has(Napi::String::New(info.Env(), "compress")))
         {
             Napi::Value comp_value = options.Get(Napi::String::New(info.Env(), "compress"));
@@ -814,7 +835,7 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         }
     }
 
-    std::unique_ptr<InternationalizeBatonType> baton_data = std::make_unique<InternationalizeBatonType>(buffer, language, change_names, compress);
+    std::unique_ptr<InternationalizeBatonType> baton_data = std::make_unique<InternationalizeBatonType>(buffer, language, change_names, worldview, compress);
 
     auto* worker = new InternationalizeWorker{std::move(baton_data), callback};
     worker->Queue();
