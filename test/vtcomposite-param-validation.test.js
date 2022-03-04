@@ -1,11 +1,14 @@
 var test = require('tape');
-var composite = require('../lib/index.js');
+var vt = require('../lib/index.js');
 var fs = require('fs');
 var path = require('path');
 var zlib = require('zlib');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
 
-test('failure: fails without callback function', assert => {
+const composite = vt.composite;
+const internationalize = vt.internationalize;
+
+test('[composite] failure: fails without callback function', assert => {
   try {
     composite();
   } catch(err) {
@@ -14,7 +17,7 @@ test('failure: fails without callback function', assert => {
   }
 });
 
-test('failure: buffers is not an array', assert => {
+test('[composite] failure: buffers is not an array', assert => {
   composite('i am not an array', {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, 'first arg \'tiles\' must be an array of tile objects');
@@ -22,7 +25,7 @@ test('failure: buffers is not an array', assert => {
   });
 });
 
-test('failure: buffers array is empty', assert => {
+test('[composite] failure: buffers array is empty', assert => {
   const buffs = [];
   composite(buffs, {z:3, x:1, y:0}, {}, function(err, result) {
     assert.ok(err);
@@ -31,7 +34,7 @@ test('failure: buffers array is empty', assert => {
   });
 });
 
-test('failure: item in buffers array is not an object', assert => {
+test('[composite] failure: item in buffers array is not an object', assert => {
   const buffs = [
     'not an object'
   ];
@@ -42,7 +45,7 @@ test('failure: item in buffers array is not an object', assert => {
   });
 });
 
-test('failure: buffer value does not exist', assert => {
+test('[composite] failure: buffer value does not exist', assert => {
   const buffs = [
     {
       z: 0,
@@ -57,7 +60,7 @@ test('failure: buffer value does not exist', assert => {
   });
 });
 
-test('failure: buffer value is null', assert => {
+test('[composite] failure: buffer value is null', assert => {
   const buffs = [
     {
       buffer: null,
@@ -73,7 +76,7 @@ test('failure: buffer value is null', assert => {
   });
 });
 
-test('failure: buffer value is not a buffer', assert => {
+test('[composite] failure: buffer value is not a buffer', assert => {
   const buffs = [
     {
       buffer: 'not a buffer',
@@ -89,7 +92,7 @@ test('failure: buffer value is not a buffer', assert => {
   });
 });
 
-test('failure: buffer object missing z value', assert => {
+test('[composite] failure: buffer object missing z value', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -105,7 +108,7 @@ test('failure: buffer object missing z value', assert => {
   });
 });
 
-test('failure: buffer object missing x value', assert => {
+test('[composite] failure: buffer object missing x value', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -121,7 +124,7 @@ test('failure: buffer object missing x value', assert => {
   });
 });
 
-test('failure: buffer object missing y value', assert => {
+test('[composite] failure: buffer object missing y value', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -137,7 +140,7 @@ test('failure: buffer object missing y value', assert => {
   });
 });
 
-test('failure: buffer object z value is not an int32', assert => {
+test('[composite] failure: buffer object z value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -153,7 +156,7 @@ test('failure: buffer object z value is not an int32', assert => {
   });
 });
 
-test('failure: buffer object x value is not an int32', assert => {
+test('[composite] failure: buffer object x value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -169,7 +172,7 @@ test('failure: buffer object x value is not an int32', assert => {
   });
 });
 
-test('failure: buffer object y value is not an int32', assert => {
+test('[composite] failure: buffer object y value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -185,7 +188,7 @@ test('failure: buffer object y value is not an int32', assert => {
   });
 });
 
-test('failure: buffer object z value is negative', assert => {
+test('[composite] failure: buffer object z value is negative', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -201,7 +204,7 @@ test('failure: buffer object z value is negative', assert => {
   });
 });
 
-test('failure: buffer object x value is negative', assert => {
+test('[composite] failure: buffer object x value is negative', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -217,7 +220,7 @@ test('failure: buffer object x value is negative', assert => {
   });
 });
 
-test('failure: buffer object y value is negative', assert => {
+test('[composite] failure: buffer object y value is negative', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -233,7 +236,7 @@ test('failure: buffer object y value is negative', assert => {
   });
 });
 
-test('failure: layers option is not an array', assert => {
+test('[composite] failure: layers option is not an array', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -250,7 +253,7 @@ test('failure: layers option is not an array', assert => {
   });
 });
 
-test('failure: layers option is an empty array', assert => {
+test('[composite] failure: layers option is an empty array', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -267,7 +270,7 @@ test('failure: layers option is an empty array', assert => {
   });
 });
 
-test('failure: layers option is an array with invalid types (not strings)', assert => {
+test('[composite] failure: layers option is an array with invalid types (not strings)', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -286,7 +289,7 @@ test('failure: layers option is an array with invalid types (not strings)', asse
 
 // TESTS FOR ZXY MAP REQUEST!
 
-test('failure: map request zxy missing z value', assert => {
+test('[composite] failure: map request zxy missing z value', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -302,7 +305,7 @@ test('failure: map request zxy missing z value', assert => {
   });
 });
 
-test('failure: map request zxy missing x value', assert => {
+test('[composite] failure: map request zxy missing x value', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -318,7 +321,7 @@ test('failure: map request zxy missing x value', assert => {
   });
 });
 
-test('failure: map request zxy missing y value', assert => {
+test('[composite] failure: map request zxy missing y value', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -334,7 +337,7 @@ test('failure: map request zxy missing y value', assert => {
   });
 });
 
-test('failure: map request zxy z value is not an int32', assert => {
+test('[composite] failure: map request zxy z value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -350,7 +353,7 @@ test('failure: map request zxy z value is not an int32', assert => {
   });
 });
 
-test('failure: map request zxy x value is not an int32', assert => {
+test('[composite] failure: map request zxy x value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -366,7 +369,7 @@ test('failure: map request zxy x value is not an int32', assert => {
   });
 });
 
-test('failure: map request zxy y value is not an int32', assert => {
+test('[composite] failure: map request zxy y value is not an int32', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -382,7 +385,7 @@ test('failure: map request zxy y value is not an int32', assert => {
   });
 });
 
-test('failure: map request zxy z value is negative', assert => {
+test('[composite] failure: map request zxy z value is negative', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -398,7 +401,7 @@ test('failure: map request zxy z value is negative', assert => {
   });
 });
 
-test('failure: map request zxy x value is negative', assert => {
+test('[composite] failure: map request zxy x value is negative', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -414,7 +417,7 @@ test('failure: map request zxy x value is negative', assert => {
   });
 });
 
-test('failure: map request zxy y value is negative', assert => {
+test('[composite] failure: map request zxy y value is negative', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -430,7 +433,7 @@ test('failure: map request zxy y value is negative', assert => {
   });
 });
 
-test('failure: map request zxy is not an object', assert => {
+test('[composite] failure: map request zxy is not an object', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -446,7 +449,7 @@ test('failure: map request zxy is not an object', assert => {
   });
 });
 
-test('failure: compress must be a boolean', assert => {
+test('[composite] failure: compress must be a boolean', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -462,7 +465,7 @@ test('failure: compress must be a boolean', assert => {
   });
 });
 
-test('failure: options must be an object', assert => {
+test('[composite] failure: options must be an object', assert => {
   const buffs = [
     {
       buffer: Buffer.from('hey'),
@@ -478,7 +481,7 @@ test('failure: options must be an object', assert => {
   });
 });
 
-test('failure: buffer size is not int32', assert => {
+test('[composite] failure: buffer size is not int32', assert => {
   const buffs = [
     {
       buffer: new Buffer(10),
@@ -494,7 +497,7 @@ test('failure: buffer size is not int32', assert => {
   });
 });
 
-test('failure: buffer size is not positive int32', assert => {
+test('[composite] failure: buffer size is not positive int32', assert => {
   const buffs = [
     {
       buffer: new Buffer(10),
@@ -506,6 +509,100 @@ test('failure: buffer size is not positive int32', assert => {
   composite(buffs, {z:0, x:0, y:0}, {buffer_size:-10}, function(err, result) {
     assert.ok(err);
     assert.equal(err.message, '\'buffer_size\' must be a positive int32');
+    assert.end();
+  });
+});
+
+test('[internationalize] failure: not enough arguments', assert => {
+  try {
+    internationalize();
+  } catch(err) {
+    assert.ok(err);
+    assert.ok(/expected buffer, language, options and callback arguments/.test(err.message), 'expected error message');
+    assert.end();
+  }
+});
+
+test('[internationalize] failure: too many arguments', assert => {
+  try {
+    internationalize(Buffer.from('hello world'),'en',{ compress: false },4,function(err, result) {});
+  } catch(err) {
+    assert.ok(err);
+    assert.ok(/expected buffer, language, options and callback arguments/.test(err.message), 'expected error message');
+    assert.end();
+  }
+});
+
+test('[internationalize] failure: callback is not a function', assert => {
+  try {
+    internationalize(Buffer.from('hello world'),'en',{ compress: false },4);
+  } catch(err) {
+    assert.ok(err);
+    assert.ok(/last argument must be a callback function/.test(err.message), 'expected error message');
+    assert.end();
+  }
+});
+
+test('[internationalize] failure: buffer is not an object', assert => {
+  internationalize(1,'en',{ compress: false },function(err, result) {
+    assert.ok(err);
+    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
+    assert.end();
+  });
+});
+
+test('[internationalize] failure: buffer is null', assert => {
+  internationalize(null,'en',{ compress: false },function(err, result) {
+    assert.ok(err);
+    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
+    assert.end();
+  });
+});
+
+test('[internationalize] failure: buffer is undefined', assert => {
+  internationalize(undefined,'en',{ compress: false },function(err, result) {
+    assert.ok(err);
+    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
+    assert.end();
+  });
+});
+
+test('[internationalize] failure: buffer is not a true buffer', assert => {
+  internationalize('not a buffer','en',{ compress: false },function(err, result) {
+    assert.ok(err);
+    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
+    assert.end();
+  });
+});
+
+test('[internationalize] failure: language is an integer', assert => {
+  internationalize(Buffer.from('hello world'),1,{ compress: false },function(err, result) {
+    assert.ok(err);
+    assert.ok(/language value must be null or a string/.test(err.message), 'expected error message');
+    assert.end();
+  });
+});
+
+test('[internationalize] failure: language is an empty string', assert => {
+  internationalize(Buffer.from('hello world'),'',{ compress: false },function(err, result) {
+    assert.ok(err);
+    assert.ok(/language value is an empty string/.test(err.message), 'expected error message');
+    assert.end();
+  });
+});
+
+test('[internationalize] failure: options is not an object', assert => {
+  internationalize(Buffer.from('hello world'),'en',1,function(err, result) {
+    assert.ok(err);
+    assert.ok(/'options' arg must be an object/.test(err.message), 'expected error message');
+    assert.end();
+  });
+});
+
+test('[internationalize] failure: options.compress is not a boolean', assert => {
+  internationalize(Buffer.from('hello world'),'en',{ compress: 1 },function(err, result) {
+    assert.ok(err);
+    assert.ok(/'compress' must be a boolean/.test(err.message), 'expected error message');
     assert.end();
   });
 });

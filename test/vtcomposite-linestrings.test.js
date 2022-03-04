@@ -1,5 +1,5 @@
 var test = require('tape');
-var composite = require('../lib/index.js');
+var composite = require('../lib/index.js').composite;
 var fs = require('fs');
 var path = require('path');
 var mvtFixtures = require('@mapbox/mvt-fixtures');
