@@ -606,3 +606,17 @@ test('[internationalize] failure: options.compress is not a boolean', assert => 
     assert.end();
   });
 });
+
+test('[internationalize] success: options may be omitted', assert => {
+  internationalize(mvtFixtures.get('002').buffer, 'en', 'AD', function (err, result) {
+    assert.notOk(err);
+    assert.end();
+  });
+});
+
+test('[internationalize] success: options may be empty', assert => {
+  internationalize(mvtFixtures.get('002').buffer, 'en', 'AD', { }, function (err, result) {
+    assert.notOk(err);
+    assert.end();
+  });
+});

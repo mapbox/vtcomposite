@@ -1,13 +1,12 @@
-const test = require('tape');
 const internationalize = require('../lib/index.js').internationalize;
-const fs = require('fs');
-const path = require('path');
-const zlib = require('zlib');
-const mvtFixtures = require('@mapbox/mvt-fixtures');
 const vtinfo = require('./test-utils.js').vtinfo;
-const vt1infoValid = require('./test-utils.js').vt1infoValid;
-const tilebelt = require('@mapbox/tilebelt');
 
+const mvtFixtures = require('@mapbox/mvt-fixtures');
+const VectorTile = require('@mapbox/vector-tile').VectorTile;
+const protobuf = require('pbf');
+
+const test = require('tape');
+const zlib = require('zlib');
 
 test('[internationalize] success: buffer size stays the same when no changes needed', function(assert) {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
@@ -160,7 +159,7 @@ test('[internationalize] success - feature with specified language in both name_
     "name": "Allemagne",
     "name_local": "Germany",
     "name_en": "Germany",
-    "name_fr": "Allemagne",
+    "name_fr": "Allemagne", // choosing first encountered property in (name_fr, _mbx_name_fr)
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(0);
@@ -245,6 +244,58 @@ test('[internationalize] success - no language specified', function(assert) {
     assert.deepEqual(internationalizedFeature1.properties, internationalizedProperties1, 'expected same name, dropped _mbx properties');
     assert.deepEqual(outputInfo.layers.top._keys, topLayerKeysExpected, 'expected same keys');
     assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected dropped _mbx keys');
+    assert.end();
+  });
+});
+
+const getFeatureById = (layer, id) => {
+  for (let fidx = 0; fidx < layer.length; fidx++) {
+    if (layer.feature(fidx).id === id) {
+      return layer.feature(fidx);
+    }
+  }
+
+  return null;
+};
+
+test('[internationalize worldview] success - no worldview specified', function(assert) {
+  const initialBuffer = mvtFixtures.get('064').buffer;
+
+  internationalize(initialBuffer, null, null, (err, vtBuffer) => {
+    assert.notOk(err);
+
+    const tile = new VectorTile(new protobuf(vtBuffer));
+
+    let feature = getFeatureById(tile.layers.bottom, 11);
+    assert.ok(feature, 'feature with worldview:all is kept');
+    assert.deepEqual(
+      feature.properties,
+      { name: 'Germany', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', worldview: 'all' },
+      'id=11 keeps worldview:all');
+
+    feature = getFeatureById(tile.layers.bottom, 15);
+    assert.ok(feature, 'feature with worldview:IN is kept');
+    assert.deepEqual(
+      feature.properties,
+      { name: 'España', name_en: 'Spain', name_fr: 'Espagne', name_local: 'España', population: 100, worldview: 'IN' },
+      'id=15 keeps worldview:IN');
+
+    feature = getFeatureById(tile.layers.bottom, 12);
+    assert.ok(feature, 'feature with _mbx_worldview:all is kept');
+    assert.deepEqual(
+      feature.properties,
+      { name: 'Germany', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', population: 100, worldview: 'all' },
+      'id=12 changes _mbx_worldview:all to worldview:all');
+
+    feature = getFeatureById(tile.layers.bottom, 13);
+    assert.ok(feature, 'feature with _mbx_worldview:CN is kept');
+    assert.deepEqual(
+      feature.properties,
+      { name: 'Germany', name_local: 'Germany', population: 100, worldview: 'CN' },
+      'id=13 changes _mbx_worldview:CN to worldview:CN');
+
+    assert.isEqual(getFeatureById(tile.layers.bottom, 14), null, 'id=13 non-legacy worldview is dropped');
+
     assert.end();
   });
 });

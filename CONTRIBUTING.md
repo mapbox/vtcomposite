@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for getting involved and contributing to the skel :tada: Below are a few things to setup when submitting a PR.
+Thanks for getting involved and contributing to vt-composite :tada: Below are a few things to setup when submitting a PR.
 
 ## Code comments
 

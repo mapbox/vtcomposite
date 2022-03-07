@@ -17,7 +17,9 @@
 #include <mapbox/geometry/point.hpp>
 // stl
 #include <algorithm>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace vtile {
 
@@ -589,6 +591,8 @@ struct InternationalizeWorker : Napi::AsyncWorker
 
     void Execute() override
     {
+        const std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US", "all"};
+
         try
         {
             vtzero::tile_builder tbuilder;
@@ -616,20 +620,41 @@ struct InternationalizeWorker : Napi::AsyncWorker
 
             while (auto layer = tile.next_layer())
             {
-                // TODO short circuit if hidden attributes not present?
+                // TODO short circuit if hidden attributes not present? (call vtzero's add_existing_layer)
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
+                    // defer this ?
                     vtzero::geometry_feature_builder fbuilder{lbuilder};
-
                     fbuilder.copy_id(feature);
                     fbuilder.set_geometry(feature.geometry());
 
+                    bool keep_feature = true;
                     bool name_was_set = false;
                     vtzero::property_value name_value;
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
+                        // property_value.type() check against property_value_tile::string_value
+
+                        if (property_key == "worldview")
+                        {
+                            fbuilder.add_property("worldview", property.value());
+                            continue;
+                        }
+
+                        if (property_key == "_mbx_worldview")
+                        {
+                            if (std::find(legacy_worldviews.begin(), legacy_worldviews.end(), property.value().string_value()) != legacy_worldviews.end())
+                            {
+                                fbuilder.add_property("worldview", property.value());
+                            }
+                            else
+                            {
+                                keep_feature = false;
+                            }
+                            continue;
+                        }
 
                         // preserve original name value
                         if (property_key == "name")
@@ -661,7 +686,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         if (baton_data_->change_names && !name_was_set && language_key == property_key)
                         {
                             fbuilder.add_property("name", property.value());
-                            name_was_set = true;
+                            name_was_set = true; // if we keep name, name_local as vars rather than adding to fbuilder, we can eliminate name_Was_set prob
                         }
                         fbuilder.add_property(property.key(), property.value());
                     }
@@ -674,7 +699,11 @@ struct InternationalizeWorker : Napi::AsyncWorker
                             fbuilder.add_property("name", name_value);
                         }
                     }
-                    fbuilder.commit();
+
+                    if (keep_feature)
+                    {
+                        fbuilder.commit();
+                    }
                 }
             }
 
