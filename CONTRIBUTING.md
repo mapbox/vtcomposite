@@ -21,3 +21,7 @@ We also use [`clang-tidy`](https://clang.llvm.org/extra/clang-tidy/) as a C++ li
 	make tidy
 
 These commands are set from within [the Makefile](./Makefile).
+
+## Deploying
+
+In short, you'll need to push a commit with the log line containing `[publish binary]` to build the binary, followed by an `npm publish`. See [node-cpp-skel](https://github.com/mapbox/node-cpp-skel/blob/d2848ed5bcc5a798ff39a2ac139b70844043ff11/docs/publishing-binaries.md) for all the details.

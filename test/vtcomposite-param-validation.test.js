@@ -620,3 +620,29 @@ test('[internationalize] success: options may be empty', assert => {
     assert.end();
   });
 });
+
+test('[internationalize] success: worldview is not 2 characters long', assert => {
+  assert.plan(6);
+  internationalize(mvtFixtures.get('002').buffer, 'en', '', function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'worldview must be a string 2 characters long');
+  });
+
+  internationalize(mvtFixtures.get('002').buffer, 'en', 'z', function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'worldview must be a string 2 characters long');
+  });
+
+  internationalize(mvtFixtures.get('002').buffer, 'en', 'abc', function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'worldview must be a string 2 characters long');
+  });
+});
+
+test('[internationalize] success: worldview is not a string', assert => {
+  internationalize(mvtFixtures.get('002').buffer, 'en', 100, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'worldview value must be null or a 2 character string');
+    assert.end();
+  });
+});

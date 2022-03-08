@@ -478,7 +478,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer, layers));
     }
 
-    //validate zxy maprequest object
+    // validate zxy maprequest object
     if (!info[1].IsObject())
     {
         return utils::CallbackError("'zxy_maprequest' must be an object", info);
@@ -589,10 +589,41 @@ struct InternationalizeWorker : Napi::AsyncWorker
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
 
+    bool processWorldview(const std::string& pval, vtzero::geometry_feature_builder& fbuilder)
+    {
+        static const std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"};
+
+        if (pval == "all")
+        {
+            fbuilder.add_property("worldview", "all");
+            return true;
+        }
+
+        if (baton_data_->worldview.empty())
+        {
+            for (auto const& wv : legacy_worldviews)
+            {
+                if (pval.find(wv) != std::string::npos)
+                {
+                    fbuilder.add_property("worldview", pval);
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            if (pval.find(baton_data_->worldview) != std::string::npos)
+            {
+                fbuilder.add_property("worldview", pval);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     void Execute() override
     {
-        const std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US", "all"};
-
         try
         {
             vtzero::tile_builder tbuilder;
@@ -635,24 +666,18 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
-                        // property_value.type() check against property_value_tile::string_value
-
-                        if (property_key == "worldview")
-                        {
-                            fbuilder.add_property("worldview", property.value());
-                            continue;
-                        }
 
                         if (property_key == "_mbx_worldview")
                         {
-                            if (std::find(legacy_worldviews.begin(), legacy_worldviews.end(), property.value().string_value()) != legacy_worldviews.end())
+                            if (property.value().type() == vtzero::property_value_type::string_value)
                             {
-                                fbuilder.add_property("worldview", property.value());
+                                keep_feature = processWorldview(static_cast<std::string>(property.value().string_value()), fbuilder);
                             }
                             else
                             {
                                 keep_feature = false;
                             }
+
                             continue;
                         }
 
@@ -831,15 +856,15 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
 
     if (!worldview_val.IsString() && !worldview_val.IsNull())
     {
-        return utils::CallbackError("worldview value must be null or a string", info);
+        return utils::CallbackError("worldview value must be null or a 2 character string", info);
     }
 
     if (worldview_val.IsString())
     {
         worldview = worldview_val.As<Napi::String>();
-        if (worldview.length() == 0)
+        if (worldview.length() != 2)
         {
-            return utils::CallbackError("worldview value is an empty string", info);
+            return utils::CallbackError("worldview must be a string 2 characters long", info);
         }
     }
 
