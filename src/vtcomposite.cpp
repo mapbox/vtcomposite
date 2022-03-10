@@ -93,7 +93,6 @@ struct BatonType
 
 struct InternationalizeBatonType
 {
-    // do we need change_names_?
     InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
@@ -655,7 +654,6 @@ struct InternationalizeWorker : Napi::AsyncWorker
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
-                    // defer this ?
                     vtzero::geometry_feature_builder fbuilder{lbuilder};
                     fbuilder.copy_id(feature);
                     fbuilder.set_geometry(feature.geometry());
@@ -711,7 +709,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         if (baton_data_->change_names && !name_was_set && language_key == property_key)
                         {
                             fbuilder.add_property("name", property.value());
-                            name_was_set = true; // if we keep name, name_local as vars rather than adding to fbuilder, we can eliminate name_Was_set prob
+                            name_was_set = true;
                         }
                         fbuilder.add_property(property.key(), property.value());
                     }
