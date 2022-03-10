@@ -1,24 +1,12 @@
 'use strict';
 
 const internationalize = require('../lib/index.js').internationalize;
-const vtinfo = require('./test-utils.js').vtinfo;
+const { vtinfo, getFeatureById } = require('./test-utils.js');
 
 const mvtFixtures = require('@mapbox/mvt-fixtures');
-const VectorTile = require('@mapbox/vector-tile').VectorTile;
-const protobuf = require('pbf');
 
 const test = require('tape');
 const zlib = require('zlib');
-
-const getFeatureById = (layer, id) => {
-  for (let fidx = 0; fidx < layer.length; fidx++) {
-    if (layer.feature(fidx).id === id) {
-      return layer.feature(fidx);
-    }
-  }
-
-  return null;
-};
 
 test('[internationalize] success: buffer size stays the same when no changes needed', (assert) => {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
@@ -26,7 +14,7 @@ test('[internationalize] success: buffer size stays the same when no changes nee
   internationalize(singlePointBuffer, 'piglatin', null, (err, vtBuffer) => {
     assert.notOk(err);
 
-    const tile = new VectorTile(new protobuf(vtBuffer));
+    const tile = vtinfo(vtBuffer);
     assert.equal(tile.layers.hello.feature(0).id, undefined, 'ID should not be added to feature that does not have one');
     assert.equal(vtBuffer.length - 3, singlePointBuffer.length, 'same size (with expected 3 byte difference due to explicit 4096 extent in output)');
     assert.end();
@@ -269,9 +257,9 @@ test('[internationalize] success - fr language and no worldview specified', (ass
   internationalize(initialBuffer, 'fr', null, (err, vtBuffer) => {
     assert.notOk(err);
 
-    const tile = new VectorTile(new protobuf(vtBuffer));
+    const tile = vtinfo(vtBuffer);
 
-    const initialFeature10 = getFeatureById(new VectorTile(new protobuf(initialBuffer)).layers.bottom, 10);
+    const initialFeature10 = getFeatureById(vtinfo(initialBuffer).layers.bottom, 10);
     let feature = getFeatureById(tile.layers.bottom, 10);
     assert.ok(feature, 'feature with worldview:all is kept');
     assert.deepEqual(
@@ -322,7 +310,7 @@ test('[internationalize] success - IN legacy worldview specified', (assert) => {
   internationalize(initialBuffer, null, 'IN', (err, vtBuffer) => {
     assert.notOk(err);
 
-    const tile = new VectorTile(new protobuf(vtBuffer));
+    const tile = vtinfo(vtBuffer);
 
     let feature = getFeatureById(tile.layers.bottom, 10);
     assert.ok(feature, 'feature with worldview:all is kept');
@@ -367,7 +355,7 @@ test('[internationalize] success - AD non-legacy worldview specified', (assert) 
   internationalize(initialBuffer, null, 'AD', (err, vtBuffer) => {
     assert.notOk(err);
 
-    const tile = new VectorTile(new protobuf(vtBuffer));
+    const tile = vtinfo(vtBuffer);
 
     let feature = getFeatureById(tile.layers.bottom, 10);
     assert.ok(feature, 'feature with worldview:all is kept');
@@ -416,7 +404,7 @@ test('[internationalize] success - worldview specified but tileset has no _mbx_w
   internationalize(initialBuffer, null, 'AD', (err, vtBuffer) => {
     assert.notOk(err);
 
-    const tile = new VectorTile(new protobuf(vtBuffer));
+    const tile = vtinfo(vtBuffer);
     assert.equal(tile.layers.top.length, 2, 'all features in top layer kept');
     assert.equal(tile.layers.bottom.length, 5, 'all features in bottom layer kept');
 
