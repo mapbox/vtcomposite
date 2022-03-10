@@ -1,3 +1,5 @@
+'use strict';
+
 const internationalize = require('../lib/index.js').internationalize;
 const vtinfo = require('./test-utils.js').vtinfo;
 
@@ -18,7 +20,7 @@ const getFeatureById = (layer, id) => {
   return null;
 };
 
-test('[internationalize] success: buffer size stays the same when no changes needed', function (assert) {
+test('[internationalize] success: buffer size stays the same when no changes needed', (assert) => {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
 
   internationalize(singlePointBuffer, 'piglatin', null, (err, vtBuffer) => {
@@ -31,7 +33,7 @@ test('[internationalize] success: buffer size stays the same when no changes nee
   });
 });
 
-test('[internationalize] success: single gzipped VT', function (assert) {
+test('[internationalize] success: single gzipped VT', (assert) => {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
   const gzipped_buffer = zlib.gzipSync(singlePointBuffer);
   internationalize(gzipped_buffer, 'piglatin', null, (err, vtBuffer) => {
@@ -41,7 +43,7 @@ test('[internationalize] success: single gzipped VT', function (assert) {
   });
 });
 
-test('[internationalize] success: gzipped output', function (assert) {
+test('[internationalize] success: gzipped output', (assert) => {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
   internationalize(singlePointBuffer, 'piglatin', null, { compress: true }, (err, vtBuffer) => {
     assert.notOk(err);
@@ -50,7 +52,7 @@ test('[internationalize] success: gzipped output', function (assert) {
   });
 });
 
-test('[internationalize] success: gzipped input and output', function (assert) {
+test('[internationalize] success: gzipped input and output', (assert) => {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
   const gzipped_buffer = zlib.gzipSync(singlePointBuffer);
   internationalize(gzipped_buffer, 'piglatin', null, { compress: true }, (err, vtBuffer) => {
@@ -60,7 +62,7 @@ test('[internationalize] success: gzipped input and output', function (assert) {
   });
 });
 
-test('[internationalize] success - same layer names, same features, same extents', function (assert) {
+test('[internationalize] success - same layer names, same features, same extents', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialOutputInfo = vtinfo(initialBuffer);
   const numLayers = Object.keys(initialOutputInfo.layers).length;
@@ -85,7 +87,7 @@ test('[internationalize] success - same layer names, same features, same extents
   });
 });
 
-test('[internationalize] success - feature without name_ or _mbx prefixed properties has same properties', function (assert) {
+test('[internationalize] success - feature without name_ or _mbx prefixed properties has same properties', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialOutputInfo = vtinfo(initialBuffer);
   const initialFeature = initialOutputInfo.layers.top.feature(0);
@@ -99,26 +101,26 @@ test('[internationalize] success - feature without name_ or _mbx prefixed proper
   });
 });
 
-test('[internationalize] success - feature with specified language in name_{language} property', function (assert) {
+test('[internationalize] success - feature with specified language in name_{language} property', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
-    "name": "Espana",
-    "_mbx_name_de": "Spanien",
-    "name_fr": "Espagne",
-    "_mbx_name_fr": "Espagne",
-    "name_en": "Spain",
-    "population": 20
+    'name': 'Espana',
+    '_mbx_name_de': 'Spanien',
+    'name_fr': 'Espagne',
+    '_mbx_name_fr': 'Espagne',
+    'name_en': 'Spain',
+    'population': 20
   };
   const internationalizedProperties = {
-    "name": "Spain",
-    "name_local": "Espana",
-    "name_fr": "Espagne",
-    "name_en": "Spain",
-    "population": 20
+    'name': 'Spain',
+    'name_local': 'Espana',
+    'name_fr': 'Espagne',
+    'name_en': 'Spain',
+    'population': 20
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(1);
-  assert.deepEqual(feature.properties, initialProperties, 'expected initial properties')
+  assert.deepEqual(feature.properties, initialProperties, 'expected initial properties');
 
   internationalize(initialBuffer, 'en', null, (err, vtBuffer) => {
     assert.notOk(err);
@@ -129,25 +131,25 @@ test('[internationalize] success - feature with specified language in name_{lang
   });
 });
 
-test('[internationalize] success - feature with specified language in _mbx_name_{language} property', function (assert) {
+test('[internationalize] success - feature with specified language in _mbx_name_{language} property', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
-    "name": "Germany",
-    "name_en": "Germany",
-    "name_fr": "Allemagne",
-    "_mbx_name_fr": "La Allemagne",
-    "_mbx_name_de": "Deutschland",
-    "_mbx_other": "Alemania"
+    'name': 'Germany',
+    'name_en': 'Germany',
+    'name_fr': 'Allemagne',
+    '_mbx_name_fr': 'La Allemagne',
+    '_mbx_name_de': 'Deutschland',
+    '_mbx_other': 'Alemania'
   };
   const internationalizedProperties = {
-    "name": "Deutschland",
-    "name_local": "Germany",
-    "name_en": "Germany",
-    "name_fr": "Allemagne",
+    'name': 'Deutschland',
+    'name_local': 'Germany',
+    'name_en': 'Germany',
+    'name_fr': 'Allemagne',
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(0);
-  assert.deepEqual(feature.properties, initialProperties, 'expected initial properties')
+  assert.deepEqual(feature.properties, initialProperties, 'expected initial properties');
 
   internationalize(initialBuffer, 'de', null, (err, vtBuffer) => {
     assert.notOk(err);
@@ -158,25 +160,25 @@ test('[internationalize] success - feature with specified language in _mbx_name_
   });
 });
 
-test('[internationalize] success - feature with specified language in both name_{language} and _mbx_name_{language} properties', function (assert) {
+test('[internationalize] success - feature with specified language in both name_{language} and _mbx_name_{language} properties', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
-    "name": "Germany",
-    "name_en": "Germany",
-    "name_fr": "Allemagne",
-    "_mbx_name_fr": "La Allemagne",
-    "_mbx_name_de": "Deutschland",
-    "_mbx_other": "Alemania"
+    'name': 'Germany',
+    'name_en': 'Germany',
+    'name_fr': 'Allemagne',
+    '_mbx_name_fr': 'La Allemagne',
+    '_mbx_name_de': 'Deutschland',
+    '_mbx_other': 'Alemania'
   };
   const internationalizedProperties = {
-    "name": "Allemagne",
-    "name_local": "Germany",
-    "name_en": "Germany",
-    "name_fr": "Allemagne", // choosing first encountered property in (name_fr, _mbx_name_fr)
+    'name': 'Allemagne',
+    'name_local': 'Germany',
+    'name_en': 'Germany',
+    'name_fr': 'Allemagne', // choosing first encountered property in (name_fr, _mbx_name_fr)
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(0);
-  assert.deepEqual(feature.properties, initialProperties, 'expected initial properties')
+  assert.deepEqual(feature.properties, initialProperties, 'expected initial properties');
 
   internationalize(initialBuffer, 'fr', null, (err, vtBuffer) => {
     assert.notOk(err);
@@ -187,9 +189,9 @@ test('[internationalize] success - feature with specified language in both name_
   });
 });
 
-test('[internationalize] success - _mbx prefixed property keys removed from all layers', function (assert) {
+test('[internationalize] success - _mbx prefixed property keys removed from all layers', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
-  const topLayerKeys = ["population"];
+  const topLayerKeys = ['population'];
   const bottomLayerKeys = [
     'name',
     'name_en',
@@ -215,9 +217,9 @@ test('[internationalize] success - _mbx prefixed property keys removed from all 
   });
 });
 
-test('[internationalize] success - no language specified', function (assert) {
+test('[internationalize] success - no language specified', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
-  const topLayerKeys = ["population"];
+  const topLayerKeys = ['population'];
   const bottomLayerKeys = [
     'name',
     'name_en',
@@ -231,17 +233,17 @@ test('[internationalize] success - no language specified', function (assert) {
   const bottomLayerKeysExpected = ['name', 'name_en', 'name_fr', 'name_local', 'population'];
 
   const internationalizedProperties0 = {
-    "name": "Germany",
-    "name_local": "Germany",
-    "name_en": "Germany",
-    "name_fr": "Allemagne",
+    'name': 'Germany',
+    'name_local': 'Germany',
+    'name_en': 'Germany',
+    'name_fr': 'Allemagne',
   };
   const internationalizedProperties1 = {
-    "name": "Espana",
-    "name_local": "Espana",
-    "name_fr": "Espagne",
-    "name_en": "Spain",
-    "population": 20
+    'name': 'Espana',
+    'name_local': 'Espana',
+    'name_fr': 'Espagne',
+    'name_en': 'Spain',
+    'population': 20
   };
 
   const initialOutputInfo = vtinfo(initialBuffer);
@@ -261,7 +263,7 @@ test('[internationalize] success - no language specified', function (assert) {
   });
 });
 
-test('[internationalize] success - fr language and no worldview specified', function (assert) {
+test('[internationalize] success - fr language and no worldview specified', (assert) => {
   const initialBuffer = mvtFixtures.get('064').buffer;
 
   internationalize(initialBuffer, 'fr', null, (err, vtBuffer) => {
@@ -269,12 +271,12 @@ test('[internationalize] success - fr language and no worldview specified', func
 
     const tile = new VectorTile(new protobuf(vtBuffer));
 
-    let initialFeature10 = getFeatureById(new VectorTile(new protobuf(initialBuffer)).layers.bottom, 10);
+    const initialFeature10 = getFeatureById(new VectorTile(new protobuf(initialBuffer)).layers.bottom, 10);
     let feature = getFeatureById(tile.layers.bottom, 10);
     assert.ok(feature, 'feature with worldview:all is kept');
     assert.deepEqual(
       feature.properties,
-      { "name": "Allemagne", "name_local": "Germany", "name_en": "Germany", "name_fr": "Allemagne", 'worldview': 'all'},
+      { 'name': 'Allemagne', 'name_local': 'Germany', 'name_en': 'Germany', 'name_fr': 'Allemagne', 'worldview': 'all' },
       'id=10 keeps worldview:all');
     assert.deepEqual(feature.loadGeometry(), initialFeature10.loadGeometry(), 'id=10 geometry should be copied');
 
@@ -314,7 +316,7 @@ test('[internationalize] success - fr language and no worldview specified', func
   });
 });
 
-test('[internationalize] success - IN legacy worldview specified', function (assert) {
+test('[internationalize] success - IN legacy worldview specified', (assert) => {
   const initialBuffer = mvtFixtures.get('064').buffer;
 
   internationalize(initialBuffer, null, 'IN', (err, vtBuffer) => {
@@ -359,7 +361,7 @@ test('[internationalize] success - IN legacy worldview specified', function (ass
   });
 });
 
-test('[internationalize] success - AD non-legacy worldview specified', function (assert) {
+test('[internationalize] success - AD non-legacy worldview specified', (assert) => {
   const initialBuffer = mvtFixtures.get('064').buffer;
 
   internationalize(initialBuffer, null, 'AD', (err, vtBuffer) => {
@@ -408,7 +410,7 @@ test('[internationalize] success - AD non-legacy worldview specified', function 
   });
 });
 
-test('[internationalize] success - worldview specified but tileset has no _mbx_worldview', function (assert) {
+test('[internationalize] success - worldview specified but tileset has no _mbx_worldview', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
 
   internationalize(initialBuffer, null, 'AD', (err, vtBuffer) => {
