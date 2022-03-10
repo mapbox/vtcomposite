@@ -51,7 +51,7 @@ vtcomposite(tiles, zxy, options, function(err, result) {
   - `options.buffer_size` **Number** the buffer size of a tile, indicating the tile extent that should be composited and/or clipped. Default is `buffer_size=0`. (optional, default `0`)
 - `callback` **Function** callback function that returns `err`, and `buffer` parameters
 
-# Internationalizing tile buffer
+# Internationalizing a tile buffer
 ```js
 const internationalize = require('@mapbox/vtcomposite').internationalize;
 const fs = require('fs');
@@ -60,11 +60,10 @@ const buffer = fs.readFileSync('./path/to/tile.mvt');
 const language = 'en';
 const worldview = 'AD';
 const options = {
-  compress: true,
-  buffer_size: 0
+  compress: true
 };
 
-internationalize(buffer, language, worldview options, function(err, result) {
+internationalize(buffer, language, worldview, options, function(err, result) {
   if (err) throw err;
   console.log(result); // tile buffer
 });
@@ -74,10 +73,10 @@ internationalize(buffer, language, worldview options, function(err, result) {
 
 - `buffer` **Buffer** a vector tile buffer, gzip compressed or not
 - `language` **String** the IETF BCP 47 language code.
-- `worldview` **String** a country code used to filter features. Any feature with a worldview that doesn't match will be removed. Must be in ISO 3166-1 alpha-2 format.
+- `worldview` **String** a country code used to filter features. Any feature with a worldview ("`_mbx_worldview`" property) that doesn't match will be removed. Must be in ISO 3166-1 alpha-2 format.
 - `options` **Object** _(optional)_
-  - `options.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return a uncompressed buffer. (optional, default `false`)
-- `callback` **Function** callback function that returns `err`, and `buffer` parameters
+  - `options.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return an uncompressed buffer. (optional, default `false`)
+- `callback` **Function** callback function that returns `err` and `buffer` parameters
 
 # Installation
 
