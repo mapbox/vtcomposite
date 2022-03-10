@@ -8,11 +8,24 @@ const protobuf = require('pbf');
 const test = require('tape');
 const zlib = require('zlib');
 
+const getFeatureById = (layer, id) => {
+  for (let fidx = 0; fidx < layer.length; fidx++) {
+    if (layer.feature(fidx).id === id) {
+      return layer.feature(fidx);
+    }
+  }
+
+  return null;
+};
+
 test('[internationalize] success: buffer size stays the same when no changes needed', function (assert) {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
 
   internationalize(singlePointBuffer, 'piglatin', null, (err, vtBuffer) => {
     assert.notOk(err);
+
+    const tile = new VectorTile(new protobuf(vtBuffer));
+    assert.equal(tile.layers.hello.feature(0).id, undefined, 'ID should not be added to feature that does not have one');
     assert.equal(vtBuffer.length - 3, singlePointBuffer.length, 'same size (with expected 3 byte difference due to explicit 4096 extent in output)');
     assert.end();
   });
@@ -248,43 +261,35 @@ test('[internationalize] success - no language specified', function (assert) {
   });
 });
 
-const getFeatureById = (layer, id) => {
-  for (let fidx = 0; fidx < layer.length; fidx++) {
-    if (layer.feature(fidx).id === id) {
-      return layer.feature(fidx);
-    }
-  }
-
-  return null;
-};
-
-test('[internationalize worldview] success - no worldview specified', function (assert) {
+test('[internationalize] success - fr language and no worldview specified', function (assert) {
   const initialBuffer = mvtFixtures.get('064').buffer;
 
-  internationalize(initialBuffer, null, null, (err, vtBuffer) => {
+  internationalize(initialBuffer, 'fr', null, (err, vtBuffer) => {
     assert.notOk(err);
 
     const tile = new VectorTile(new protobuf(vtBuffer));
 
+    let initialFeature10 = getFeatureById(new VectorTile(new protobuf(initialBuffer)).layers.bottom, 10);
     let feature = getFeatureById(tile.layers.bottom, 10);
     assert.ok(feature, 'feature with worldview:all is kept');
     assert.deepEqual(
       feature.properties,
-      { name: 'Germany', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', worldview: 'all' },
+      { "name": "Allemagne", "name_local": "Germany", "name_en": "Germany", "name_fr": "Allemagne", 'worldview': 'all'},
       'id=10 keeps worldview:all');
+    assert.deepEqual(feature.loadGeometry(), initialFeature10.loadGeometry(), 'id=10 geometry should be copied');
 
     feature = getFeatureById(tile.layers.bottom, 20);
     assert.ok(feature, 'feature with _mbx_worldview:all is kept');
     assert.deepEqual(
       feature.properties,
-      { name: 'Germany', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', population: 100, worldview: 'all' },
+      { name: 'Allemagne', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', population: 100, worldview: 'all' },
       'id=20 changes _mbx_worldview:all to worldview:all');
 
     feature = getFeatureById(tile.layers.bottom, 25);
     assert.ok(feature, 'feature with _mbx_worldview:CN is kept');
     assert.deepEqual(
       feature.properties,
-      { name: 'Germany', name_local: 'Germany', population: 100, worldview: 'CN' },
+      { name: 'Allemagne', name_local: 'Germany', population: 100, worldview: 'CN' },
       'id=25 changes _mbx_worldview:CN to worldview:CN');
 
     assert.isEqual(getFeatureById(tile.layers.bottom, 30), null, 'id=30 non-legacy worldview is dropped');
@@ -293,7 +298,7 @@ test('[internationalize worldview] success - no worldview specified', function (
     assert.ok(feature, 'feature with worldview:* is kept');
     assert.deepEqual(
       feature.properties,
-      { name: 'España', name_en: 'Spain', name_fr: 'Espagne', name_local: 'España', population: 100, worldview: 'IN' },
+      { name: 'Espagne', name_en: 'Spain', name_fr: 'Espagne', name_local: 'España', population: 100, worldview: 'IN' },
       'id=15 keeps worldview:*');
 
     feature = getFeatureById(tile.layers.bottom, 35);
@@ -309,7 +314,7 @@ test('[internationalize worldview] success - no worldview specified', function (
   });
 });
 
-test('[internationalize worldview] success - IN legacy worldview specified', function (assert) {
+test('[internationalize] success - IN legacy worldview specified', function (assert) {
   const initialBuffer = mvtFixtures.get('064').buffer;
 
   internationalize(initialBuffer, null, 'IN', (err, vtBuffer) => {
@@ -354,7 +359,7 @@ test('[internationalize worldview] success - IN legacy worldview specified', fun
   });
 });
 
-test('[internationalize worldview] success - AD non-legacy worldview specified', function (assert) {
+test('[internationalize] success - AD non-legacy worldview specified', function (assert) {
   const initialBuffer = mvtFixtures.get('064').buffer;
 
   internationalize(initialBuffer, null, 'AD', (err, vtBuffer) => {
@@ -403,7 +408,7 @@ test('[internationalize worldview] success - AD non-legacy worldview specified',
   });
 });
 
-test('[internationalize worldview] success - worldview specified but tileset has no _mbx_worldview', function (assert) {
+test('[internationalize] success - worldview specified but tileset has no _mbx_worldview', function (assert) {
   const initialBuffer = mvtFixtures.get('063').buffer;
 
   internationalize(initialBuffer, null, 'AD', (err, vtBuffer) => {
