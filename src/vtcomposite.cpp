@@ -603,7 +603,8 @@ struct InternationalizeWorker : Napi::AsyncWorker
         // and sort ascending
         std::vector<std::string> worldview_values;
         std::stringstream s_stream(pval); // create string stream from the string
-        while(s_stream.good()) {
+        while (s_stream.good())
+        {
             std::string substr;
             std::getline(s_stream, substr, ','); // get first string delimited by comma
             worldview_values.push_back(substr);
@@ -639,7 +640,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
 
     // create a feature from a list of properties
     // optionally define a worldview property if provided
-    void build_internationalized_feature(
+    static void build_internationalized_feature(
         vtzero::feature const& feature,
         std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
         vtzero::layer_builder& lbuilder,
@@ -733,7 +734,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                             // if no language was specified, we want the name value to be constant
                             if (!baton_data_->change_names)
                             {
-                                properties.push_back({"name", property.value()});
+                                properties.emplace_back("name", property.value());
                                 name_was_set = true;
                             }
                             continue;
@@ -741,7 +742,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         // set name to _mbx_name_{language}, if existing
                         if (baton_data_->change_names && !name_was_set && language_key_mbx == property_key)
                         {
-                            properties.push_back({"name", property.value()});
+                            properties.emplace_back("name", property.value());
                             name_was_set = true;
                             continue;
                         }
@@ -754,20 +755,20 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         // and keep these legacy properties on the feature
                         if (baton_data_->change_names && !name_was_set && language_key == property_key)
                         {
-                            properties.push_back({"name", property.value()});
+                            properties.emplace_back("name", property.value());
                             name_was_set = true;
                         }
 
-                        properties.push_back({property_key, property.value()});
+                        properties.emplace_back(property_key, property.value());
                     }
 
                     if (name_value.valid())
                     {
-                        properties.push_back({"name_local", name_value});
+                        properties.emplace_back("name_local", name_value);
 
                         if (!name_was_set)
                         {
-                            properties.push_back({"name", name_value});
+                            properties.emplace_back("name", name_value);
                         }
                     }
 
