@@ -583,42 +583,65 @@ struct InternationalizeWorker : Napi::AsyncWorker
 {
     using Base = Napi::AsyncWorker;
 
+    using property_list = std::vector<std::pair<std::string, vtzero::data_view>>; // maybe this exists in vtzero
+
     InternationalizeWorker(std::unique_ptr<InternationalizeBatonType>&& baton_data, Napi::Function& cb)
         : Base(cb),
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
 
-    bool processWorldview(const std::string& pval, vtzero::geometry_feature_builder& fbuilder)
+    std::vector<std::string> processWorldview(const std::string& pval) const
     {
         static const std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"};
 
         if (pval == "all")
         {
-            fbuilder.add_property("worldview", "all");
-            return true;
+            return {"all"};
         }
 
         if (baton_data_->worldview.empty())
         {
+            std::vector<std::string> legacy;
             for (auto const& wv : legacy_worldviews)
             {
                 if (pval.find(wv) != std::string::npos)
                 {
-                    fbuilder.add_property("worldview", pval);
-                    return true;
+                    legacy.push_back(wv);
                 }
             }
+            return legacy;
         }
         else
         {
             if (pval.find(baton_data_->worldview) != std::string::npos)
             {
-                fbuilder.add_property("worldview", pval);
-                return true;
+                return {pval};
             }
         }
 
-        return false;
+        return {};
+    }
+
+    void buildFeature(
+        vtzero::feature& const feature, 
+        property_list& const properties, 
+        vtzero::layer_builder& lbuilder
+        std::string& const worldview)
+    {
+        vtzero::geometry_feature_builder fbuilder{lbuilder};
+        fbuilder.copy_id(feature); // todo deduplicate this
+        fbuilder.set_geometry(feature.geometry());
+        
+        if (!worldview.empty()) 
+        {
+            fbuilder.add_property("worldview", worldview);
+        }
+        for (auto property : properties)
+        {
+            fbuilder.add_property(property.first, property.second);
+        }
+
+        fbuilder.commit();
     }
 
     void Execute() override
@@ -654,25 +677,28 @@ struct InternationalizeWorker : Napi::AsyncWorker
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
-                    vtzero::geometry_feature_builder fbuilder{lbuilder};
-                    fbuilder.copy_id(feature);
-                    fbuilder.set_geometry(feature.geometry());
+                    std::vector<std::string> worldviews;  // ren mbx_worldviews
+                    bool has_mbx_worldview = false;
 
-                    bool keep_feature = true;
                     bool name_was_set = false;
                     vtzero::property_value name_value;
+
+                    // accumulate final properties (except _mbx_worldview translation to worldview) here
+                    property_list properties;
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
 
                         if (property_key == "_mbx_worldview")
                         {
+                            has_mbx_worldview = true;
                             if (property.value().type() == vtzero::property_value_type::string_value)
                             {
-                                keep_feature = processWorldview(static_cast<std::string>(property.value().string_value()), fbuilder);
+                                worldviews = processWorldview(static_cast<std::string>(property.value().string_value()));
                             }
                             else
                             {
+                                // Not expected. Should we drop the feature or keep, if so, do what with _mbx_worldview?
                                 keep_feature = false;
                             }
 
@@ -684,10 +710,10 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         {
                             name_value = property.value();
 
-                            // if no language was specificed, we want the name value to be constant
+                            // if no language was specified, we want the name value to be constant
                             if (!baton_data_->change_names)
                             {
-                                fbuilder.add_property("name", property.value());
+                                fbuilder.add_property("name", property.value()); // change to properties.push_back("name", property.value());
                                 name_was_set = true;
                             }
                             continue;
@@ -711,7 +737,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                             fbuilder.add_property("name", property.value());
                             name_was_set = true;
                         }
-                        fbuilder.add_property(property.key(), property.value());
+                        fbuilder.add_property(property.key(), property.value()); // todo: fbuilder.add_property(property);
                     }
                     if (name_value.valid())
                     {
@@ -723,9 +749,16 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         }
                     }
 
-                    if (keep_feature)
+                    if (has_mbx_worldview) 
                     {
-                        fbuilder.commit();
+                        for (const wv : worldviews)
+                        {
+                            build_feature(feature, properties, lbuilder, wv);
+                        }
+                    } 
+                    else
+                    {
+                        build_feature(feature, properties, lbuilder);
                     }
                 }
             }

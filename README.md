@@ -72,8 +72,8 @@ internationalize(buffer, language, worldview, options, function(err, result) {
 ### Parameters
 
 - `buffer` **Buffer** a vector tile buffer, gzip compressed or not
-- `language` **String** the IETF BCP 47 language code.
-- `worldview` **String** a country code used to filter features. Any feature with a worldview ("`_mbx_worldview`" property) that doesn't match will be removed. Must be in ISO 3166-1 alpha-2 format.
+- `language` **String** the IETF BCP 47 language code. Must this be capitalized? If null, ...
+- `worldview` **String** a country code used to filter features. Any feature with a worldview ("`_mbx_worldview`" property) that doesn't match will be removed. Must be in ISO 3166-1 alpha-2 format. If null, ... must it be capitalized? What does the SPEC say?
 - `options` **Object** _(optional)_
   - `options.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return an uncompressed buffer. (optional, default `false`)
 - `callback` **Function** callback function that returns `err` and `buffer` parameters

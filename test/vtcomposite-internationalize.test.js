@@ -291,12 +291,28 @@ test('[internationalize] success - fr language and no worldview specified', (ass
       { name: 'Espagne', name_en: 'Spain', name_fr: 'Espagne', name_local: 'España', population: 100, worldview: 'IN' },
       'id=15 keeps worldview:*');
 
-    feature = getFeatureById(tile.layers.bottom, 35);
-    assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is kept');
+    // feature = getFeatureById(tile.layers.bottom, 35);
+    // assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is kept');
+    // assert.deepEqual(
+    //   feature.properties,
+    //   { name: 'España', name_local: 'España', population: 100, worldview: 'CN,AD,IN' },
+    //   'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN,AD,IN');
+    
+    feature = tile.layers.bottom.feature(5);
+    assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is duplicated');
+    assert.equal(feature.id, 35, 'for now copy ID'); // tbd
     assert.deepEqual(
       feature.properties,
-      { name: 'España', name_local: 'España', population: 100, worldview: 'CN,AD,IN' },
-      'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN,AD,IN');
+      { name: 'España', name_local: 'España', population: 100, worldview: 'CN' },
+      'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN');
+
+    feature = tile.layers.bottom.feature(6);
+    assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is duplicated');
+    assert.equal(feature.id, 35, 'for now copy ID'); // tbd
+    assert.deepEqual(
+      feature.properties,
+      { name: 'España', name_local: 'España', population: 100, worldview: 'IN' },
+      'id=35 changes _mbx_worldview:CN,AD,IN to worldview:IN');
 
     assert.isEqual(getFeatureById(tile.layers.bottom, 40), null, 'id=40 non-string _mbx_worldview is dropped');
 
