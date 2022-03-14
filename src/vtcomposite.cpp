@@ -708,7 +708,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     vtzero::property_value name_value;
 
                     // accumulate final properties (except _mbx_worldview translation to worldview) here
-                    std::vector<std::pair<std::string, vtzero::property_value>> properties;
+                    std::vector<std::pair<std::string, vtzero::property_value>> properties(feature.num_properties);
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();

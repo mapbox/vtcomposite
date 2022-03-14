@@ -258,6 +258,7 @@ test('[internationalize] success - fr language and no worldview specified', (ass
     assert.notOk(err);
 
     const tile = vtinfo(vtBuffer);
+    assert.ok(tile.layers.bottom);
 
     const initialFeature10 = getFeatureById(vtinfo(initialBuffer).layers.bottom, 10);
     let feature = getFeatureById(tile.layers.bottom, 10);
