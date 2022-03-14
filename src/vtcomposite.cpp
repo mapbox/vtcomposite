@@ -649,6 +649,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
         fbuilder.copy_id(feature); // todo deduplicate this (vector tile spec says SHOULD be unique)
         fbuilder.set_geometry(feature.geometry());
 
+        std::cout << "worldview val: " << worldview << "\n";
         if (!worldview.empty())
         {
             fbuilder.add_property("worldview", worldview);
@@ -659,6 +660,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
             // created dynamically from _mbx_wordlview
             if (!worldview.empty() && property.first == "worldview")
             {
+                std::cout << "dropping existing worldview property\n";
                 continue;
             }
 
@@ -708,7 +710,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     vtzero::property_value name_value;
 
                     // accumulate final properties (except _mbx_worldview translation to worldview) here
-                    std::vector<std::pair<std::string, vtzero::property_value>> properties(feature.num_properties);
+                    std::vector<std::pair<std::string, vtzero::property_value>> properties;
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();

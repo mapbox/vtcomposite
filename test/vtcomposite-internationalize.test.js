@@ -251,186 +251,125 @@ test('[internationalize] success - no language specified', (assert) => {
   });
 });
 
-test('[internationalize] success - fr language and no worldview specified', (assert) => {
-  const initialBuffer = mvtFixtures.get('064').buffer;
-
-  internationalize(initialBuffer, 'fr', null /* worldview */, (err, vtBuffer) => {
-    assert.notOk(err);
-
+test('[internationalize] worldview - no worldview specified, legacy worldviews split into distinct features', (assert) => {
+  // input buffer has a singl features with _mbx_worldview: US,CN,IN,JP
+  const buffer = mvtFixtures.get('065').buffer;
+  internationalize(buffer, null, null, (err, vtBuffer) => {
+    assert.ifError(err);
     const tile = vtinfo(vtBuffer);
-    assert.ok(tile.layers.bottom);
-
-    const initialFeature10 = getFeatureById(vtinfo(initialBuffer).layers.bottom, 10);
-    let feature = getFeatureById(tile.layers.bottom, 10);
-    assert.ok(feature, 'feature with worldview:all is kept');
-    assert.deepEqual(
-      feature.properties,
-      { 'name': 'Allemagne', 'name_local': 'Germany', 'name_en': 'Germany', 'name_fr': 'Allemagne', 'worldview': 'all' },
-      'id=10 keeps worldview:all');
-    assert.deepEqual(feature.loadGeometry(), initialFeature10.loadGeometry(), 'id=10 geometry should be copied');
-
-    feature = getFeatureById(tile.layers.bottom, 20);
-    assert.ok(feature, 'feature with _mbx_worldview:all is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'Allemagne', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', population: 100, worldview: 'all' },
-      'id=20 changes _mbx_worldview:all to worldview:all');
-
-    feature = getFeatureById(tile.layers.bottom, 25);
-    assert.ok(feature, 'feature with _mbx_worldview:CN is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'Allemagne', name_local: 'Germany', population: 100, worldview: 'CN' },
-      'id=25 changes _mbx_worldview:CN to worldview:CN');
-
-    assert.isEqual(getFeatureById(tile.layers.bottom, 30), null, 'id=30 non-legacy worldview is dropped');
-
-    feature = getFeatureById(tile.layers.bottom, 15);
-    assert.ok(feature, 'feature with worldview:* is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'Espagne', name_en: 'Spain', name_fr: 'Espagne', name_local: 'España', population: 100, worldview: 'IN' },
-      'id=15 keeps worldview:*');
-
-    // feature = getFeatureById(tile.layers.bottom, 35);
-    // assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is kept');
-    // assert.deepEqual(
-    //   feature.properties,
-    //   { name: 'España', name_local: 'España', population: 100, worldview: 'CN,AD,IN' },
-    //   'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN,AD,IN');
-
-    console.log(tile.layers.bottom.length);
-    console.log(tile.layers.bottom.feature(4).properties);
-    console.log(JSON.stringify(tile.layers.bottom));
-
-    feature = tile.layers.bottom.feature(6);
-    assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is duplicated');
-    assert.equal(feature.id, 35, 'for now copy ID'); // tbd
-    assert.deepEqual(
-      feature.properties,
-      { name: 'España', name_local: 'España', population: 100, worldview: 'CN' },
-      'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN');
-
-    feature = tile.layers.bottom.feature(5);
-    assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is duplicated');
-    assert.equal(feature.id, 35, 'for now copy ID'); // tbd
-    assert.deepEqual(
-      feature.properties,
-      { name: 'España', name_local: 'España', population: 100, worldview: 'IN' },
-      'id=35 changes _mbx_worldview:CN,AD,IN to worldview:IN');
-
-    _mbx_worldview: ""
-
-    assert.isEqual(getFeatureById(tile.layers.bottom, 40), null, 'id=40 non-string _mbx_worldview is dropped');
-
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 4, 'has four features');
+    assert.equal(tile.layers.admin.feature(0).properties.worldview, 'CN', 'expected CN worldview');
+    assert.equal(tile.layers.admin.feature(1).properties.worldview, 'IN', 'expected IN worldview');
+    assert.equal(tile.layers.admin.feature(2).properties.worldview, 'JP', 'expected JP worldview');
+    assert.equal(tile.layers.admin.feature(3).properties.worldview, 'US', 'expected US worldview');
     assert.end();
   });
 });
 
-test('[internationalize] success - IN legacy worldview specified', (assert) => {
-  const initialBuffer = mvtFixtures.get('064').buffer;
-
-  internationalize(initialBuffer, null, 'IN', (err, vtBuffer) => {
-    assert.notOk(err);
-
+test('[internationalize] worldview - worldview specified, legacy value', (assert) => {
+  // input buffer has a single feature with _mbx_worldview: US,CN,IN,JP
+  const buffer = mvtFixtures.get('065').buffer;
+  internationalize(buffer, null, 'US', (err, vtBuffer) => {
+    assert.ifError(err);
     const tile = vtinfo(vtBuffer);
-
-    let feature = getFeatureById(tile.layers.bottom, 10);
-    assert.ok(feature, 'feature with worldview:all is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'Germany', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', worldview: 'all' },
-      'id=10 keeps worldview:all');
-
-    feature = getFeatureById(tile.layers.bottom, 20);
-    assert.ok(feature, 'feature with _mbx_worldview:all is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'Germany', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', population: 100, worldview: 'all' },
-      'id=20 changes _mbx_worldview:all to worldview:all');
-
-    assert.isEqual(getFeatureById(tile.layers.bottom, 25), null, 'id=25 other _mbx_worldview is dropped');
-    assert.isEqual(getFeatureById(tile.layers.bottom, 30), null, 'id=30 other _mbx_worldview is dropped');
-
-    feature = getFeatureById(tile.layers.bottom, 15);
-    assert.ok(feature, 'feature with worldview:* is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'España', name_en: 'Spain', name_fr: 'Espagne', name_local: 'España', population: 100, worldview: 'IN' },
-      'id=15 keeps worldview:*');
-
-    feature = getFeatureById(tile.layers.bottom, 35);
-    assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'España', name_local: 'España', population: 100, worldview: 'CN,AD,IN' },
-      'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN,AD,IN');
-
-    assert.isEqual(getFeatureById(tile.layers.bottom, 40), null, 'id=40 non-string _mbx_worldview is dropped');
-
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 1, 'has one feature');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, {
+      worldview: 'US',
+      name: 'All legacy worldviews',
+      name_local: 'All legacy worldviews'
+    }, 'expected properties');
     assert.end();
   });
 });
 
-test('[internationalize] success - AD non-legacy worldview specified', (assert) => {
-  const initialBuffer = mvtFixtures.get('064').buffer;
-
-  internationalize(initialBuffer, null, 'AD', (err, vtBuffer) => {
-    assert.notOk(err);
-
+test('[internationalize] worldview - no worldview specified, does not create new features for new worldview values', (assert) => {
+  // input buffer has a single feature with _mbx_worldview: US,CN,JP,IN,RU,TR,AR,MA
+  const buffer = mvtFixtures.get('066').buffer;
+  internationalize(buffer, null, null, (err, vtBuffer) => {
+    assert.ifError(err);
     const tile = vtinfo(vtBuffer);
-
-    let feature = getFeatureById(tile.layers.bottom, 10);
-    assert.ok(feature, 'feature with worldview:all is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'Germany', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', worldview: 'all' },
-      'id=10 keeps worldview:all');
-
-    feature = getFeatureById(tile.layers.bottom, 20);
-    assert.ok(feature, 'feature with _mbx_worldview:all is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'Germany', name_en: 'Germany', name_fr: 'Allemagne', name_local: 'Germany', population: 100, worldview: 'all' },
-      'id=20 changes _mbx_worldview:all to worldview:all');
-
-    assert.isEqual(getFeatureById(tile.layers.bottom, 25), null, 'id=25 other _mbx_worldview is dropped');
-
-    feature = getFeatureById(tile.layers.bottom, 30);
-    assert.ok(feature, 'feature with _mbx_worldview:AD is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'Germany', name_local: 'Germany', population: 100, worldview: 'AD' },
-      'id=30 changes _mbx_worldview:AD to worldview:AD');
-
-    feature = getFeatureById(tile.layers.bottom, 15);
-    assert.ok(feature, 'feature with worldview:* is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'España', name_en: 'Spain', name_fr: 'Espagne', name_local: 'España', population: 100, worldview: 'IN' },
-      'id=15 keeps worldview:*');
-
-    feature = getFeatureById(tile.layers.bottom, 35);
-    assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is kept');
-    assert.deepEqual(
-      feature.properties,
-      { name: 'España', name_local: 'España', population: 100, worldview: 'CN,AD,IN' },
-      'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN,AD,IN');
-
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 4, 'has four features');
+    assert.equal(tile.layers.admin.feature(0).properties.worldview, 'CN', 'expected CN worldview');
+    assert.equal(tile.layers.admin.feature(1).properties.worldview, 'IN', 'expected IN worldview');
+    assert.equal(tile.layers.admin.feature(2).properties.worldview, 'JP', 'expected JP worldview');
+    assert.equal(tile.layers.admin.feature(3).properties.worldview, 'US', 'expected US worldview');
     assert.end();
   });
 });
 
-test('[internationalize] success - worldview specified but tileset has no _mbx_worldview', (assert) => {
-  const initialBuffer = mvtFixtures.get('063').buffer;
-
-  internationalize(initialBuffer, null, 'AD', (err, vtBuffer) => {
-    assert.notOk(err);
-
+test('[internationalize] worldview - worldview: null specified, feature with _mbx_worldview: "all" is retained', (assert) => {
+  // input buffer has a single feature with _mbx_worldview: all
+  const buffer = mvtFixtures.get('067').buffer;
+  internationalize(buffer, null, null, (err, vtBuffer) => {
+    assert.ifError(err);
     const tile = vtinfo(vtBuffer);
-    assert.equal(tile.layers.top.length, 2, 'all features in top layer kept');
-    assert.equal(tile.layers.bottom.length, 5, 'all features in bottom layer kept');
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 1, 'has one feature');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, {
+      worldview: 'all',
+      name: 'Represents all worldviews',
+      name_local: 'Represents all worldviews'
+    });
+    assert.end();
+  });
+});
 
+test('[internationalize] worldview - worldview: US specified, feature with _mbx_worldview: "all" is retained', (assert) => {
+  // input buffer has a single feature with _mbx_worldview: all
+  const buffer = mvtFixtures.get('067').buffer;
+  internationalize(buffer, null, 'US', (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 1, 'has one feature');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, {
+      worldview: 'all',
+      name: 'Represents all worldviews',
+      name_local: 'Represents all worldviews'
+    });
+    assert.end();
+  });
+});
+
+test('[internationalize] worldview - _mbx_worldview has non-string value, feature is dropped', (assert) => {
+  // input buffer has a single feature with _mbx_worldview: 100
+  const buffer = mvtFixtures.get('069').buffer;
+  internationalize(buffer, null, 'US', (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.equal(Object.keys(tile.layers).length, 0, 'no feature or layers retained');
+    assert.end();
+  });
+});
+
+test('[internationalize] worldview - feature with _mbx_worldview and worldview properties reassigns worldview', (assert) => {
+  // input buffer has a single feature with _mbx_worldview: US and worldview: RU
+  const buffer = mvtFixtures.get('070').buffer;
+  internationalize(buffer, null, 'US', (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, {
+      worldview: 'US',
+      name: 'Conflicting feature',
+      name_local: 'Conflicting feature'
+    });
+    assert.end();
+  });
+});
+
+test('[internationalize] worldview - worldview is specified but feature has no worldview property, feature is retained', (assert) => {
+  const buffer = mvtFixtures.get('017').buffer;
+  internationalize(buffer, null, 'US', (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('hello' in tile.layers, 'has admin layer');
+    assert.deepEqual(tile.layers.hello.feature(0).properties, {
+      hello: 'world'
+    }, 'expected properties retained');
     assert.end();
   });
 });
