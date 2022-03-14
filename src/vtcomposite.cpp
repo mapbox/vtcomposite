@@ -583,61 +583,86 @@ struct InternationalizeWorker : Napi::AsyncWorker
 {
     using Base = Napi::AsyncWorker;
 
-    using property_list = std::vector<std::pair<std::string, vtzero::data_view>>; // maybe this exists in vtzero
-
     InternationalizeWorker(std::unique_ptr<InternationalizeBatonType>&& baton_data, Napi::Function& cb)
         : Base(cb),
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
 
-    std::vector<std::string> processWorldview(const std::string& pval) const
+    // for a given feature, determine how many clones of the feature are
+    // required given a worldview.
+    // - If the feature has _mbx_worldview: all, return {"all"}
+    // - If there is no requested worldview "null", determine which legacy worldviews should be created
+    std::vector<std::string> worldviews_for_feature(std::string const& pval) const
     {
-        static const std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"};
-
         if (pval == "all")
         {
             return {"all"};
         }
 
+        // convert pval into vector of strings US,CN => {"US", "CN"}
+        // and sort ascending
+        std::vector<std::string> worldview_values;
+        std::stringstream s_stream(pval); // create string stream from the string
+        while(s_stream.good()) {
+            std::string substr;
+            std::getline(s_stream, substr, ','); // get first string delimited by comma
+            worldview_values.push_back(substr);
+        }
+        std::sort(worldview_values.begin(), worldview_values.end());
+
+        // result will be a vector of matching worldview values
+        std::vector<std::string> result;
+
+        // worldview: null
         if (baton_data_->worldview.empty())
         {
-            std::vector<std::string> legacy;
-            for (auto const& wv : legacy_worldviews)
-            {
-                if (pval.find(wv) != std::string::npos)
-                {
-                    legacy.push_back(wv);
-                }
-            }
-            return legacy;
+            static const std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"}; // MUST BE IN ALPHABETICAL ORDER
+            // {"US", "CN"} AND {"US", "IN"} => {"US"}
+            std::set_intersection(
+                worldview_values.begin(),
+                worldview_values.end(),
+                legacy_worldviews.begin(),
+                legacy_worldviews.end(),
+                std::back_inserter(result));
         }
+        // worldview: XX
         else
         {
-            if (pval.find(baton_data_->worldview) != std::string::npos)
+            if (std::find(std::begin(worldview_values), std::end(worldview_values), baton_data_->worldview) != std::end(worldview_values))
             {
-                return {pval};
+                result.push_back(baton_data_->worldview);
             }
         }
 
-        return {};
+        return result;
     }
 
-    void buildFeature(
-        vtzero::feature& const feature, 
-        property_list& const properties, 
-        vtzero::layer_builder& lbuilder
-        std::string& const worldview)
+    // create a feature from a list of properties
+    // optionally define a worldview property if provided
+    void build_internationalized_feature(
+        vtzero::feature const& feature,
+        std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
+        vtzero::layer_builder& lbuilder,
+        std::string const& worldview)
     {
         vtzero::geometry_feature_builder fbuilder{lbuilder};
-        fbuilder.copy_id(feature); // todo deduplicate this
+        fbuilder.copy_id(feature); // todo deduplicate this (vector tile spec says SHOULD be unique)
         fbuilder.set_geometry(feature.geometry());
-        
-        if (!worldview.empty()) 
+
+        if (!worldview.empty())
         {
             fbuilder.add_property("worldview", worldview);
         }
-        for (auto property : properties)
+        for (auto const& property : properties)
         {
+            // no-op on any property called "worldview" if worldviews have been
+            // created dynamically from _mbx_wordlview
+            if (!worldview.empty() && property.first == "worldview")
+            {
+                continue;
+            }
+
+            // add property to feature
             fbuilder.add_property(property.first, property.second);
         }
 
@@ -677,29 +702,22 @@ struct InternationalizeWorker : Napi::AsyncWorker
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
-                    std::vector<std::string> worldviews;  // ren mbx_worldviews
+                    std::vector<std::string> worldviews_to_create;
                     bool has_mbx_worldview = false;
-
                     bool name_was_set = false;
                     vtzero::property_value name_value;
 
                     // accumulate final properties (except _mbx_worldview translation to worldview) here
-                    property_list properties;
+                    std::vector<std::pair<std::string, vtzero::property_value>> properties;
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
-
-                        if (property_key == "_mbx_worldview")
+                        if (!has_mbx_worldview && property_key == "_mbx_worldview")
                         {
                             has_mbx_worldview = true;
                             if (property.value().type() == vtzero::property_value_type::string_value)
                             {
-                                worldviews = processWorldview(static_cast<std::string>(property.value().string_value()));
-                            }
-                            else
-                            {
-                                // Not expected. Should we drop the feature or keep, if so, do what with _mbx_worldview?
-                                keep_feature = false;
+                                worldviews_to_create = worldviews_for_feature(static_cast<std::string>(property.value().string_value()));
                             }
 
                             continue;
@@ -713,7 +731,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                             // if no language was specified, we want the name value to be constant
                             if (!baton_data_->change_names)
                             {
-                                fbuilder.add_property("name", property.value()); // change to properties.push_back("name", property.value());
+                                properties.push_back({"name", property.value()});
                                 name_was_set = true;
                             }
                             continue;
@@ -721,7 +739,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         // set name to _mbx_name_{language}, if existing
                         if (baton_data_->change_names && !name_was_set && language_key_mbx == property_key)
                         {
-                            fbuilder.add_property("name", property.value());
+                            properties.push_back({"name", property.value()});
                             name_was_set = true;
                             continue;
                         }
@@ -734,31 +752,33 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         // and keep these legacy properties on the feature
                         if (baton_data_->change_names && !name_was_set && language_key == property_key)
                         {
-                            fbuilder.add_property("name", property.value());
+                            properties.push_back({"name", property.value()});
                             name_was_set = true;
                         }
-                        fbuilder.add_property(property.key(), property.value()); // todo: fbuilder.add_property(property);
+
+                        properties.push_back({property_key, property.value()});
                     }
+
                     if (name_value.valid())
                     {
-                        fbuilder.add_property("name_local", name_value);
+                        properties.push_back({"name_local", name_value});
 
                         if (!name_was_set)
                         {
-                            fbuilder.add_property("name", name_value);
+                            properties.push_back({"name", name_value});
                         }
                     }
 
-                    if (has_mbx_worldview) 
+                    if (has_mbx_worldview)
                     {
-                        for (const wv : worldviews)
+                        for (auto const& wv : worldviews_to_create)
                         {
-                            build_feature(feature, properties, lbuilder, wv);
+                            build_internationalized_feature(feature, properties, lbuilder, wv);
                         }
-                    } 
+                    }
                     else
                     {
-                        build_feature(feature, properties, lbuilder);
+                        build_internationalized_feature(feature, properties, lbuilder, "");
                     }
                 }
             }

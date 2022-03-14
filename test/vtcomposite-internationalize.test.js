@@ -254,7 +254,7 @@ test('[internationalize] success - no language specified', (assert) => {
 test('[internationalize] success - fr language and no worldview specified', (assert) => {
   const initialBuffer = mvtFixtures.get('064').buffer;
 
-  internationalize(initialBuffer, 'fr', null, (err, vtBuffer) => {
+  internationalize(initialBuffer, 'fr', null /* worldview */, (err, vtBuffer) => {
     assert.notOk(err);
 
     const tile = vtinfo(vtBuffer);
@@ -297,8 +297,12 @@ test('[internationalize] success - fr language and no worldview specified', (ass
     //   feature.properties,
     //   { name: 'España', name_local: 'España', population: 100, worldview: 'CN,AD,IN' },
     //   'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN,AD,IN');
-    
-    feature = tile.layers.bottom.feature(5);
+
+    console.log(tile.layers.bottom.length);
+    console.log(tile.layers.bottom.feature(4).properties);
+    console.log(JSON.stringify(tile.layers.bottom));
+
+    feature = tile.layers.bottom.feature(6);
     assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is duplicated');
     assert.equal(feature.id, 35, 'for now copy ID'); // tbd
     assert.deepEqual(
@@ -306,13 +310,15 @@ test('[internationalize] success - fr language and no worldview specified', (ass
       { name: 'España', name_local: 'España', population: 100, worldview: 'CN' },
       'id=35 changes _mbx_worldview:CN,AD,IN to worldview:CN');
 
-    feature = tile.layers.bottom.feature(6);
+    feature = tile.layers.bottom.feature(5);
     assert.ok(feature, 'feature with _mbx_worldview:CN,AD,IN is duplicated');
     assert.equal(feature.id, 35, 'for now copy ID'); // tbd
     assert.deepEqual(
       feature.properties,
       { name: 'España', name_local: 'España', population: 100, worldview: 'IN' },
       'id=35 changes _mbx_worldview:CN,AD,IN to worldview:IN');
+
+    _mbx_worldview: ""
 
     assert.isEqual(getFeatureById(tile.layers.bottom, 40), null, 'id=40 non-string _mbx_worldview is dropped');
 
