@@ -629,10 +629,10 @@ struct InternationalizeWorker : Napi::AsyncWorker
         std::string& const worldview)
     {
         vtzero::geometry_feature_builder fbuilder{lbuilder};
-        fbuilder.copy_id(feature); // todo deduplicate this
+        fbuilder.copy_id(feature); // todo: deduplicate this when total number of worldviews > 1
         fbuilder.set_geometry(feature.geometry());
         
-        if (!worldview.empty()) 
+        if (!worldview.empty())
         {
             fbuilder.add_property("worldview", worldview);
         }
@@ -684,7 +684,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     vtzero::property_value name_value;
 
                     // accumulate final properties (except _mbx_worldview translation to worldview) here
-                    property_list properties;
+                    property_list properties(feature.num_properties);
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
@@ -713,7 +713,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                             // if no language was specified, we want the name value to be constant
                             if (!baton_data_->change_names)
                             {
-                                fbuilder.add_property("name", property.value()); // change to properties.push_back("name", property.value());
+                                properties.push_back("name", property.value());
                                 name_was_set = true;
                             }
                             continue;
@@ -721,7 +721,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         // set name to _mbx_name_{language}, if existing
                         if (baton_data_->change_names && !name_was_set && language_key_mbx == property_key)
                         {
-                            fbuilder.add_property("name", property.value());
+                            properties.push_back("name", property.value());
                             name_was_set = true;
                             continue;
                         }
@@ -734,18 +734,18 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         // and keep these legacy properties on the feature
                         if (baton_data_->change_names && !name_was_set && language_key == property_key)
                         {
-                            fbuilder.add_property("name", property.value());
+                            properties.push_back("name", property.value());
                             name_was_set = true;
                         }
-                        fbuilder.add_property(property.key(), property.value()); // todo: fbuilder.add_property(property);
+                        properties.push_back(property.key(), property.value());  // todo: would a "fbuilder.add_property(property)" equivalent be much faster than breaking down to key/value?
                     }
                     if (name_value.valid())
                     {
-                        fbuilder.add_property("name_local", name_value);
+                        properties.push_back("name_local", name_value);
 
                         if (!name_was_set)
                         {
-                            fbuilder.add_property("name", name_value);
+                            properties.push_back("name", name_value);
                         }
                     }
 
