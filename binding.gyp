@@ -2,9 +2,6 @@
 {
   # https://github.com/springmeyer/gyp/blob/master/test/make_global_settings/wrapper/wrapper.gyp
   'make_global_settings': [
-    ['CXX', '<(module_root_dir)/mason_packages/.link/bin/clang++'],
-    ['CC', '<(module_root_dir)/mason_packages/.link/bin/clang'],
-    ['LINK', '<(module_root_dir)/mason_packages/.link/bin/clang++'],
     ['AR', '<(module_root_dir)/mason_packages/.link/bin/llvm-ar'],
     ['NM', '<(module_root_dir)/mason_packages/.link/bin/llvm-nm']
   ],
