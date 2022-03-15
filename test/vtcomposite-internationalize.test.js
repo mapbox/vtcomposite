@@ -373,3 +373,14 @@ test('[internationalize] worldview - worldview is specified but feature has no w
     assert.end();
   });
 });
+
+test('[internationalize] worldview - partial matching worldviews are not considered matches, only perfect matches after splitting by comma', (assert) => {
+  // input buffer has a single feature with _mbx_worldview: USAAAA,CN,JP,INdia
+  const buffer = mvtFixtures.get('072').buffer;
+  internationalize(buffer, null, 'US', (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.equal(Object.keys(tile.layers).length, 0, 'no feature or layers retained since US does not match USAAAA');
+    assert.end();
+  });
+});
