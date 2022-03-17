@@ -625,8 +625,8 @@ struct InternationalizeWorker : Napi::AsyncWorker
     static void build_internationalized_feature(
         vtzero::feature const& feature,
         std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
-        vtzero::layer_builder& lbuilder,
-        std::string const& worldview)
+        std::string const& worldview,
+        vtzero::layer_builder& lbuilder)
     {
         vtzero::geometry_feature_builder fbuilder{lbuilder};
         fbuilder.copy_id(feature); // todo deduplicate this (vector tile spec says SHOULD be unique)
@@ -756,12 +756,12 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     {
                         for (auto const& wv : worldviews_to_create)
                         {
-                            build_internationalized_feature(feature, properties, lbuilder, wv);
+                            build_internationalized_feature(feature, properties, wv, lbuilder);
                         }
                     }
                     else
                     {
-                        build_internationalized_feature(feature, properties, lbuilder, "");
+                        build_internationalized_feature(feature, properties, "", lbuilder);
                     }
                 }
             }
