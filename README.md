@@ -75,7 +75,7 @@ Modify a tile's features and properties to support internationalized languages a
 - `buffer` **Buffer** a vector tile buffer, gzip compressed or not
 - `language` **String** the IETF BCP 47 language code.
 - `worldview` **String** a country code used to filter features. A feature will be processed into worldviews if it has a `_mbx_worldview` property. The `_mbx_worldview` property must contain a comma-separated string of ISO 3166-1 alpha-2 country codes that define which worldviews the feature represents (example: `US,RU,IN`).
-  - Given a `worldview: XX` parameter and a feature with an `_mbx_worldview` property, vtcomposite will determine if a feature should be included or not...
+  - vtcomposite will determine if a feature should be included based on the provided `worldview` value and any `_mbx_worldview` property on that feature.
     - Match: the feature is cloned and `worldview: XX` is added to the feature's properties and the `_mbx_worldview` property is dropped. If the original feature contains a `worldview` property, it is overwritten.
     - No match: the entire feature is dropped.
   - Given `worldview: null` parameter and a feature with an `_mbx_worldview` property, four "legacy" worldviews `US,CN,IN,JP` are used to match. A single `_mbx_worldview` feature may be split into a maximum of four worldviews in this case.
