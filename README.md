@@ -79,7 +79,7 @@ Modify a tile's features and properties to support internationalized languages a
     - Match: the feature is cloned and `worldview: XX` is added to the feature's properties and the `_mbx_worldview` property is dropped. If the original feature contains a `worldview` property, it is overwritten.
     - No match: the entire feature is dropped.
   - Given a null `worldview` parameter and a feature with an `_mbx_worldview` property, four "legacy" worldviews `US,CN,IN,JP` are used to match. A single `_mbx_worldview` feature may be split into a maximum of four worldviews in this case.
-  - Given `worldview: XX` or `worldview: null` and a feature _without_ an `_mbx_worldview` property, the feature is retained.
+  - Any feature _without_ an `_mbx_worldview` property is retained.
 - `options` **Object** _(optional)_
   - `options.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return an uncompressed buffer. (optional, default `false`)
 - `callback` **Function** callback function that returns `err` and `buffer` parameters
