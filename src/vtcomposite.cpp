@@ -599,32 +599,15 @@ struct InternationalizeWorker : Napi::AsyncWorker
             return {"all"};
         }
 
-        // convert pval into vector of strings US,CN => {"US", "CN"}
-        // and sort ascending
-        std::vector<std::string> worldview_values;
-        std::stringstream s_stream(pval); // create string stream from the string
-        while (s_stream.good())
-        {
-            std::string substr;
-            std::getline(s_stream, substr, ','); // get first string delimited by comma
-            worldview_values.push_back(substr);
-        }
-        std::sort(worldview_values.begin(), worldview_values.end());
-
         // result will be a vector of matching worldview values
         std::vector<std::string> result;
-
+        // convert pval into vector of strings US,CN => {"US", "CN"}
+        std::vector<std::string> worldview_values = utils::split(pval);
         // worldview: null
         if (baton_data_->worldview.empty())
         {
-            static const std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"}; // MUST BE IN ALPHABETICAL ORDER
-            // {"US", "CN"} AND {"US", "IN"} => {"US"}
-            std::set_intersection(
-                worldview_values.begin(),
-                worldview_values.end(),
-                legacy_worldviews.begin(),
-                legacy_worldviews.end(),
-                std::back_inserter(result));
+            std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"};
+            utils::intersection(worldview_values, legacy_worldviews, result);
         }
         // worldview: XX
         else
@@ -650,7 +633,6 @@ struct InternationalizeWorker : Napi::AsyncWorker
         fbuilder.copy_id(feature); // todo deduplicate this (vector tile spec says SHOULD be unique)
         fbuilder.set_geometry(feature.geometry());
 
-        std::cout << "worldview val: " << worldview << "\n";
         if (!worldview.empty())
         {
             fbuilder.add_property("worldview", worldview);
@@ -661,7 +643,6 @@ struct InternationalizeWorker : Napi::AsyncWorker
             // created dynamically from _mbx_wordlview
             if (!worldview.empty() && property.first == "worldview")
             {
-                std::cout << "dropping existing worldview property\n";
                 continue;
             }
 
