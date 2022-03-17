@@ -8,8 +8,6 @@
 #include <gzip/decompress.hpp>
 #include <gzip/utils.hpp>
 // vtzero
-#include <utility>
-
 #include <vtzero/builder.hpp>
 #include <vtzero/property_value.hpp>
 #include <vtzero/vector_tile.hpp>
@@ -19,6 +17,9 @@
 #include <mapbox/geometry/point.hpp>
 // stl
 #include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace vtile {
 
@@ -92,11 +93,12 @@ struct BatonType
 
 struct InternationalizeBatonType
 {
-    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, bool compress_)
+    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{std::move(language_)},
           change_names{change_names_},
+          worldview{std::move(worldview_)},
           compress{compress_}
     {
     }
@@ -123,6 +125,7 @@ struct InternationalizeBatonType
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
     std::string language;
     bool change_names;
+    std::string worldview;
     bool compress;
 };
 
@@ -212,13 +215,13 @@ struct CompositeWorker : Napi::AsyncWorker
                     {
                         vtzero::data_view const name = layer.name();
                         std::uint32_t const version = layer.version();
-                        if (std::find(std::begin(names), std::end(names), name) == std::end(names))
+                        if (std::find(names.begin(), names.end(), name) == names.end())
                         {
                             // should we keep this layer?
                             // if include_layers is empty, keep all layers
                             // if include_layers is not empty, keep layer if we can find its name in the vector
                             std::string sname(name);
-                            if (include_layers.empty() || std::find(std::begin(include_layers), std::end(include_layers), sname) != std::end(include_layers))
+                            if (include_layers.empty() || std::find(include_layers.begin(), include_layers.end(), sname) != include_layers.end())
                             {
                                 names.push_back(name);
                                 std::uint32_t extent = layer.extent();
@@ -474,7 +477,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer, layers));
     }
 
-    //validate zxy maprequest object
+    // validate zxy maprequest object
     if (!info[1].IsObject())
     {
         return utils::CallbackError("'zxy_maprequest' must be an object", info);
@@ -585,6 +588,70 @@ struct InternationalizeWorker : Napi::AsyncWorker
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
 
+    // for a given feature, determine how many clones of the feature are
+    // required given a worldview.
+    // - If the feature has _mbx_worldview: all, return {"all"}
+    // - If there is no requested worldview "null", determine which legacy worldviews should be created
+    std::vector<std::string> worldviews_for_feature(std::string const& pval) const
+    {
+        if (pval == "all")
+        {
+            return {"all"};
+        }
+
+        std::vector<std::string> matching_worldviews;
+        // convert pval into vector of strings US,CN => {"US", "CN"}
+        std::vector<std::string> worldview_values = utils::split(pval);
+        // worldview: null
+        if (baton_data_->worldview.empty())
+        {
+            std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"};
+            utils::intersection(worldview_values, legacy_worldviews, matching_worldviews);
+        }
+        // worldview: XX
+        else
+        {
+            if (std::find(worldview_values.begin(), worldview_values.end(), baton_data_->worldview) != worldview_values.end())
+            {
+                matching_worldviews.push_back(baton_data_->worldview);
+            }
+        }
+
+        return matching_worldviews;
+    }
+
+    // create a feature from a list of properties
+    // optionally define a worldview property if provided
+    static void build_internationalized_feature(
+        vtzero::feature const& feature,
+        std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
+        std::string const& worldview,
+        vtzero::layer_builder& lbuilder)
+    {
+        vtzero::geometry_feature_builder fbuilder{lbuilder};
+        fbuilder.copy_id(feature); // todo deduplicate this (vector tile spec says SHOULD be unique)
+        fbuilder.set_geometry(feature.geometry());
+
+        if (!worldview.empty())
+        {
+            fbuilder.add_property("worldview", worldview);
+        }
+        for (auto const& property : properties)
+        {
+            // no-op on any property called "worldview" if worldviews have been
+            // created dynamically from _mbx_wordlview
+            if (!worldview.empty() && property.first == "worldview")
+            {
+                continue;
+            }
+
+            // add property to feature
+            fbuilder.add_property(property.first, property.second);
+        }
+
+        fbuilder.commit();
+    }
+
     void Execute() override
     {
         try
@@ -614,30 +681,40 @@ struct InternationalizeWorker : Napi::AsyncWorker
 
             while (auto layer = tile.next_layer())
             {
-                // TODO short circuit if hidden attributes not present?
+                // TODO short circuit if hidden attributes not present? (call vtzero's add_existing_layer)
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
-                    vtzero::geometry_feature_builder fbuilder{lbuilder};
-
-                    fbuilder.copy_id(feature);
-                    fbuilder.set_geometry(feature.geometry());
-
+                    std::vector<std::string> worldviews_to_create;
+                    bool has_mbx_worldview = false;
                     bool name_was_set = false;
                     vtzero::property_value name_value;
+
+                    // accumulate final properties (except _mbx_worldview translation to worldview) here
+                    std::vector<std::pair<std::string, vtzero::property_value>> properties;
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
+                        if (!has_mbx_worldview && property_key == "_mbx_worldview")
+                        {
+                            has_mbx_worldview = true;
+                            if (property.value().type() == vtzero::property_value_type::string_value)
+                            {
+                                worldviews_to_create = worldviews_for_feature(static_cast<std::string>(property.value().string_value()));
+                            }
+
+                            continue;
+                        }
 
                         // preserve original name value
                         if (property_key == "name")
                         {
                             name_value = property.value();
 
-                            // if no language was specificed, we want the name value to be constant
+                            // if no language was specified, we want the name value to be constant
                             if (!baton_data_->change_names)
                             {
-                                fbuilder.add_property("name", property.value());
+                                properties.emplace_back("name", property.value());
                                 name_was_set = true;
                             }
                             continue;
@@ -645,7 +722,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         // set name to _mbx_name_{language}, if existing
                         if (baton_data_->change_names && !name_was_set && language_key_mbx == property_key)
                         {
-                            fbuilder.add_property("name", property.value());
+                            properties.emplace_back("name", property.value());
                             name_was_set = true;
                             continue;
                         }
@@ -658,21 +735,34 @@ struct InternationalizeWorker : Napi::AsyncWorker
                         // and keep these legacy properties on the feature
                         if (baton_data_->change_names && !name_was_set && language_key == property_key)
                         {
-                            fbuilder.add_property("name", property.value());
+                            properties.emplace_back("name", property.value());
                             name_was_set = true;
                         }
-                        fbuilder.add_property(property.key(), property.value());
+
+                        properties.emplace_back(property_key, property.value());
                     }
+
                     if (name_value.valid())
                     {
-                        fbuilder.add_property("name_local", name_value);
+                        properties.emplace_back("name_local", name_value);
 
                         if (!name_was_set)
                         {
-                            fbuilder.add_property("name", name_value);
+                            properties.emplace_back("name", name_value);
                         }
                     }
-                    fbuilder.commit();
+
+                    if (has_mbx_worldview)
+                    {
+                        for (auto const& wv : worldviews_to_create)
+                        {
+                            build_internationalized_feature(feature, properties, wv, lbuilder);
+                        }
+                    }
+                    else
+                    {
+                        build_internationalized_feature(feature, properties, "", lbuilder);
+                    }
                 }
             }
 
@@ -735,13 +825,14 @@ struct InternationalizeWorker : Napi::AsyncWorker
 
 Napi::Value internationalize(Napi::CallbackInfo const& info)
 {
-    // validate callback function
     std::size_t length = info.Length();
-    if (length < 3 || length > 4)
+    if (length < 4 || length > 5)
     {
-        Napi::Error::New(info.Env(), "expected buffer, language, options and callback arguments").ThrowAsJavaScriptException();
+        Napi::Error::New(info.Env(), "expected buffer, language, worldview, options and callback arguments").ThrowAsJavaScriptException();
         return info.Env().Null();
     }
+
+    // validate callback function
     Napi::Value callback_val = info[length - 1];
     if (!callback_val.IsFunction())
     {
@@ -793,16 +884,34 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         return utils::CallbackError("language value is an empty string", info);
     }
 
-    // validate options object
-    bool compress = false;
-    if (info.Length() > 3)
+    // validate worldview string
+    Napi::Value worldview_val = info[2];
+    std::string worldview;
+
+    if (!worldview_val.IsString() && !worldview_val.IsNull())
     {
-        if (!info[2].IsObject())
+        return utils::CallbackError("worldview value must be null or a 2 character string", info);
+    }
+
+    if (worldview_val.IsString())
+    {
+        worldview = worldview_val.As<Napi::String>();
+        if (worldview.length() != 2)
+        {
+            return utils::CallbackError("worldview must be a string 2 characters long", info);
+        }
+    }
+
+    // validate optional options object
+    bool compress = false;
+    if (info.Length() > 4)
+    {
+        if (!info[3].IsObject())
         {
             return utils::CallbackError("'options' arg must be an object", info);
         }
 
-        Napi::Object options = info[2].As<Napi::Object>();
+        Napi::Object options = info[3].As<Napi::Object>();
         if (options.Has(Napi::String::New(info.Env(), "compress")))
         {
             Napi::Value comp_value = options.Get(Napi::String::New(info.Env(), "compress"));
@@ -814,7 +923,7 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         }
     }
 
-    std::unique_ptr<InternationalizeBatonType> baton_data = std::make_unique<InternationalizeBatonType>(buffer, language, change_names, compress);
+    std::unique_ptr<InternationalizeBatonType> baton_data = std::make_unique<InternationalizeBatonType>(buffer, language, change_names, worldview, compress);
 
     auto* worker = new InternationalizeWorker{std::move(baton_data), callback};
     worker->Queue();
