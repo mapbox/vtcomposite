@@ -1,6 +1,6 @@
 #pragma once
-#include <napi.h>
 #include <algorithm>
+#include <napi.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,14 +34,14 @@ inline std::vector<std::string> split(std::string const& input)
 // results are returned in alphabetically ascending order
 // {"CN", "RU", "US"} + {"RU", "US"} => {"US", "RU"}
 void inline intersection(
-    std::vector<std::string> & v1,
-    std::vector<std::string> & v2,
-    std::vector<std::string> & result)
+    std::vector<std::string>& v1,
+    std::vector<std::string>& v2,
+    std::vector<std::string>& result)
 {
     std::sort(v1.begin(), v1.end());
     std::sort(v2.begin(), v2.end());
     std::set_intersection(v1.begin(), v1.end(),
-                            v2.begin(), v2.end(),
-                            std::back_inserter(result));
+                          v2.begin(), v2.end(),
+                          std::back_inserter(result));
 }
 } // namespace utils
