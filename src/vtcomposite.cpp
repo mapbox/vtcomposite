@@ -215,13 +215,13 @@ struct CompositeWorker : Napi::AsyncWorker
                     {
                         vtzero::data_view const name = layer.name();
                         std::uint32_t const version = layer.version();
-                        if (std::find(std::begin(names), std::end(names), name) == std::end(names))
+                        if (std::find(names.begin(), names.end(), name) == names.end())
                         {
                             // should we keep this layer?
                             // if include_layers is empty, keep all layers
                             // if include_layers is not empty, keep layer if we can find its name in the vector
                             std::string sname(name);
-                            if (include_layers.empty() || std::find(std::begin(include_layers), std::end(include_layers), sname) != std::end(include_layers))
+                            if (include_layers.empty() || std::find(include_layers.begin(), include_layers.end(), sname) != include_layers.end())
                             {
                                 names.push_back(name);
                                 std::uint32_t extent = layer.extent();
@@ -599,26 +599,25 @@ struct InternationalizeWorker : Napi::AsyncWorker
             return {"all"};
         }
 
-        // result will be a vector of matching worldview values
-        std::vector<std::string> result;
+        std::vector<std::string> matching_worldviews;
         // convert pval into vector of strings US,CN => {"US", "CN"}
         std::vector<std::string> worldview_values = utils::split(pval);
         // worldview: null
         if (baton_data_->worldview.empty())
         {
             std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"};
-            utils::intersection(worldview_values, legacy_worldviews, result);
+            utils::intersection(worldview_values, legacy_worldviews, matching_worldviews);
         }
         // worldview: XX
         else
         {
-            if (std::find(std::begin(worldview_values), std::end(worldview_values), baton_data_->worldview) != std::end(worldview_values))
+            if (std::find(worldview_values.begin(), worldview_values.end(), baton_data_->worldview) != worldview_values.end())
             {
-                result.push_back(baton_data_->worldview);
+                matching_worldviews.push_back(baton_data_->worldview);
             }
         }
 
-        return result;
+        return matching_worldviews;
     }
 
     // create a feature from a list of properties
