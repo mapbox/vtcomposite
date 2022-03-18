@@ -579,7 +579,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     return info.Env().Undefined();
 }
 
-struct localizeWorker : Napi::AsyncWorker
+struct LocalizeWorker : Napi::AsyncWorker
 {
     using Base = Napi::AsyncWorker;
 
