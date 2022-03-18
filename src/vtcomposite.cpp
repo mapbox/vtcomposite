@@ -91,9 +91,9 @@ struct BatonType
     bool compress = false;
 };
 
-struct InternationalizeBatonType
+struct localizeBatonType
 {
-    InternationalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
+    localizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{std::move(language_)},
@@ -103,7 +103,7 @@ struct InternationalizeBatonType
     {
     }
 
-    ~InternationalizeBatonType() noexcept
+    ~localizeBatonType() noexcept
     {
         try
         {
@@ -114,11 +114,11 @@ struct InternationalizeBatonType
         }
     }
     // non-copyable
-    InternationalizeBatonType(InternationalizeBatonType const&) = delete;
-    InternationalizeBatonType& operator=(InternationalizeBatonType const&) = delete;
+    localizeBatonType(localizeBatonType const&) = delete;
+    localizeBatonType& operator=(localizeBatonType const&) = delete;
     // non-movable
-    InternationalizeBatonType(InternationalizeBatonType&&) = delete;
-    InternationalizeBatonType& operator=(InternationalizeBatonType&&) = delete;
+    localizeBatonType(localizeBatonType&&) = delete;
+    localizeBatonType& operator=(localizeBatonType&&) = delete;
 
     // members
     vtzero::data_view data;
@@ -579,11 +579,11 @@ Napi::Value composite(Napi::CallbackInfo const& info)
     return info.Env().Undefined();
 }
 
-struct InternationalizeWorker : Napi::AsyncWorker
+struct localizeWorker : Napi::AsyncWorker
 {
     using Base = Napi::AsyncWorker;
 
-    InternationalizeWorker(std::unique_ptr<InternationalizeBatonType>&& baton_data, Napi::Function& cb)
+    localizeWorker(std::unique_ptr<localizeBatonType>&& baton_data, Napi::Function& cb)
         : Base(cb),
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
@@ -622,7 +622,7 @@ struct InternationalizeWorker : Napi::AsyncWorker
 
     // create a feature from a list of properties
     // optionally define a worldview property if provided
-    static void build_internationalized_feature(
+    static void build_localized_feature(
         vtzero::feature const& feature,
         std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
         std::string const& worldview,
@@ -756,12 +756,12 @@ struct InternationalizeWorker : Napi::AsyncWorker
                     {
                         for (auto const& wv : worldviews_to_create)
                         {
-                            build_internationalized_feature(feature, properties, wv, lbuilder);
+                            build_localized_feature(feature, properties, wv, lbuilder);
                         }
                     }
                     else
                     {
-                        build_internationalized_feature(feature, properties, "", lbuilder);
+                        build_localized_feature(feature, properties, "", lbuilder);
                     }
                 }
             }
@@ -819,11 +819,11 @@ struct InternationalizeWorker : Napi::AsyncWorker
         return Base::GetResult(env); // returns an empty vector (default)
     }
 
-    std::unique_ptr<InternationalizeBatonType> const baton_data_;
+    std::unique_ptr<localizeBatonType> const baton_data_;
     std::unique_ptr<std::string> output_buffer_;
 };
 
-Napi::Value internationalize(Napi::CallbackInfo const& info)
+Napi::Value localize(Napi::CallbackInfo const& info)
 {
     std::size_t length = info.Length();
     if (length < 4 || length > 5)
@@ -923,9 +923,9 @@ Napi::Value internationalize(Napi::CallbackInfo const& info)
         }
     }
 
-    std::unique_ptr<InternationalizeBatonType> baton_data = std::make_unique<InternationalizeBatonType>(buffer, language, change_names, worldview, compress);
+    std::unique_ptr<localizeBatonType> baton_data = std::make_unique<localizeBatonType>(buffer, language, change_names, worldview, compress);
 
-    auto* worker = new InternationalizeWorker{std::move(baton_data), callback};
+    auto* worker = new localizeWorker{std::move(baton_data), callback};
     worker->Queue();
     return info.Env().Undefined();
 }
