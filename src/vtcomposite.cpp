@@ -91,7 +91,7 @@ struct BatonType
     bool compress = false;
 };
 
-struct localizeBatonType
+struct LocalizeBatonType
 {
     localizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
         : data{buffer.Data(), buffer.Length()},
