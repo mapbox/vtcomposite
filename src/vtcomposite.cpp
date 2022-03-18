@@ -93,7 +93,7 @@ struct BatonType
 
 struct LocalizeBatonType
 {
-    localizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
+    LocalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{std::move(language_)},
@@ -103,7 +103,7 @@ struct LocalizeBatonType
     {
     }
 
-    ~localizeBatonType() noexcept
+    ~LocalizeBatonType() noexcept
     {
         try
         {
@@ -114,11 +114,11 @@ struct LocalizeBatonType
         }
     }
     // non-copyable
-    localizeBatonType(localizeBatonType const&) = delete;
-    localizeBatonType& operator=(localizeBatonType const&) = delete;
+    LocalizeBatonType(LocalizeBatonType const&) = delete;
+    LocalizeBatonType& operator=(LocalizeBatonType const&) = delete;
     // non-movable
-    localizeBatonType(localizeBatonType&&) = delete;
-    localizeBatonType& operator=(localizeBatonType&&) = delete;
+    LocalizeBatonType(LocalizeBatonType&&) = delete;
+    LocalizeBatonType& operator=(LocalizeBatonType&&) = delete;
 
     // members
     vtzero::data_view data;
@@ -583,7 +583,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 {
     using Base = Napi::AsyncWorker;
 
-    localizeWorker(std::unique_ptr<localizeBatonType>&& baton_data, Napi::Function& cb)
+    LocalizeWorker(std::unique_ptr<LocalizeBatonType>&& baton_data, Napi::Function& cb)
         : Base(cb),
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
@@ -819,7 +819,7 @@ struct LocalizeWorker : Napi::AsyncWorker
         return Base::GetResult(env); // returns an empty vector (default)
     }
 
-    std::unique_ptr<localizeBatonType> const baton_data_;
+    std::unique_ptr<LocalizeBatonType> const baton_data_;
     std::unique_ptr<std::string> output_buffer_;
 };
 
@@ -923,9 +923,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         }
     }
 
-    std::unique_ptr<localizeBatonType> baton_data = std::make_unique<localizeBatonType>(buffer, language, change_names, worldview, compress);
+    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(buffer, language, change_names, worldview, compress);
 
-    auto* worker = new localizeWorker{std::move(baton_data), callback};
+    auto* worker = new LocalizeWorker{std::move(baton_data), callback};
     worker->Queue();
     return info.Env().Undefined();
 }
