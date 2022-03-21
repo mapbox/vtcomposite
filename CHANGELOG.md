@@ -1,5 +1,5 @@
 # Unreleased
-- adds internationalize function
+- adds localize function
 
 # 0.6.1
 - Build binaries with node v16 -> works at runtime with node v8 -> v16 (and likely others)

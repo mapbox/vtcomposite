@@ -15,7 +15,7 @@ vtcomposite is a tool to combine multiple [vector tiles](https://github.com/mapb
 - **Overzoom tiles.** For displaying data at a higher zoom level than that the tile's original zoom level.
 - **Clip tiles.** Clips the extraneous buffer of a tile that’s been overzoomed to match a tile's extent or to retain data beyond the extent.
 - **Drop layers.** Remove any layers from a tile.
-- **Internationalize.** Modify internationalization-related features and properties such as language and worldview properties.
+- **Localize.** Modify localization-related features and properties such as language and worldview properties.
 
 You can learn more about compositing in [TUTORIAL.md](/TUTORIAL.md). This module is a [Node.js Addon](https://nodejs.org/api/addons.html) and will install prebuilt binaries for your version of Node.js and computer architecture. Uncommon setups will build from source when installed via NPM.
 
@@ -66,9 +66,9 @@ composite(tiles, zxy, options, function(err, result) {
 });
 ```
 
-### `internationalize`
+### `localize`
 
-Modify a tile's features and properties to support internationalized languages and worldviews. This function requires the input vector tiles to match a specific schema for language translation and worldviews.
+Modify a tile's features and properties to support localized languages and worldviews. This function requires the input vector tiles to match a specific schema for language translation and worldviews.
 
 #### Parameters
 
@@ -87,7 +87,7 @@ Modify a tile's features and properties to support internationalized languages a
 #### Example
 
 ```js
-const { internationalize } = require('@mapbox/vtcomposite');
+const { localize } = require('@mapbox/vtcomposite');
 const fs = require('fs');
 
 const buffer = fs.readFileSync('./path/to/tile.mvt');
@@ -97,7 +97,7 @@ const options = {
   compress: true
 };
 
-internationalize(buffer, language, worldview, options, function(err, result) {
+localize(buffer, language, worldview, options, function(err, result) {
   if (err) throw err;
   console.log(result); // tile buffer
 });
