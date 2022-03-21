@@ -15,7 +15,7 @@ vtcomposite is a tool to combine multiple [vector tiles](https://github.com/mapb
 - **Overzoom tiles.** For displaying data at a higher zoom level than that the tile's original zoom level.
 - **Clip tiles.** Clips the extraneous buffer of a tile that’s been overzoomed to match a tile's extent or to retain data beyond the extent.
 - **Drop layers.** Remove any layers from a tile.
-- **Localize.** Modify internationalization-related features and properties such as language and worldview properties.
+- **Localize.** Modify localization-related features and properties such as language and worldview properties.
 
 You can learn more about compositing in [TUTORIAL.md](/TUTORIAL.md). This module is a [Node.js Addon](https://nodejs.org/api/addons.html) and will install prebuilt binaries for your version of Node.js and computer architecture. Uncommon setups will build from source when installed via NPM.
 
