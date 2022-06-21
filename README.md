@@ -96,6 +96,7 @@ const params = {
   language: null,
   worldview: null,
   worldview_property: null,
+  worldview_defaults: null,
   compress: true
 };
 

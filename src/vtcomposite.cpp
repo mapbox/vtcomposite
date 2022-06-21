@@ -93,13 +93,20 @@ struct BatonType
 
 struct LocalizeBatonType
 {
-    LocalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, std::string worldview_property_, bool compress_)
+    LocalizeBatonType(Napi::Buffer<char> const& buffer,
+                      std::string language_,
+                      bool change_names_,
+                      std::string worldview_,
+                      std::string worldview_property_,
+                      std::vector<std::string> worldview_defaults_,
+                      bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{std::move(language_)},
           change_names{change_names_},
           worldview{std::move(worldview_)},
           worldview_property{std::move(worldview_property_)},
+          worldview_defaults{std::move(worldview_defaults_)},
           compress{compress_}
     {
     }
@@ -128,6 +135,7 @@ struct LocalizeBatonType
     bool change_names;
     std::string worldview;
     std::string worldview_property;
+    std::vector<std::string> worldview_defaults;
     bool compress;
 };
 
@@ -607,8 +615,7 @@ struct LocalizeWorker : Napi::AsyncWorker
         // worldview: null
         if (baton_data_->worldview.empty())
         {
-            std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"};
-            utils::intersection(worldview_values, legacy_worldviews, matching_worldviews);
+            utils::intersection(worldview_values, baton_data_->worldview_defaults, matching_worldviews);
         }
         // worldview: XX
         else
@@ -850,6 +857,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     bool change_names = true;
     std::string worldview;
     std::string worldview_property = "_mbx_worldview";
+    std::vector<std::string> worldview_defaults{"CN", "IN", "JP", "US"};
     bool compress = false;
     if (!params_val.IsObject())
     {
@@ -932,6 +940,34 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         worldview_property = worldview_property_val.As<Napi::String>();
     }
 
+    // params.worldview_defaults
+    if (params.Has(Napi::String::New(info.Env(), "worldview_defaults")))
+    {
+        Napi::Value worldview_defaults_val = params.Get(Napi::String::New(info.Env(), "worldview_defaults"));
+        if (!worldview_defaults_val.IsArray())
+        {
+            return utils::CallbackError("params.worldview_defaults must be an array", info);
+        }
+        Napi::Array worldview_defaults_array = worldview_defaults_val.As<Napi::Array>();
+        std::uint32_t num_defaults = worldview_defaults_array.Length();
+        if (num_defaults == 0)
+        {
+            return utils::CallbackError("params.worldview_defaults must be an array of length greater than 0", info);
+        }
+        worldview_defaults.clear(); // clear the lib defaults
+        worldview_defaults.reserve(num_defaults);
+        for (std::uint32_t wv = 0; wv < num_defaults; ++wv)
+        {
+            Napi::Value worldview_default_item_val = worldview_defaults_array.Get(wv);
+            if (!worldview_default_item_val.IsString())
+            {
+                return utils::CallbackError("params.worldview_defaults must be an array of strings", info);
+            }
+            std::string worldview_default_item = worldview_default_item_val.As<Napi::String>();
+            worldview_defaults.emplace(worldview_defaults.end(), worldview_default_item);
+        }
+    }
+
     // params.compress
     if (params.Has(Napi::String::New(info.Env(), "compress")))
     {
@@ -943,7 +979,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         compress = comp_value.As<Napi::Boolean>().Value();
     }
 
-    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(buffer, language, change_names, worldview, worldview_property, compress);
+    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(buffer, language, change_names, worldview, worldview_property, worldview_defaults, compress);
 
     auto* worker = new LocalizeWorker{std::move(baton_data), callback};
     worker->Queue();

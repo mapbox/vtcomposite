@@ -621,6 +621,40 @@ test('[localize] params.worldview_property', (assert) => {
   assert.end();
 });
 
+test('[localize] params.worldview_defaults', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldview: 'US',
+    worldview_property: 'worldview',
+    worldview_defaults: 'not an array'
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_defaults must be an array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldview: 'US',
+    worldview_property: 'worldview',
+    worldview_defaults: [] // empty array
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_defaults must be an array of length greater than 0', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldview: 'US',
+    worldview_property: 'worldview',
+    worldview_defaults: [1, 2, 3] // empty array
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_defaults must be an array of strings', 'expected error message');
+  });
+
+  assert.end();
+});
+
 test('[localize] params.compress', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
