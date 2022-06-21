@@ -36,7 +36,7 @@
     "mapnik": "^4.5.9",
     "minimist": "^1.2.5",
     "pbf": "^3.2.1",
-    "tape": "^4.5.2"
+    "tape": "^4.15.1"
   },
   "binary": {
     "module_name": "vtcomposite",

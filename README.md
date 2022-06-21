@@ -88,16 +88,18 @@ Modify a tile's features and properties to support localized languages and world
 
 ```js
 const { localize } = require('@mapbox/vtcomposite');
-const fs = require('fs');
 
-const buffer = fs.readFileSync('./path/to/tile.mvt');
-const language = 'en';
-const worldview = 'AD';
-const options = {
+const params = {
+  // REQUIRED
+  buffer: require('fs').readFileSync('./path/to/tile.mvt'),
+  // OPTIONAL (defaults)
+  language: null,
+  worldview: null,
+  worldview_property: null,
   compress: true
 };
 
-localize(buffer, language, worldview, options, function(err, result) {
+localize(params, function(err, result) {
   if (err) throw err;
   console.log(result); // tile buffer
 });
