@@ -68,7 +68,7 @@ composite(tiles, zxy, options, function(err, result) {
 
 ### `localize`
 
-Modify a tile's features and properties to support localized languages and worldviews. This function requires the input vector tiles to match a specific schema for language translation and worldviews.
+A filtering function for modifying a tile's features and properties to support localized languages and worldviews. This function requires the input vector tiles to match a specific schema for language translation and worldviews.
 
 #### Parameters
 
@@ -76,13 +76,13 @@ Modify a tile's features and properties to support localized languages and world
   - `params.buffer` **Buffer** a vector tile buffer, gzip compressed or not
   - `params.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return an uncompressed buffer. (optional, default `false`)
   - `params.language` **String** the IETF BCP 47 language code.
-  - `params.worldview` **String** ISO 3166-1 alpha-2 country code to only include features that match the given worldview.
+  - `params.worldview` **Array<String>** array of ISO 3166-1 alpha-2 country codes used to filter out features of different worldviews. Worldview data must be included in the vector tile. See `params.worldview_property` for more details on encoding data.
     - If a feature matches the requested worldview the feature is cloned and `worldview: XX` is added to the feature's properties and the `params.worldview_property` property is dropped. If the original feature contains a `worldview` property, it is overwritten.
     - If a feature has a worldview value of `all` it is considered a match and `worldview: all` is added to the feature's properties and the `params.worldview_property` property is dropped. If the original feature contains a `worldview` property, it is ovewritten.
     - If a feature does not match the request worldview the entire feature is dropped.
     - If a feature does not have a `params.worldview_property` property it is retained.
-  - `params.worldview_property` **String** property that specifies which worldview a feature belongs. The property must contain a comma-separated string of ISO 3166-1 alpha-2 country codes that define which worldviews the feature represents (example: `US,RU,IN`). Default value: `_mbx_worldview`.
-  - `params.worldview_defaults` **Array<String>** if `worldview` is set to `null`, fallback to the given set of worldviews. A single worldview feature (defined by `worldview_property`) may be split into multiple features if it represents multiple worldviews. Default value: `['US', 'CN', 'IN', 'JP']`
+  - `params.worldview_property` **String** property that specifies which worldview a feature belongs. The vector tile encoded property must contain a comma-separated string of ISO 3166-1 alpha-2 country codes that define which worldviews the feature represents (example: `US,RU,IN`). Default value: `_mbx_worldview`.
+    - If a feature contains multiple values that match multiple given values in the `params.worldview` array, it will be split into multiple features in the final vector tile, one for each matching worldview.
 - `callback` **Function** callback function that returns `err` and `buffer` parameters
 
 #### Example
@@ -95,9 +95,8 @@ const params = {
   buffer: require('fs').readFileSync('./path/to/tile.mvt'),
   // OPTIONAL (defaults)
   language: null,
-  worldview: null,
-  worldview_property: null,
-  worldview_defaults: ['US', 'CN', 'IN', 'JP'],
+  worldview: [],
+  worldview_property: '_mbx_worldview',
   compress: true
 };
 

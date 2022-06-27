@@ -49,32 +49,11 @@ const fixtureWithAll = mvtFixtures.create({
   ]
 }).buffer;
 
-test('[localize worldview] defaults - worldview: null specified, feature split into default worldviews', (assert) => {
-  const params = {
-    buffer: fixtureDefaults,
-    // worldview: null,
-    // worldview_property: '_mbx_worldview',
-    // worldview_defaults: ['CN', 'IN', 'JP', 'US']
-  };
-  localize(params, (err, vtBuffer) => {
-    assert.ifError(err);
-    const tile = vtinfo(vtBuffer);
-    assert.ok('admin' in tile.layers, 'has admin layer');
-    assert.equal(tile.layers.admin.length, 4, 'has four features');
-    assert.equal(tile.layers.admin.feature(0).properties.worldview, 'CN', 'expected CN worldview');
-    assert.equal(tile.layers.admin.feature(1).properties.worldview, 'IN', 'expected IN worldview');
-    assert.equal(tile.layers.admin.feature(2).properties.worldview, 'JP', 'expected JP worldview');
-    assert.equal(tile.layers.admin.feature(3).properties.worldview, 'US', 'expected US worldview');
-    assert.end();
-  });
-});
-
 test('[localize worldview] defaults - worldview: US specified, only US created', (assert) => {
   const params = {
     buffer: fixtureDefaults,
-    worldview: 'US',
-    // worldview_property: '_mbx_worldview',
-    // worldview_defaults: ['CN', 'IN', 'JP', 'US']
+    worldview: ['US'],
+    // worldview_property: '_mbx_worldview'
   };
   localize(params, (err, vtBuffer) => {
     assert.ifError(err);
@@ -88,28 +67,10 @@ test('[localize worldview] defaults - worldview: US specified, only US created',
   });
 });
 
-test('[localize worldview] worldviews not specified in worldview_defaults are not created', (assert) => {
-  const params = {
-    buffer: fixtureDefaults,
-    worldview: null,
-    worldview_property: '_mbx_worldview',
-    worldview_defaults: ['US', 'JP']
-  };
-  localize(params, (err, vtBuffer) => {
-    assert.ifError(err);
-    const tile = vtinfo(vtBuffer);
-    assert.ok('admin' in tile.layers, 'has admin layer');
-    assert.equal(tile.layers.admin.length, 2, 'has two features');
-    assert.equal(tile.layers.admin.feature(0).properties.worldview, 'JP', 'expected JP worldview');
-    assert.equal(tile.layers.admin.feature(1).properties.worldview, 'US', 'expected US worldview');
-    assert.end();
-  });
-});
-
-test('[localize worldview] worldview: null specified, feature with "all" value is retained', (assert) => {
+test('[localize worldview] no worldview specified, feature with "all" value is retained', (assert) => {
   const params = {
     buffer: fixtureWithAll,
-    worldview: null
+    worldview: []
   };
   localize(params, (err, vtBuffer) => {
     assert.ifError(err);
@@ -126,7 +87,7 @@ test('[localize worldview] worldview: null specified, feature with "all" value i
 test('[localize worldview] worldview: US specified, feature with _mbx_worldview: "all" is retained', (assert) => {
   const params = {
     buffer: fixtureWithAll,
-    worldview: 'US'
+    worldview: ['US']
   };
   localize(params, (err, vtBuffer) => {
     assert.ifError(err);
@@ -163,7 +124,7 @@ test('[localize worldview] property with non-string value, feature is dropped', 
         }
       ]
     }).buffer,
-    worldview: 'US'
+    worldview: ['US']
   }
   localize(params, (err, vtBuffer) => {
     assert.ifError(err);
@@ -203,7 +164,7 @@ test('[localize worldview] feature with _mbx_worldview and worldview properties 
         }
       ]
     }).buffer,
-    worldview: 'US'
+    worldview: ['US']
   };
 
   localize(params, (err, vtBuffer) => {
@@ -217,7 +178,7 @@ test('[localize worldview] feature with _mbx_worldview and worldview properties 
   });
 });
 
-test('[localize] worldview - custom worldview_property', (assert) => {
+test('[localize worldview] custom worldview_property', (assert) => {
   const tile = mvtFixtures.create({
     layers: [
       {
@@ -251,7 +212,7 @@ test('[localize] worldview - custom worldview_property', (assert) => {
 
   const params = {
     buffer: tile,
-    worldview: 'US',
+    worldview: ['US'],
     worldview_property: 'custom_worldview'
   };
   localize(params, (err, vtBuffer) => {
@@ -266,7 +227,43 @@ test('[localize] worldview - custom worldview_property', (assert) => {
   });
 });
 
-test('[localize] worldview - custom worldview_defaults array', (assert) => {
+test('[localize worldview] feature split into multiple worldviews', (assert) => {
+  const params = {
+    buffer: fixtureDefaults,
+    worldview: ['CN', 'IN', 'JP', 'US'],
+    worldview_property: '_mbx_worldview'
+  };
+  localize(params, (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 4, 'has four features');
+    assert.equal(tile.layers.admin.feature(0).properties.worldview, 'CN', 'expected CN worldview');
+    assert.equal(tile.layers.admin.feature(1).properties.worldview, 'IN', 'expected IN worldview');
+    assert.equal(tile.layers.admin.feature(2).properties.worldview, 'JP', 'expected JP worldview');
+    assert.equal(tile.layers.admin.feature(3).properties.worldview, 'US', 'expected US worldview');
+    assert.end();
+  });
+});
+
+test('[localize worldview] worldviews not specified are not split into features', (assert) => {
+  const params = {
+    buffer: fixtureDefaults,
+    worldview: ['US', 'JP'],
+    worldview_property: '_mbx_worldview'
+  };
+  localize(params, (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 2, 'has two features');
+    assert.equal(tile.layers.admin.feature(0).properties.worldview, 'JP', 'expected JP worldview');
+    assert.equal(tile.layers.admin.feature(1).properties.worldview, 'US', 'expected US worldview');
+    assert.end();
+  });
+});
+
+test('[localize worldview] custom worldview_defaults array', (assert) => {
   const tile = mvtFixtures.create({
     layers: [
       {
@@ -298,9 +295,8 @@ test('[localize] worldview - custom worldview_defaults array', (assert) => {
 
   const params = {
     buffer: tile,
-    worldview: null,
-    worldview_property: 'custom_worldview',
-    worldview_defaults: ['RU']
+    worldview: ['RU'],
+    worldview_property: 'custom_worldview'
   };
   localize(params, (err, vtBuffer) => {
     assert.ifError(err);
@@ -314,7 +310,7 @@ test('[localize] worldview - custom worldview_defaults array', (assert) => {
   });
 });
 
-test('[localize] worldview - partial matching worldviews are not considered matches, only perfect matches after splitting by comma', (assert) => {
+test('[localize worldview] partial matching worldviews are not considered matches, only perfect matches after splitting by comma', (assert) => {
   const params = {
     buffer: mvtFixtures.create({
       layers: [
@@ -344,7 +340,7 @@ test('[localize] worldview - partial matching worldviews are not considered matc
         }
       ]
     }).buffer,
-    worldview: 'US'
+    worldview: ['US']
   };
 
   localize(params, (err, vtBuffer) => {
