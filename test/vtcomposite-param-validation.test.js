@@ -591,18 +591,26 @@ test('[localize] params.language', (assert) => {
 test('[localize] params.worldview', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
-    worldview: 1 // not a string
+    worldview: 1 // not an array
   }, function (err) {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldview value must be null or a 2 character string', 'expected error message');
+    assert.equal(err.message, 'params.worldview must be an array', 'expected error message');
   });
 
   localize({
     buffer: Buffer.from('howdy'),
-    worldview: 'more than 2 chars'
+    worldview: [1, 2, 3] // array with non-strings
   }, function (err) {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldview must be a string 2 characters long', 'expected error message');
+    assert.equal(err.message, 'params.worldview must be an array of strings', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldview: ['USA'] // array with >2 char strings
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview items must be strings of 2 characters', 'expected error message');
   });
 
   assert.end();
@@ -611,45 +619,11 @@ test('[localize] params.worldview', (assert) => {
 test('[localize] params.worldview_property', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
-    worldview: 'US',
+    worldview: ['US'],
     worldview_property: 1 // not a string
   }, function (err) {
     assert.ok(err);
     assert.equal(err.message, 'params.worldview_property must be a string', 'expected error message');
-  });
-
-  assert.end();
-});
-
-test('[localize] params.worldview_defaults', (assert) => {
-  localize({
-    buffer: Buffer.from('howdy'),
-    worldview: 'US',
-    worldview_property: 'worldview',
-    worldview_defaults: 'not an array'
-  }, function (err) {
-    assert.ok(err);
-    assert.equal(err.message, 'params.worldview_defaults must be an array', 'expected error message');
-  });
-
-  localize({
-    buffer: Buffer.from('howdy'),
-    worldview: 'US',
-    worldview_property: 'worldview',
-    worldview_defaults: [] // empty array
-  }, function (err) {
-    assert.ok(err);
-    assert.equal(err.message, 'params.worldview_defaults must be an array of length greater than 0', 'expected error message');
-  });
-
-  localize({
-    buffer: Buffer.from('howdy'),
-    worldview: 'US',
-    worldview_property: 'worldview',
-    worldview_defaults: [1, 2, 3] // empty array
-  }, function (err) {
-    assert.ok(err);
-    assert.equal(err.message, 'params.worldview_defaults must be an array of strings', 'expected error message');
   });
 
   assert.end();
