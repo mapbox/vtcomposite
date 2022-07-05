@@ -484,7 +484,7 @@ test('[composite] failure: options must be an object', assert => {
 test('[composite] failure: buffer size is not int32', assert => {
   const buffs = [
     {
-      buffer: new Buffer(10),
+      buffer: new Buffer.alloc(10),
       z: 0,
       x: 0,
       y: 0
@@ -500,7 +500,7 @@ test('[composite] failure: buffer size is not int32', assert => {
 test('[composite] failure: buffer size is not positive int32', assert => {
   const buffs = [
     {
-      buffer: new Buffer(10),
+      buffer: new Buffer.alloc(10),
       z: 0,
       x: 0,
       y: 0
@@ -513,136 +513,144 @@ test('[composite] failure: buffer size is not positive int32', assert => {
   });
 });
 
-test('[localize] failure: not enough arguments', assert => {
-  try {
+test('[localize] success with all parameters', (assert) => {
+  localize({
+    buffer: mvtFixtures.get('064').buffer,
+    language: 'en',
+    worldviews: ['US'],
+    worldview_property: '_mbx_worldview',
+    compress: true
+  }, (err, buffer) => {
+    assert.ifError(err);
+    assert.ok(buffer);
+    assert.end();
+  });
+});
+
+test('[localize] parameter validation', (assert) => {
+  assert.throws(() => {
     localize();
-  } catch(err) {
-    assert.ok(err);
-    assert.equal(err.message, 'expected buffer, language, worldview, options and callback arguments', 'expected error message');
-    assert.end();
-  }
+  }, /expected params and callback arguments/);
+  assert.throws(() => {
+    localize(Object(), Function(), 'something extra');
+  }, /expected params and callback arguments/);
+  assert.throws(() => {
+    localize('not an object', Function());
+  }, /first argument must be an object/);
+  assert.throws(() => {
+    localize(Object(), 'not a function');
+  }, /second argument must be a callback function/);
+  assert.end();
 });
 
-test('[localize] failure: too many arguments', assert => {
-  try {
-    localize(Buffer.from('hello world'), 'en', null, { compress: false }, 4, function (err, result) { });
-  } catch(err) {
+test('[localize] params.buffer', assert => {
+  localize({
+    // buffer: // not defined
+  }, function (err) {
     assert.ok(err);
-    assert.equal(err.message, 'expected buffer, language, worldview, options and callback arguments', 'expected error message');
-    assert.end();
-  }
+    assert.equal(err.message, 'params.buffer is required', 'expected error message');
+  });
+
+  localize({
+    buffer: 1, // not a buffer
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.buffer must be a Buffer', 'expected error message');
+  });
+
+  localize({
+    buffer: null, // set to "null"
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.buffer must be a Buffer', 'expected error message');
+  });
+
+  localize({
+    buffer: undefined, // set to "undefined"
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.buffer must be a Buffer', 'expected error message');
+  });
+
+  localize({
+    buffer: Object(), // not a true buffer
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.buffer is not a true Buffer', 'expected error message');
+  });
+
+  assert.end();
 });
 
-test('[localize] failure: callback is not a function', assert => {
-  try {
-    localize(Buffer.from('hello world'), 'en', 'AD', { compress: false }, 4);
-  } catch(err) {
+test('[localize] params.language', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    language: 1
+  }, function (err) {
     assert.ok(err);
-    assert.ok(/last argument must be a callback function/.test(err.message), 'expected error message');
-    assert.end();
-  }
+    assert.equal(err.message, 'params.language must be null or a string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('hi'),
+    language: '' // empty string
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language cannot be an empty string', 'expected error message');
+  });
+
+  assert.end();
 });
 
-test('[localize] failure: buffer is not an object', assert => {
-  localize(1, 'en', 'AD', { compress: false }, function (err, result) {
+test('[localize] params.worldviews', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: 1 // not an array
+  }, function (err) {
     assert.ok(err);
-    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
-    assert.end();
+    assert.equal(err.message, 'params.worldview must be an array', 'expected error message');
   });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: [1, 2, 3] // array with non-strings
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview must be an array of strings', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['USA'] // array with >2 char strings
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview items must be strings of 2 characters', 'expected error message');
+  });
+
+  assert.end();
 });
 
-test('[localize] failure: buffer is null', assert => {
-  localize(null, 'en', 'AD', { compress: false }, function (err, result) {
+test('[localize] params.worldview_property', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['US'],
+    worldview_property: 1 // not a string
+  }, function (err) {
     assert.ok(err);
-    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
-    assert.end();
+    assert.equal(err.message, 'params.worldview_property must be a string', 'expected error message');
   });
+
+  assert.end();
 });
 
-test('[localize] failure: buffer is undefined', assert => {
-  localize(undefined, 'en', 'AD', { compress: false }, function (err, result) {
+test('[localize] params.compress', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    compress: 1 // not a boolean
+  }, function (err) {
     assert.ok(err);
-    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
-    assert.end();
-  });
-});
-
-test('[localize] failure: buffer is not a true buffer', assert => {
-  localize('not a buffer', 'en', 'AD',{ compress: false },function(err, result) {
-    assert.ok(err);
-    assert.ok(/first argument must be Buffer object/.test(err.message), 'expected error message');
-    assert.end();
-  });
-});
-
-test('[localize] failure: language is an integer', assert => {
-  localize(Buffer.from('hello world'), 1, 'AD', { compress: false }, function (err, result) {
-    assert.ok(err);
-    assert.ok(/language value must be null or a string/.test(err.message), 'expected error message');
-    assert.end();
-  });
-});
-
-test('[localize] failure: language is an empty string', assert => {
-  localize(Buffer.from('hello world'), '', 'AD', { compress: false }, function (err, result) {
-    assert.ok(err);
-    assert.ok(/language value is an empty string/.test(err.message), 'expected error message');
-    assert.end();
-  });
-});
-
-test('[localize] failure: options is not an object', assert => {
-  localize(Buffer.from('hello world'), 'en', 'AD', 1, function (err, result) {
-    assert.ok(err);
-    assert.ok(/'options' arg must be an object/.test(err.message), 'expected error message');
-    assert.end();
-  });
-});
-
-test('[localize] failure: options.compress is not a boolean', assert => {
-  localize(Buffer.from('hello world'), 'en', 'AD', { compress: 1 }, function (err, result) {
-    assert.ok(err);
-    assert.ok(/'compress' must be a boolean/.test(err.message), 'expected error message');
-    assert.end();
-  });
-});
-
-test('[localize] success: options may be omitted', assert => {
-  localize(mvtFixtures.get('002').buffer, 'en', 'AD', function (err, result) {
-    assert.notOk(err);
-    assert.end();
-  });
-});
-
-test('[localize] success: options may be empty', assert => {
-  localize(mvtFixtures.get('002').buffer, 'en', 'AD', { }, function (err, result) {
-    assert.notOk(err);
-    assert.end();
-  });
-});
-
-test('[localize] success: worldview is not 2 characters long', assert => {
-  assert.plan(6);
-  localize(mvtFixtures.get('002').buffer, 'en', '', function (err) {
-    assert.ok(err);
-    assert.equal(err.message, 'worldview must be a string 2 characters long');
+    assert.equal(err.message, 'params.compress must be a boolean', 'expected error message');
   });
 
-  localize(mvtFixtures.get('002').buffer, 'en', 'z', function (err) {
-    assert.ok(err);
-    assert.equal(err.message, 'worldview must be a string 2 characters long');
-  });
-
-  localize(mvtFixtures.get('002').buffer, 'en', 'abc', function (err) {
-    assert.ok(err);
-    assert.equal(err.message, 'worldview must be a string 2 characters long');
-  });
-});
-
-test('[localize] success: worldview is not a string', assert => {
-  localize(mvtFixtures.get('002').buffer, 'en', 100, function (err) {
-    assert.ok(err);
-    assert.equal(err.message, 'worldview value must be null or a 2 character string');
-    assert.end();
-  });
+  assert.end();
 });

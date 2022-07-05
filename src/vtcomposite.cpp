@@ -24,6 +24,7 @@
 namespace vtile {
 
 static constexpr std::uint32_t MVT_VERSION_1 = 1U;
+static const std::uint32_t LOCALIZE_FUNCTION_ARGS = 2;
 
 struct TileObject
 {
@@ -93,12 +94,18 @@ struct BatonType
 
 struct LocalizeBatonType
 {
-    LocalizeBatonType(Napi::Buffer<char> const& buffer, std::string language_, bool change_names_, std::string worldview_, bool compress_)
+    LocalizeBatonType(Napi::Buffer<char> const& buffer,
+                      std::string language_,
+                      bool change_names_,
+                      std::vector<std::string> worldviews_,
+                      std::string worldview_property_,
+                      bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{std::move(language_)},
           change_names{change_names_},
-          worldview{std::move(worldview_)},
+          worldviews{std::move(worldviews_)},
+          worldview_property{std::move(worldview_property_)},
           compress{compress_}
     {
     }
@@ -125,7 +132,8 @@ struct LocalizeBatonType
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
     std::string language;
     bool change_names;
-    std::string worldview;
+    std::vector<std::string> worldviews;
+    std::string worldview_property;
     bool compress;
 };
 
@@ -602,19 +610,10 @@ struct LocalizeWorker : Napi::AsyncWorker
         std::vector<std::string> matching_worldviews;
         // convert pval into vector of strings US,CN => {"US", "CN"}
         std::vector<std::string> worldview_values = utils::split(pval);
-        // worldview: null
-        if (baton_data_->worldview.empty())
-        {
-            std::vector<std::string> legacy_worldviews{"CN", "IN", "JP", "US"};
-            utils::intersection(worldview_values, legacy_worldviews, matching_worldviews);
-        }
         // worldview: XX
-        else
+        if (!baton_data_->worldviews.empty())
         {
-            if (std::find(worldview_values.begin(), worldview_values.end(), baton_data_->worldview) != worldview_values.end())
-            {
-                matching_worldviews.push_back(baton_data_->worldview);
-            }
+            utils::intersection(worldview_values, baton_data_->worldviews, matching_worldviews);
         }
 
         return matching_worldviews;
@@ -686,7 +685,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                 while (auto feature = layer.next_feature())
                 {
                     std::vector<std::string> worldviews_to_create;
-                    bool has_mbx_worldview = false;
+                    bool has_worldview_key = false;
                     bool name_was_set = false;
                     vtzero::property_value name_value;
 
@@ -695,9 +694,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                     while (auto property = feature.next_property())
                     {
                         std::string property_key = property.key().to_string();
-                        if (!has_mbx_worldview && property_key == "_mbx_worldview")
+                        if (!has_worldview_key && property_key == baton_data_->worldview_property)
                         {
-                            has_mbx_worldview = true;
+                            has_worldview_key = true;
                             if (property.value().type() == vtzero::property_value_type::string_value)
                             {
                                 worldviews_to_create = worldviews_for_feature(static_cast<std::string>(property.value().string_value()));
@@ -752,7 +751,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                         }
                     }
 
-                    if (has_mbx_worldview)
+                    if (has_worldview_key)
                     {
                         for (auto const& wv : worldviews_to_create)
                         {
@@ -826,104 +825,130 @@ struct LocalizeWorker : Napi::AsyncWorker
 Napi::Value localize(Napi::CallbackInfo const& info)
 {
     std::size_t length = info.Length();
-    if (length < 4 || length > 5)
+    if (length != LOCALIZE_FUNCTION_ARGS)
     {
-        Napi::Error::New(info.Env(), "expected buffer, language, worldview, options and callback arguments").ThrowAsJavaScriptException();
+        Napi::Error::New(info.Env(), "expected params and callback arguments").ThrowAsJavaScriptException();
         return info.Env().Null();
     }
 
     // validate callback function
-    Napi::Value callback_val = info[length - 1];
+    Napi::Value callback_val = info[1];
     if (!callback_val.IsFunction())
     {
-        Napi::Error::New(info.Env(), "last argument must be a callback function").ThrowAsJavaScriptException();
+        Napi::Error::New(info.Env(), "second argument must be a callback function").ThrowAsJavaScriptException();
         return info.Env().Null();
     }
-
     Napi::Function callback = callback_val.As<Napi::Function>();
 
-    // validate buffer object
-    Napi::Value buf_val = info[0];
-    if (!buf_val.IsObject())
-    {
-        return utils::CallbackError("first argument must be Buffer object", info);
-    }
-    if (buf_val.IsNull() || buf_val.IsUndefined())
-    {
-        return utils::CallbackError("tile buffer is null or undefined", info);
-    }
-
-    Napi::Object buffer_obj = buf_val.As<Napi::Object>();
-    if (!buffer_obj.IsBuffer())
-    {
-        return utils::CallbackError("tile buffer is not a true buffer", info);
-    }
-
-    Napi::Buffer<char> buffer = buffer_obj.As<Napi::Buffer<char>>();
-
-    // validate language string
-    Napi::Value language_val = info[1];
+    // validate params object
+    Napi::Value params_val = info[0];
+    Napi::Buffer<char> buffer;
     std::string language;
     bool change_names = true;
-
-    if (language_val.IsNull())
+    std::vector<std::string> worldviews;
+    std::string worldview_property = "_mbx_worldview";
+    bool compress = false;
+    if (!params_val.IsObject())
     {
-        change_names = false;
+        Napi::Error::New(info.Env(), "first argument must be an object").ThrowAsJavaScriptException();
+        return info.Env().Null();
     }
-    else if (!language_val.IsString())
+    Napi::Object params = info[0].As<Napi::Object>();
+
+    // params.buffer (required)
+    if (!params.Has(Napi::String::New(info.Env(), "buffer")))
     {
-        return utils::CallbackError("language value must be null or a string", info);
+        return utils::CallbackError("params.buffer is required", info);
+    }
+    Napi::Value buffer_val = params.Get(Napi::String::New(info.Env(), "buffer"));
+    if (!buffer_val.IsObject() || buffer_val.IsNull() || buffer_val.IsUndefined())
+    {
+        return utils::CallbackError("params.buffer must be a Buffer", info);
+    }
+
+    Napi::Object buffer_obj = buffer_val.As<Napi::Object>();
+    if (!buffer_obj.IsBuffer())
+    {
+        return utils::CallbackError("params.buffer is not a true Buffer", info);
+    }
+    buffer = buffer_obj.As<Napi::Buffer<char>>();
+
+    // params.language (optional)
+    if (params.Has(Napi::String::New(info.Env(), "language")))
+    {
+        Napi::Value language_val = params.Get(Napi::String::New(info.Env(), "language"));
+        if (!language_val.IsString() && !language_val.IsNull() && !language_val.IsUndefined())
+        {
+            return utils::CallbackError("params.language must be null or a string", info);
+        }
+        if (language_val.IsString())
+        {
+            language = language_val.As<Napi::String>();
+            if (language.length() == 0)
+            {
+                return utils::CallbackError("params.language cannot be an empty string", info);
+            }
+        }
+        if (language_val.IsNull() || language_val.IsUndefined())
+        {
+            change_names = false;
+        }
     }
     else
     {
-        language = language_val.As<Napi::String>();
+        change_names = false;
     }
 
-    if (change_names && language.length() == 0)
+    // params.worldview
+    if (params.Has(Napi::String::New(info.Env(), "worldviews")))
     {
-        return utils::CallbackError("language value is an empty string", info);
-    }
-
-    // validate worldview string
-    Napi::Value worldview_val = info[2];
-    std::string worldview;
-
-    if (!worldview_val.IsString() && !worldview_val.IsNull())
-    {
-        return utils::CallbackError("worldview value must be null or a 2 character string", info);
-    }
-
-    if (worldview_val.IsString())
-    {
-        worldview = worldview_val.As<Napi::String>();
-        if (worldview.length() != 2)
+        Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldviews"));
+        if (!worldview_val.IsArray())
         {
-            return utils::CallbackError("worldview must be a string 2 characters long", info);
+            return utils::CallbackError("params.worldview must be an array", info);
         }
-    }
-
-    // validate optional options object
-    bool compress = false;
-    if (info.Length() > 4)
-    {
-        if (!info[3].IsObject())
+        Napi::Array worldview_array = worldview_val.As<Napi::Array>();
+        std::uint32_t num_worldviews = worldview_array.Length();
+        worldviews.reserve(num_worldviews);
+        for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
         {
-            return utils::CallbackError("'options' arg must be an object", info);
-        }
-
-        Napi::Object options = info[3].As<Napi::Object>();
-        if (options.Has(Napi::String::New(info.Env(), "compress")))
-        {
-            Napi::Value comp_value = options.Get(Napi::String::New(info.Env(), "compress"));
-            if (!comp_value.IsBoolean())
+            Napi::Value worldview_item_val = worldview_array.Get(wv);
+            if (!worldview_item_val.IsString())
             {
-                return utils::CallbackError("'compress' must be a boolean", info);
+                return utils::CallbackError("params.worldview must be an array of strings", info);
             }
-            compress = comp_value.As<Napi::Boolean>().Value();
+            std::string worldview_item = worldview_item_val.As<Napi::String>();
+            if (worldview_item.length() != 2)
+            {
+                return utils::CallbackError("params.worldview items must be strings of 2 characters", info);
+            }
+            worldviews.push_back(worldview_item);
         }
     }
 
-    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(buffer, language, change_names, worldview, compress);
+    // params.worldview_property
+    if (params.Has(Napi::String::New(info.Env(), "worldview_property")))
+    {
+        Napi::Value worldview_property_val = params.Get(Napi::String::New(info.Env(), "worldview_property"));
+        if (!worldview_property_val.IsString())
+        {
+            return utils::CallbackError("params.worldview_property must be a string", info);
+        }
+        worldview_property = worldview_property_val.As<Napi::String>();
+    }
+
+    // params.compress
+    if (params.Has(Napi::String::New(info.Env(), "compress")))
+    {
+        Napi::Value comp_value = params.Get(Napi::String::New(info.Env(), "compress"));
+        if (!comp_value.IsBoolean())
+        {
+            return utils::CallbackError("params.compress must be a boolean", info);
+        }
+        compress = comp_value.As<Napi::Boolean>().Value();
+    }
+
+    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(buffer, language, change_names, worldviews, worldview_property, compress);
 
     auto* worker = new LocalizeWorker{std::move(baton_data), callback};
     worker->Queue();
