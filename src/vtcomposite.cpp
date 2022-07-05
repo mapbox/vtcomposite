@@ -926,7 +926,6 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         }
     }
 
-
     // params.worldview_property
     if (params.Has(Napi::String::New(info.Env(), "worldview_property")))
     {

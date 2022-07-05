@@ -67,6 +67,49 @@ test('[localize worldview] defaults - worldview: US specified, only US created',
   });
 });
 
+test('[localize worldview] defaults - worldview: null filters out all features with a valid "worldview_property" property', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'admin',
+          features: [
+            {
+              id: 10,
+              tags: [ 0, 0 ], // _mbx_worldview: US
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            },
+            {
+              id: 10,
+              tags: [ 1, 0 ], // something_else: US
+              type: 1, // point
+              geometry: [ 9, 55, 38 ]
+            }
+          ],
+          keys: [ '_mbx_worldview', 'something_else' ],
+          values: [
+            { string_value: 'US' }
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    worldviews: []
+  };
+  localize(params, (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 1, 'has one feature');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, {
+      something_else: 'US'
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
 test('[localize worldview] no worldview specified, feature with "all" value is retained', (assert) => {
   const params = {
     buffer: fixtureWithAll,
