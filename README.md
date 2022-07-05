@@ -77,7 +77,7 @@ A filtering function for modifying a tile's features and properties to support l
   - `params.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return an uncompressed buffer. (optional, default `false`)
   - `params.language` **String** the IETF BCP 47 language code.
   - `params.worldview` **Array<String>** array of ISO 3166-1 alpha-2 country codes used to filter out features of different worldviews. Worldview data must be included in the vector tile. See `params.worldview_property` for more details on encoding data.
-    - If a feature matches the requested worldview the feature is cloned and `worldview: XX` is added to the feature's properties and the `params.worldview_property` property is dropped. If the original feature contains a `worldview` property, it is overwritten.
+    - If a feature matches one of the requested worldviews, the feature is kept. It will have a property `worldview` equal to the matching worldview value and the `params.worldview_property` property will be dropped. If the original feature contained a `worldview` property, it is overwritten.
     - If a feature has a worldview value of `all` it is considered a match and `worldview: all` is added to the feature's properties and the `params.worldview_property` property is dropped. If the original feature contains a `worldview` property, it is ovewritten.
     - If a feature does not match the request worldview the entire feature is dropped.
     - If a feature does not have a `params.worldview_property` property it is retained.
