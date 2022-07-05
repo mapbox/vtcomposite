@@ -920,7 +920,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         language_prefix = language_prefix_val.As<Napi::String>();
     }
 
-    // params.worldview (optional)
+    // params.worldview
     if (params.Has(Napi::String::New(info.Env(), "worldviews")))
     {
         Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldviews"));
