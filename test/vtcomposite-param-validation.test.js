@@ -602,6 +602,50 @@ test('[localize] params.language', (assert) => {
   assert.end();
 });
 
+test('[localize] params.language_property', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    language: 'es',
+    language_property: 1 // not a string
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language_property must be a string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    language: 'es',
+    language_property: null // null value
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language_property must be a string', 'expected error message');
+  });
+
+  assert.end();
+});
+
+test('[localize] params.language_property', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    language: 'es',
+    language_prefix: 1 // not a string
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language_prefix must be a string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    language: 'es',
+    language_prefix: null // null value
+  }, function (err) {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language_prefix must be a string', 'expected error message');
+  });
+
+  assert.end();
+});
+
 test('[localize] params.worldviews', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
