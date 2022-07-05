@@ -24,6 +24,7 @@
 namespace vtile {
 
 static constexpr std::uint32_t MVT_VERSION_1 = 1U;
+static const std::uint32_t LOCALIZE_FUNCTION_ARGS = 2;
 
 struct TileObject
 {
@@ -96,14 +97,14 @@ struct LocalizeBatonType
     LocalizeBatonType(Napi::Buffer<char> const& buffer,
                       std::string language_,
                       bool change_names_,
-                      std::vector<std::string> worldview_,
+                      std::vector<std::string> worldviews_,
                       std::string worldview_property_,
                       bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{std::move(language_)},
           change_names{change_names_},
-          worldview{std::move(worldview_)},
+          worldviews{std::move(worldviews_)},
           worldview_property{std::move(worldview_property_)},
           compress{compress_}
     {
@@ -131,7 +132,7 @@ struct LocalizeBatonType
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
     std::string language;
     bool change_names;
-    std::vector<std::string> worldview;
+    std::vector<std::string> worldviews;
     std::string worldview_property;
     bool compress;
 };
@@ -610,9 +611,9 @@ struct LocalizeWorker : Napi::AsyncWorker
         // convert pval into vector of strings US,CN => {"US", "CN"}
         std::vector<std::string> worldview_values = utils::split(pval);
         // worldview: XX
-        if (!baton_data_->worldview.empty())
+        if (!baton_data_->worldviews.empty())
         {
-            utils::intersection(worldview_values, baton_data_->worldview, matching_worldviews);
+            utils::intersection(worldview_values, baton_data_->worldviews, matching_worldviews);
         }
 
         return matching_worldviews;
@@ -824,7 +825,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 Napi::Value localize(Napi::CallbackInfo const& info)
 {
     std::size_t length = info.Length();
-    if (length != 2)
+    if (length != LOCALIZE_FUNCTION_ARGS)
     {
         Napi::Error::New(info.Env(), "expected params and callback arguments").ThrowAsJavaScriptException();
         return info.Env().Null();
@@ -844,7 +845,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     Napi::Buffer<char> buffer;
     std::string language;
     bool change_names = true;
-    std::vector<std::string> worldview;
+    std::vector<std::string> worldviews;
     std::string worldview_property = "_mbx_worldview";
     bool compress = false;
     if (!params_val.IsObject())
@@ -899,16 +900,16 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     }
 
     // params.worldview
-    if (params.Has(Napi::String::New(info.Env(), "worldview")))
+    if (params.Has(Napi::String::New(info.Env(), "worldviews")))
     {
-        Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldview"));
+        Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldviews"));
         if (!worldview_val.IsArray())
         {
             return utils::CallbackError("params.worldview must be an array", info);
         }
         Napi::Array worldview_array = worldview_val.As<Napi::Array>();
         std::uint32_t num_worldviews = worldview_array.Length();
-        worldview.reserve(num_worldviews);
+        worldviews.reserve(num_worldviews);
         for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
         {
             Napi::Value worldview_item_val = worldview_array.Get(wv);
@@ -921,9 +922,10 @@ Napi::Value localize(Napi::CallbackInfo const& info)
             {
                 return utils::CallbackError("params.worldview items must be strings of 2 characters", info);
             }
-            worldview.emplace(worldview.end(), worldview_item);
+            worldviews.push_back(worldview_item);
         }
     }
+
 
     // params.worldview_property
     if (params.Has(Napi::String::New(info.Env(), "worldview_property")))
@@ -947,7 +949,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         compress = comp_value.As<Napi::Boolean>().Value();
     }
 
-    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(buffer, language, change_names, worldview, worldview_property, compress);
+    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(buffer, language, change_names, worldviews, worldview_property, compress);
 
     auto* worker = new LocalizeWorker{std::move(baton_data), callback};
     worker->Queue();

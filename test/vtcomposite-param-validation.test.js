@@ -513,6 +513,20 @@ test('[composite] failure: buffer size is not positive int32', assert => {
   });
 });
 
+test('[localize] success with all parameters', (assert) => {
+  localize({
+    buffer: mvtFixtures.get('064').buffer,
+    language: 'en',
+    worldviews: ['US'],
+    worldview_property: '_mbx_worldview',
+    compress: true
+  }, (err, buffer) => {
+    assert.ifError(err);
+    assert.ok(buffer);
+    assert.end();
+  });
+});
+
 test('[localize] parameter validation', (assert) => {
   assert.throws(() => {
     localize();
@@ -588,10 +602,10 @@ test('[localize] params.language', (assert) => {
   assert.end();
 });
 
-test('[localize] params.worldview', (assert) => {
+test('[localize] params.worldviews', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
-    worldview: 1 // not an array
+    worldviews: 1 // not an array
   }, function (err) {
     assert.ok(err);
     assert.equal(err.message, 'params.worldview must be an array', 'expected error message');
@@ -599,7 +613,7 @@ test('[localize] params.worldview', (assert) => {
 
   localize({
     buffer: Buffer.from('howdy'),
-    worldview: [1, 2, 3] // array with non-strings
+    worldviews: [1, 2, 3] // array with non-strings
   }, function (err) {
     assert.ok(err);
     assert.equal(err.message, 'params.worldview must be an array of strings', 'expected error message');
@@ -607,7 +621,7 @@ test('[localize] params.worldview', (assert) => {
 
   localize({
     buffer: Buffer.from('howdy'),
-    worldview: ['USA'] // array with >2 char strings
+    worldviews: ['USA'] // array with >2 char strings
   }, function (err) {
     assert.ok(err);
     assert.equal(err.message, 'params.worldview items must be strings of 2 characters', 'expected error message');
@@ -619,7 +633,7 @@ test('[localize] params.worldview', (assert) => {
 test('[localize] params.worldview_property', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
-    worldview: ['US'],
+    worldviews: ['US'],
     worldview_property: 1 // not a string
   }, function (err) {
     assert.ok(err);

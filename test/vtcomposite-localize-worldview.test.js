@@ -52,7 +52,7 @@ const fixtureWithAll = mvtFixtures.create({
 test('[localize worldview] defaults - worldview: US specified, only US created', (assert) => {
   const params = {
     buffer: fixtureDefaults,
-    worldview: ['US'],
+    worldviews: ['US'],
     // worldview_property: '_mbx_worldview'
   };
   localize(params, (err, vtBuffer) => {
@@ -70,7 +70,7 @@ test('[localize worldview] defaults - worldview: US specified, only US created',
 test('[localize worldview] no worldview specified, feature with "all" value is retained', (assert) => {
   const params = {
     buffer: fixtureWithAll,
-    worldview: []
+    worldviews: []
   };
   localize(params, (err, vtBuffer) => {
     assert.ifError(err);
@@ -87,7 +87,7 @@ test('[localize worldview] no worldview specified, feature with "all" value is r
 test('[localize worldview] worldview: US specified, feature with _mbx_worldview: "all" is retained', (assert) => {
   const params = {
     buffer: fixtureWithAll,
-    worldview: ['US']
+    worldviews: ['US']
   };
   localize(params, (err, vtBuffer) => {
     assert.ifError(err);
@@ -124,7 +124,7 @@ test('[localize worldview] property with non-string value, feature is dropped', 
         }
       ]
     }).buffer,
-    worldview: ['US']
+    worldviews: ['US']
   }
   localize(params, (err, vtBuffer) => {
     assert.ifError(err);
@@ -164,7 +164,7 @@ test('[localize worldview] feature with _mbx_worldview and worldview properties 
         }
       ]
     }).buffer,
-    worldview: ['US']
+    worldviews: ['US']
   };
 
   localize(params, (err, vtBuffer) => {
@@ -212,7 +212,7 @@ test('[localize worldview] custom worldview_property', (assert) => {
 
   const params = {
     buffer: tile,
-    worldview: ['US'],
+    worldviews: ['US'],
     worldview_property: 'custom_worldview'
   };
   localize(params, (err, vtBuffer) => {
@@ -230,7 +230,7 @@ test('[localize worldview] custom worldview_property', (assert) => {
 test('[localize worldview] feature split into multiple worldviews', (assert) => {
   const params = {
     buffer: fixtureDefaults,
-    worldview: ['CN', 'IN', 'JP', 'US'],
+    worldviews: ['CN', 'IN', 'JP', 'US'],
     worldview_property: '_mbx_worldview'
   };
   localize(params, (err, vtBuffer) => {
@@ -249,7 +249,7 @@ test('[localize worldview] feature split into multiple worldviews', (assert) => 
 test('[localize worldview] worldviews not specified are not split into features', (assert) => {
   const params = {
     buffer: fixtureDefaults,
-    worldview: ['US', 'JP'],
+    worldviews: ['US', 'JP'],
     worldview_property: '_mbx_worldview'
   };
   localize(params, (err, vtBuffer) => {
@@ -295,7 +295,7 @@ test('[localize worldview] custom worldview_defaults array', (assert) => {
 
   const params = {
     buffer: tile,
-    worldview: ['RU'],
+    worldviews: ['RU'],
     worldview_property: 'custom_worldview'
   };
   localize(params, (err, vtBuffer) => {
@@ -340,7 +340,7 @@ test('[localize worldview] partial matching worldviews are not considered matche
         }
       ]
     }).buffer,
-    worldview: ['US']
+    worldviews: ['US']
   };
 
   localize(params, (err, vtBuffer) => {
