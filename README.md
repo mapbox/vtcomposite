@@ -81,7 +81,7 @@ A filtering function for modifying a tile's features and properties to support l
     - If a feature has a worldview value of `all` it is considered a match and `worldview: all` is added to the feature's properties and the `params.worldview_property` property is dropped. If the original feature contains a `worldview` property, it is ovewritten.
     - If a feature does not match the request worldview the entire feature is dropped.
     - If a feature does not have a `params.worldview_property` property it is retained.
-  - `params.worldview_property` **String** property that specifies which worldview a feature belongs. The vector tile encoded property must contain a comma-separated string of ISO 3166-1 alpha-2 country codes that define which worldviews the feature represents (example: `US,RU,IN`). Default value: `_mbx_worldview`.
+  - `params.worldview_property` **String** the name of the property that specifies in which worldview a feature belongs. The vector tile encoded property must contain a comma-separated string of ISO 3166-1 alpha-2 country codes that define which worldviews the feature represents (example: `US,RU,IN`). Default value: `_mbx_worldview`.
     - If a feature contains multiple values that match multiple given values in the `params.worldview` array, it will be split into multiple features in the final vector tile, one for each matching worldview.
 - `callback` **Function** callback function that returns `err` and `buffer` parameters
 
