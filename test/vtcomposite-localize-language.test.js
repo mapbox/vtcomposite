@@ -300,3 +300,50 @@ test('[localize] success - no language specified', (assert) => {
     assert.end();
   });
 });
+
+test('[localize language] custom params.language_property and params.language_prefix properties', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // language: hello
+                1, 1, // _drop_me_language_jp: kon'nichiwa
+                2, 2  // language_es: hola
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'language', '_drop_me_language_jp', 'language_es' ],
+          values: [
+            { string_value: 'hello' },
+            { string_value: 'kon\'nichiwa' },
+            { string_value: 'hola' }
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    language: 'jp',
+    language_property: 'language',
+    language_prefix: '_drop_me_'
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      language: 'kon\'nichiwa',
+      language_es: 'hola',
+      language_local: 'hello'
+    }, 'expected properties');
+    assert.end();
+  });
+});
