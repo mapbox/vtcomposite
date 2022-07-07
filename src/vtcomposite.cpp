@@ -976,8 +976,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         language_prefix,
         worldviews,
         worldview_property,
-        compress
-    );
+        compress);
 
     auto* worker = new LocalizeWorker{std::move(baton_data), callback};
     worker->Queue();
