@@ -75,7 +75,15 @@ A filtering function for modifying a tile's features and properties to support l
 - `params` **Object**
   - `params.buffer` **Buffer** a vector tile buffer, gzip compressed or not
   - `params.compress` **Boolean** a boolean value indicating whether or not to return a compressed buffer. Default is to return an uncompressed buffer. (optional, default `false`)
-  - `params.language` **String** the IETF BCP 47 language code.
+  - `params.language` **String** the IETF BCP 47 language code used to search for matching translations available in a feature's properties. All language-related properties must match the following format: `{language_prefix}{language_property}_{language}`. Default properties are `_mbx_name_{language}`. Example `_mbx_name_jp` property includes the Japanese translation for the value in `name`.
+    - If a feature has a matching translation, the feature redefines the `{language_property}` to the value of the discovered translation.
+    - If a feature has a matching translation, the original value from `{language_property}` is retained in a newly created value `{language_property}_local`.
+    - If a translation is from a property _without_ a `{language_prefix}`, the property is retained in the final tile.
+    - If a translation is from a property _with_ a `{language_prefix}`, the property is dropped in the final tile. This allows users to add as many languages as desired to the vector tile and eventually drop them before using the tile.
+    - If a feature does not have a matching translation, no fields are modified.
+    - In any case, all fields with a property that matches `{language_prefix}` are dropped from the final tile, even if they do not pertain to language translations.
+  - `params.language_property` **String** the primary property in features that identifies the feature in a language. Default `name`. This values is used to search for additional translations that match the following format `{language_property}_{language}`
+  - `params.language_prefix` **String** prefix for any additional translation properties. The value is used to search for additional translations that match the following format: `{language_prefix}{language_property}_{language}`.
   - `params.worldview` **Array<String>** array of ISO 3166-1 alpha-2 country codes used to filter out features of different worldviews. Worldview data must be included in the vector tile. See `params.worldview_property` for more details on encoding data.
     - If a feature matches one of the requested worldviews, the feature is kept. It will have a property `worldview` equal to the matching worldview value and the `params.worldview_property` property will be dropped. If the original feature contained a `worldview` property, it is overwritten.
     - If a feature has a worldview value of `all` it is considered a match and `worldview: all` is added to the feature's properties and the `params.worldview_property` property is dropped. If the original feature contains a `worldview` property, it is ovewritten.
