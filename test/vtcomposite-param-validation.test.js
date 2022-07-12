@@ -624,7 +624,7 @@ test('[localize] params.language_property', (assert) => {
   assert.end();
 });
 
-test('[localize] params.language_property', (assert) => {
+test('[localize] params.language_prefix', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
     language: 'es',
