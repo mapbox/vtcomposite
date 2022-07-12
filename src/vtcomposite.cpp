@@ -96,14 +96,16 @@ struct LocalizeBatonType
 {
     LocalizeBatonType(Napi::Buffer<char> const& buffer,
                       std::string language_,
-                      bool change_names_,
+                      std::string language_property_,
+                      std::string language_prefix_,
                       std::vector<std::string> worldviews_,
                       std::string worldview_property_,
                       bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           language{std::move(language_)},
-          change_names{change_names_},
+          language_property{std::move(language_property_)},
+          language_prefix{std::move(language_prefix_)},
           worldviews{std::move(worldviews_)},
           worldview_property{std::move(worldview_property_)},
           compress{compress_}
@@ -131,7 +133,8 @@ struct LocalizeBatonType
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
     std::string language;
-    bool change_names;
+    std::string language_property;
+    std::string language_prefix;
     std::vector<std::string> worldviews;
     std::string worldview_property;
     bool compress;
@@ -657,11 +660,13 @@ struct LocalizeWorker : Napi::AsyncWorker
         {
             vtzero::tile_builder tbuilder;
             std::string language_key;
-            std::string language_key_mbx;
-            if (baton_data_->change_names)
+            std::string language_key_prefixed;
+            if (!baton_data_->language.empty())
             {
-                language_key = "name_" + baton_data_->language;
-                language_key_mbx = "_mbx_name_" + baton_data_->language;
+                // {language_property}_{language} -> retain
+                language_key = baton_data_->language_property + "_" + baton_data_->language;
+                // {language_prefix}{language_property}_{language} -> drop
+                language_key_prefixed = baton_data_->language_prefix + language_key;
             }
             std::vector<char> buffer_cache;
             vtzero::data_view tile_view{};
@@ -705,36 +710,36 @@ struct LocalizeWorker : Napi::AsyncWorker
                             continue;
                         }
 
-                        // preserve original name value
-                        if (property_key == "name")
+                        // preserve original params.language_property value
+                        if (property_key == baton_data_->language_property)
                         {
                             name_value = property.value();
 
                             // if no language was specified, we want the name value to be constant
-                            if (!baton_data_->change_names)
+                            if (baton_data_->language.empty())
                             {
-                                properties.emplace_back("name", property.value());
+                                properties.emplace_back(baton_data_->language_property, property.value());
                                 name_was_set = true;
                             }
                             continue;
                         }
-                        // set name to _mbx_name_{language}, if existing
-                        if (baton_data_->change_names && !name_was_set && language_key_mbx == property_key)
+                        // set name to value from {prefix}{language_property}_{language}, if existing
+                        if (!baton_data_->language.empty() && !name_was_set && language_key_prefixed == property_key)
                         {
-                            properties.emplace_back("name", property.value());
+                            properties.emplace_back(baton_data_->language_property, property.value());
                             name_was_set = true;
                             continue;
                         }
-                        // remove _mbx prefixed properties
-                        if (property_key.find("_mbx_") == 0) // NOLINT(abseil-string-find-startswith)
+                        // remove any properties that starts with the given params.language_prefix value
+                        if (property_key.find(baton_data_->language_prefix) == 0) // NOLINT(abseil-string-find-startswith)
                         {
                             continue;
                         }
-                        // set name to name_{language}, if existing
+                        // set name to {language_property}_{language}, if existing
                         // and keep these legacy properties on the feature
-                        if (baton_data_->change_names && !name_was_set && language_key == property_key)
+                        if (!baton_data_->language.empty() && !name_was_set && language_key == property_key)
                         {
-                            properties.emplace_back("name", property.value());
+                            properties.emplace_back(baton_data_->language_property, property.value());
                             name_was_set = true;
                         }
 
@@ -743,11 +748,12 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                     if (name_value.valid())
                     {
-                        properties.emplace_back("name_local", name_value);
+                        std::string preserved_key = baton_data_->language_property + "_local";
+                        properties.emplace_back(preserved_key, name_value);
 
                         if (!name_was_set)
                         {
-                            properties.emplace_back("name", name_value);
+                            properties.emplace_back(baton_data_->language_property, name_value);
                         }
                     }
 
@@ -844,7 +850,8 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     Napi::Value params_val = info[0];
     Napi::Buffer<char> buffer;
     std::string language;
-    bool change_names = true;
+    std::string language_property = "name";
+    std::string language_prefix = "_mbx_";
     std::vector<std::string> worldviews;
     std::string worldview_property = "_mbx_worldview";
     bool compress = false;
@@ -889,14 +896,28 @@ Napi::Value localize(Napi::CallbackInfo const& info)
                 return utils::CallbackError("params.language cannot be an empty string", info);
             }
         }
-        if (language_val.IsNull() || language_val.IsUndefined())
-        {
-            change_names = false;
-        }
     }
-    else
+
+    // params.language_property (optional)
+    if (params.Has(Napi::String::New(info.Env(), "language_property")))
     {
-        change_names = false;
+        Napi::Value language_property_val = params.Get(Napi::String::New(info.Env(), "language_property"));
+        if (!language_property_val.IsString())
+        {
+            return utils::CallbackError("params.language_property must be a string", info);
+        }
+        language_property = language_property_val.As<Napi::String>();
+    }
+
+    // params.language_prefix (optional)
+    if (params.Has(Napi::String::New(info.Env(), "language_prefix")))
+    {
+        Napi::Value language_prefix_val = params.Get(Napi::String::New(info.Env(), "language_prefix"));
+        if (!language_prefix_val.IsString())
+        {
+            return utils::CallbackError("params.language_prefix must be a string", info);
+        }
+        language_prefix = language_prefix_val.As<Napi::String>();
     }
 
     // params.worldview
@@ -948,7 +969,14 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         compress = comp_value.As<Napi::Boolean>().Value();
     }
 
-    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(buffer, language, change_names, worldviews, worldview_property, compress);
+    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(
+        buffer,
+        language,
+        language_property,
+        language_prefix,
+        worldviews,
+        worldview_property,
+        compress);
 
     auto* worker = new LocalizeWorker{std::move(baton_data), callback};
     worker->Queue();
