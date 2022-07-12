@@ -347,3 +347,47 @@ test('[localize language] custom params.language_property and params.language_pr
     assert.end();
   });
 });
+
+test('[localize language] language codes >2 characters are viable translations', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // language: hello
+                1, 1, // _pre_language_zh-Hant: Nǐ hǎo
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'language', '_pre_language_zh-Hant' ],
+          values: [
+            { string_value: 'hello' },
+            { string_value: 'Nǐ hǎo' }
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    language: 'zh-Hant',
+    language_property: 'language',
+    language_prefix: '_pre_'
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      language: 'Nǐ hǎo',
+      language_local: 'hello'
+    }, 'expected properties');
+    assert.end();
+  });
+});
