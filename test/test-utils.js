@@ -7,6 +7,16 @@ function vtinfo(buffer) {
   return tile;
 }
 
+const getFeatureById = (layer, id) => {
+  for (let fidx = 0; fidx < layer.length; fidx++) {
+    if (layer.feature(fidx).id === id) {
+      return layer.feature(fidx);
+    }
+  }
+
+  return null;
+};
+
 function vt1infoValid(buffer) {
   const tile = new vt(new pbf(buffer));
   var vtt = new mapnik.VectorTile(4,8,5);
@@ -15,4 +25,4 @@ function vt1infoValid(buffer) {
   return tile;
 }
 
-module.exports = {vtinfo:vtinfo, vt1infoValid:vt1infoValid}
+module.exports = { vtinfo, getFeatureById, vt1infoValid }

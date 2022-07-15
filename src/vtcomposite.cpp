@@ -8,8 +8,6 @@
 #include <gzip/decompress.hpp>
 #include <gzip/utils.hpp>
 // vtzero
-#include <utility>
-
 #include <vtzero/builder.hpp>
 #include <vtzero/property_value.hpp>
 #include <vtzero/vector_tile.hpp>
@@ -19,10 +17,14 @@
 #include <mapbox/geometry/point.hpp>
 // stl
 #include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace vtile {
 
 static constexpr std::uint32_t MVT_VERSION_1 = 1U;
+static const std::uint32_t LOCALIZE_FUNCTION_ARGS = 2;
 
 struct TileObject
 {
@@ -88,6 +90,54 @@ struct BatonType
     std::uint32_t y{};
     int buffer_size = 0;
     bool compress = false;
+};
+
+struct LocalizeBatonType
+{
+    LocalizeBatonType(Napi::Buffer<char> const& buffer,
+                      std::string language_,
+                      std::string language_property_,
+                      std::string language_prefix_,
+                      std::vector<std::string> worldviews_,
+                      std::string worldview_property_,
+                      bool compress_)
+        : data{buffer.Data(), buffer.Length()},
+          buffer_ref{Napi::Persistent(buffer)},
+          language{std::move(language_)},
+          language_property{std::move(language_property_)},
+          language_prefix{std::move(language_prefix_)},
+          worldviews{std::move(worldviews_)},
+          worldview_property{std::move(worldview_property_)},
+          compress{compress_}
+    {
+    }
+
+    ~LocalizeBatonType() noexcept
+    {
+        try
+        {
+            buffer_ref.Reset();
+        }
+        catch (...)
+        {
+        }
+    }
+    // non-copyable
+    LocalizeBatonType(LocalizeBatonType const&) = delete;
+    LocalizeBatonType& operator=(LocalizeBatonType const&) = delete;
+    // non-movable
+    LocalizeBatonType(LocalizeBatonType&&) = delete;
+    LocalizeBatonType& operator=(LocalizeBatonType&&) = delete;
+
+    // members
+    vtzero::data_view data;
+    Napi::Reference<Napi::Buffer<char>> buffer_ref;
+    std::string language;
+    std::string language_property;
+    std::string language_prefix;
+    std::vector<std::string> worldviews;
+    std::string worldview_property;
+    bool compress;
 };
 
 namespace {
@@ -176,13 +226,13 @@ struct CompositeWorker : Napi::AsyncWorker
                     {
                         vtzero::data_view const name = layer.name();
                         std::uint32_t const version = layer.version();
-                        if (std::find(std::begin(names), std::end(names), name) == std::end(names))
+                        if (std::find(names.begin(), names.end(), name) == names.end())
                         {
                             // should we keep this layer?
                             // if include_layers is empty, keep all layers
                             // if include_layers is not empty, keep layer if we can find its name in the vector
                             std::string sname(name);
-                            if (include_layers.empty() || std::find(std::begin(include_layers), std::end(include_layers), sname) != std::end(include_layers))
+                            if (include_layers.empty() || std::find(include_layers.begin(), include_layers.end(), sname) != include_layers.end())
                             {
                                 names.push_back(name);
                                 std::uint32_t extent = layer.extent();
@@ -438,7 +488,7 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         baton_data->tiles.push_back(std::make_unique<TileObject>(z, x, y, buffer, layers));
     }
 
-    //validate zxy maprequest object
+    // validate zxy maprequest object
     if (!info[1].IsObject())
     {
         return utils::CallbackError("'zxy_maprequest' must be an object", info);
@@ -536,6 +586,399 @@ Napi::Value composite(Napi::CallbackInfo const& info)
         }
     }
     auto* worker = new CompositeWorker{std::move(baton_data), callback};
+    worker->Queue();
+    return info.Env().Undefined();
+}
+
+struct LocalizeWorker : Napi::AsyncWorker
+{
+    using Base = Napi::AsyncWorker;
+
+    LocalizeWorker(std::unique_ptr<LocalizeBatonType>&& baton_data, Napi::Function& cb)
+        : Base(cb),
+          baton_data_{std::move(baton_data)},
+          output_buffer_{std::make_unique<std::string>()} {}
+
+    // for a given feature, determine how many clones of the feature are
+    // required given a worldview.
+    // - If the feature has _mbx_worldview: all, return {"all"}
+    // - If there is no requested worldview "null", determine which legacy worldviews should be created
+    std::vector<std::string> worldviews_for_feature(std::string const& pval) const
+    {
+        if (pval == "all")
+        {
+            return {"all"};
+        }
+
+        std::vector<std::string> matching_worldviews;
+        // convert pval into vector of strings US,CN => {"US", "CN"}
+        std::vector<std::string> worldview_values = utils::split(pval);
+        // worldview: XX
+        if (!baton_data_->worldviews.empty())
+        {
+            utils::intersection(worldview_values, baton_data_->worldviews, matching_worldviews);
+        }
+
+        return matching_worldviews;
+    }
+
+    // create a feature from a list of properties
+    // optionally define a worldview property if provided
+    static void build_localized_feature(
+        vtzero::feature const& feature,
+        std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
+        std::string const& worldview,
+        vtzero::layer_builder& lbuilder)
+    {
+        vtzero::geometry_feature_builder fbuilder{lbuilder};
+        fbuilder.copy_id(feature); // todo deduplicate this (vector tile spec says SHOULD be unique)
+        fbuilder.set_geometry(feature.geometry());
+
+        if (!worldview.empty())
+        {
+            fbuilder.add_property("worldview", worldview);
+        }
+        for (auto const& property : properties)
+        {
+            // no-op on any property called "worldview" if worldviews have been
+            // created dynamically from _mbx_wordlview
+            if (!worldview.empty() && property.first == "worldview")
+            {
+                continue;
+            }
+
+            // add property to feature
+            fbuilder.add_property(property.first, property.second);
+        }
+
+        fbuilder.commit();
+    }
+
+    void Execute() override
+    {
+        try
+        {
+            vtzero::tile_builder tbuilder;
+            std::string language_key;
+            std::string language_key_prefixed;
+            if (!baton_data_->language.empty())
+            {
+                // {language_property}_{language} -> retain
+                language_key = baton_data_->language_property + "_" + baton_data_->language;
+                // {language_prefix}{language_property}_{language} -> drop
+                language_key_prefixed = baton_data_->language_prefix + language_key;
+            }
+            std::vector<char> buffer_cache;
+            vtzero::data_view tile_view{};
+            if (gzip::is_compressed(baton_data_->data.data(), baton_data_->data.size()))
+            {
+                gzip::Decompressor decompressor;
+                decompressor.decompress(buffer_cache, baton_data_->data.data(), baton_data_->data.size());
+                tile_view = protozero::data_view{buffer_cache.data(), buffer_cache.size()};
+            }
+            else
+            {
+                tile_view = baton_data_->data;
+            }
+
+            vtzero::vector_tile tile{tile_view};
+
+            while (auto layer = tile.next_layer())
+            {
+                // TODO short circuit if hidden attributes not present? (call vtzero's add_existing_layer)
+                vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
+                while (auto feature = layer.next_feature())
+                {
+                    std::vector<std::string> worldviews_to_create;
+                    bool has_worldview_key = false;
+                    bool name_was_set = false;
+                    vtzero::property_value name_value;
+
+                    // accumulate final properties (except _mbx_worldview translation to worldview) here
+                    std::vector<std::pair<std::string, vtzero::property_value>> properties;
+                    while (auto property = feature.next_property())
+                    {
+                        std::string property_key = property.key().to_string();
+                        if (!has_worldview_key && property_key == baton_data_->worldview_property)
+                        {
+                            has_worldview_key = true;
+                            if (property.value().type() == vtzero::property_value_type::string_value)
+                            {
+                                worldviews_to_create = worldviews_for_feature(static_cast<std::string>(property.value().string_value()));
+                            }
+
+                            continue;
+                        }
+
+                        // preserve original params.language_property value
+                        if (property_key == baton_data_->language_property)
+                        {
+                            name_value = property.value();
+
+                            // if no language was specified, we want the name value to be constant
+                            if (baton_data_->language.empty())
+                            {
+                                properties.emplace_back(baton_data_->language_property, property.value());
+                                name_was_set = true;
+                            }
+                            continue;
+                        }
+                        // set name to value from {prefix}{language_property}_{language}, if existing
+                        if (!baton_data_->language.empty() && !name_was_set && language_key_prefixed == property_key)
+                        {
+                            properties.emplace_back(baton_data_->language_property, property.value());
+                            name_was_set = true;
+                            continue;
+                        }
+                        // remove any properties that starts with the given params.language_prefix value
+                        if (property_key.find(baton_data_->language_prefix) == 0) // NOLINT(abseil-string-find-startswith)
+                        {
+                            continue;
+                        }
+                        // set name to {language_property}_{language}, if existing
+                        // and keep these legacy properties on the feature
+                        if (!baton_data_->language.empty() && !name_was_set && language_key == property_key)
+                        {
+                            properties.emplace_back(baton_data_->language_property, property.value());
+                            name_was_set = true;
+                        }
+
+                        properties.emplace_back(property_key, property.value());
+                    }
+
+                    if (name_value.valid())
+                    {
+                        std::string preserved_key = baton_data_->language_property + "_local";
+                        properties.emplace_back(preserved_key, name_value);
+
+                        if (!name_was_set)
+                        {
+                            properties.emplace_back(baton_data_->language_property, name_value);
+                        }
+                    }
+
+                    if (has_worldview_key)
+                    {
+                        for (auto const& wv : worldviews_to_create)
+                        {
+                            build_localized_feature(feature, properties, wv, lbuilder);
+                        }
+                    }
+                    else
+                    {
+                        build_localized_feature(feature, properties, "", lbuilder);
+                    }
+                }
+            }
+
+            std::string& tile_buffer = *output_buffer_;
+            if (baton_data_->compress)
+            {
+                std::string temp;
+                tbuilder.serialize(temp);
+
+                // If the serialized buffer is an empty string, do not
+                // gzip compress it. This will lead to a non-zero byte string
+                // which can be perceived as a valid vector tile.
+                //
+                // Instead do nothing and return an empty, non-gzip-compressed buffer.
+                // If the user wants to handle empty tiles separately from non-empty
+                // tiles, they must check "buffer.length > 0" in the resulting callback.
+                if (!temp.empty())
+                {
+                    tile_buffer = gzip::compress(temp.data(), temp.size());
+                }
+            }
+            else
+            {
+                tbuilder.serialize(tile_buffer);
+            }
+        }
+        // LCOV_EXCL_START
+        catch (std::exception const& e)
+        {
+            SetError(e.what());
+        }
+        // LCOV_EXCL_STOP
+    }
+    std::vector<napi_value> GetResult(Napi::Env env) override
+    {
+        if (output_buffer_)
+        {
+            std::string& tile_buffer = *output_buffer_;
+            auto buffer = Napi::Buffer<char>::New(
+                env,
+                tile_buffer.empty() ? nullptr : &tile_buffer[0],
+                tile_buffer.size(),
+                [](Napi::Env env_, char* /*unused*/, std::string* str_ptr) {
+                    if (str_ptr != nullptr)
+                    {
+                        Napi::MemoryManagement::AdjustExternalMemory(env_, -static_cast<std::int64_t>(str_ptr->size()));
+                    }
+                    delete str_ptr;
+                },
+                output_buffer_.release());
+            Napi::MemoryManagement::AdjustExternalMemory(env, static_cast<std::int64_t>(tile_buffer.size()));
+            return {env.Null(), buffer};
+        }
+        return Base::GetResult(env); // returns an empty vector (default)
+    }
+
+    std::unique_ptr<LocalizeBatonType> const baton_data_;
+    std::unique_ptr<std::string> output_buffer_;
+};
+
+Napi::Value localize(Napi::CallbackInfo const& info)
+{
+    std::size_t length = info.Length();
+    if (length != LOCALIZE_FUNCTION_ARGS)
+    {
+        Napi::Error::New(info.Env(), "expected params and callback arguments").ThrowAsJavaScriptException();
+        return info.Env().Null();
+    }
+
+    // validate callback function
+    Napi::Value callback_val = info[1];
+    if (!callback_val.IsFunction())
+    {
+        Napi::Error::New(info.Env(), "second argument must be a callback function").ThrowAsJavaScriptException();
+        return info.Env().Null();
+    }
+    Napi::Function callback = callback_val.As<Napi::Function>();
+
+    // validate params object
+    Napi::Value params_val = info[0];
+    Napi::Buffer<char> buffer;
+    std::string language;
+    std::string language_property = "name";
+    std::string language_prefix = "_mbx_";
+    std::vector<std::string> worldviews;
+    std::string worldview_property = "_mbx_worldview";
+    bool compress = false;
+    if (!params_val.IsObject())
+    {
+        Napi::Error::New(info.Env(), "first argument must be an object").ThrowAsJavaScriptException();
+        return info.Env().Null();
+    }
+    Napi::Object params = info[0].As<Napi::Object>();
+
+    // params.buffer (required)
+    if (!params.Has(Napi::String::New(info.Env(), "buffer")))
+    {
+        return utils::CallbackError("params.buffer is required", info);
+    }
+    Napi::Value buffer_val = params.Get(Napi::String::New(info.Env(), "buffer"));
+    if (!buffer_val.IsObject() || buffer_val.IsNull() || buffer_val.IsUndefined())
+    {
+        return utils::CallbackError("params.buffer must be a Buffer", info);
+    }
+
+    Napi::Object buffer_obj = buffer_val.As<Napi::Object>();
+    if (!buffer_obj.IsBuffer())
+    {
+        return utils::CallbackError("params.buffer is not a true Buffer", info);
+    }
+    buffer = buffer_obj.As<Napi::Buffer<char>>();
+
+    // params.language (optional)
+    if (params.Has(Napi::String::New(info.Env(), "language")))
+    {
+        Napi::Value language_val = params.Get(Napi::String::New(info.Env(), "language"));
+        if (!language_val.IsString() && !language_val.IsNull() && !language_val.IsUndefined())
+        {
+            return utils::CallbackError("params.language must be null or a string", info);
+        }
+        if (language_val.IsString())
+        {
+            language = language_val.As<Napi::String>();
+            if (language.length() == 0)
+            {
+                return utils::CallbackError("params.language cannot be an empty string", info);
+            }
+        }
+    }
+
+    // params.language_property (optional)
+    if (params.Has(Napi::String::New(info.Env(), "language_property")))
+    {
+        Napi::Value language_property_val = params.Get(Napi::String::New(info.Env(), "language_property"));
+        if (!language_property_val.IsString())
+        {
+            return utils::CallbackError("params.language_property must be a string", info);
+        }
+        language_property = language_property_val.As<Napi::String>();
+    }
+
+    // params.language_prefix (optional)
+    if (params.Has(Napi::String::New(info.Env(), "language_prefix")))
+    {
+        Napi::Value language_prefix_val = params.Get(Napi::String::New(info.Env(), "language_prefix"));
+        if (!language_prefix_val.IsString())
+        {
+            return utils::CallbackError("params.language_prefix must be a string", info);
+        }
+        language_prefix = language_prefix_val.As<Napi::String>();
+    }
+
+    // params.worldview
+    if (params.Has(Napi::String::New(info.Env(), "worldviews")))
+    {
+        Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldviews"));
+        if (!worldview_val.IsArray())
+        {
+            return utils::CallbackError("params.worldview must be an array", info);
+        }
+        Napi::Array worldview_array = worldview_val.As<Napi::Array>();
+        std::uint32_t num_worldviews = worldview_array.Length();
+        worldviews.reserve(num_worldviews);
+        for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
+        {
+            Napi::Value worldview_item_val = worldview_array.Get(wv);
+            if (!worldview_item_val.IsString())
+            {
+                return utils::CallbackError("params.worldview must be an array of strings", info);
+            }
+            std::string worldview_item = worldview_item_val.As<Napi::String>();
+            if (worldview_item.length() != 2)
+            {
+                return utils::CallbackError("params.worldview items must be strings of 2 characters", info);
+            }
+            worldviews.push_back(worldview_item);
+        }
+    }
+
+    // params.worldview_property
+    if (params.Has(Napi::String::New(info.Env(), "worldview_property")))
+    {
+        Napi::Value worldview_property_val = params.Get(Napi::String::New(info.Env(), "worldview_property"));
+        if (!worldview_property_val.IsString())
+        {
+            return utils::CallbackError("params.worldview_property must be a string", info);
+        }
+        worldview_property = worldview_property_val.As<Napi::String>();
+    }
+
+    // params.compress
+    if (params.Has(Napi::String::New(info.Env(), "compress")))
+    {
+        Napi::Value comp_value = params.Get(Napi::String::New(info.Env(), "compress"));
+        if (!comp_value.IsBoolean())
+        {
+            return utils::CallbackError("params.compress must be a boolean", info);
+        }
+        compress = comp_value.As<Napi::Boolean>().Value();
+    }
+
+    std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(
+        buffer,
+        language,
+        language_property,
+        language_prefix,
+        worldviews,
+        worldview_property,
+        compress);
+
+    auto* worker = new LocalizeWorker{std::move(baton_data), callback};
     worker->Queue();
     return info.Env().Undefined();
 }

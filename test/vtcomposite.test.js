@@ -1,5 +1,5 @@
 const test = require('tape');
-const composite = require('../lib/index.js');
+const composite = require('../lib/index.js').composite;
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
@@ -397,4 +397,3 @@ test('[composite] success: empty overzoomed tile returns empty buffer even if co
     assert.end();
   });
 });
-

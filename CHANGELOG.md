@@ -1,3 +1,18 @@
+# 1.0.0
+
+**BREAKING** Module now returns an object with two functions [#127](https://github.com/mapbox/vtcomposite/pull/127)
+
+```js
+const { composite, localize } = require('@mapbox/vtcomposite');
+```
+
+- Adds a new function `localize` which finds and removes unused translations and worldviews from features.
+- Update mvt-fixtures@3.9.0
+- Update tape@4.15.1
+- Move tutorial from README.md into TUTORIAL.md
+- Move benchmarking from README.md into CONTRIBUTING.md
+
+
 # 0.6.1
 - Build binaries with node v16 -> works at runtime with node v8 -> v16 (and likely others)
 - Remove `-D_GLIBCXX_USE_CXX11_ABI=0` build flag
