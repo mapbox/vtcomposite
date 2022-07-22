@@ -713,7 +713,8 @@ struct LocalizeWorker : Napi::AsyncWorker
                             continue;
                         }
 
-                        if (property_key == baton_data_->class_property){
+                        if (property_key == baton_data_->class_property)
+                        {
                             if (property.value().type() == vtzero::property_value_type::string_value)
                             {
                                 class_value = property.value();
