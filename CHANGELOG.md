@@ -1,3 +1,8 @@
+# 1.1.0
+
+- Updates the `localize` function to translate `_mbx_class` to `class` when `_mbx_worldview` is provided along with matching worldview filtering
+
+
 # 1.0.0
 
 **BREAKING** Module now returns an object with two functions [#127](https://github.com/mapbox/vtcomposite/pull/127)
