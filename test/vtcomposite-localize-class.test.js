@@ -177,6 +177,50 @@ test('[localize class] _mbx_class is dropped with no worldview filtering', (asse
   });
 });
 
+test('[localize class] _mbx_class is assigned to class when language is provided and there is no worldview filtering', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'admin',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // name
+                1, 1, // _mbx_name_de
+                2, 2,  // _mbx_class
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'name', '_mbx_name_de', '_mbx_class' ],
+          values: [
+            { string_value: 'France' },
+            { string_value: 'Frankreich' },
+            { string_value: 'affogato' },
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    language: 'de',
+  };
+  localize(params, (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, {
+      name: 'Frankreich',
+      name_local: 'France',
+      class: 'affogato'
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
 test('[localize class] Invalid _mbx_class value should be dropped', (assert) => {
   const params = {
     buffer: mvtFixtures.create({

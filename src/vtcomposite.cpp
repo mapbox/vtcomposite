@@ -782,11 +782,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                     }
                     else
                     {
+                        if (class_value.valid() && name_was_set)
+                        {
+                            properties.emplace_back("class", class_value);
+                        }
                         build_localized_feature(feature, properties, "", lbuilder);
                     }
                 }
             }
-
             std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
             {
