@@ -91,6 +91,7 @@ A filtering function for modifying a tile's features and properties to support l
     - If a feature does not have a `params.worldview_property` property it is retained.
   - `params.worldview_property` **String** the name of the property that specifies in which worldview a feature belongs. The vector tile encoded property must contain a comma-separated string of ISO 3166-1 alpha-2 country codes that define which worldviews the feature represents (example: `US,RU,IN`). Default value: `_mbx_worldview`.
     - If a feature contains multiple values that match multiple given values in the `params.worldview` array, it will be split into multiple features in the final vector tile, one for each matching worldview.
+  - `params.class_property` **String** the name of the property that specifies the class of a feature (examples: `sea`, `canal`, `village`). Default value: `_mbx_class`.
 - `callback` **Function** callback function that returns `err` and `buffer` parameters
 
 #### Example
@@ -105,6 +106,7 @@ const params = {
   language: null,
   worldview: [],
   worldview_property: '_mbx_worldview',
+  class_property: '_mbx_class',
   compress: true
 };
 
