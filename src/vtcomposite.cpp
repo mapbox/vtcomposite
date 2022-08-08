@@ -100,6 +100,7 @@ struct LocalizeBatonType
                       std::string language_prefix_,
                       std::vector<std::string> worldviews_,
                       std::string worldview_property_,
+                      std::string class_property_,
                       bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
@@ -108,6 +109,7 @@ struct LocalizeBatonType
           language_prefix{std::move(language_prefix_)},
           worldviews{std::move(worldviews_)},
           worldview_property{std::move(worldview_property_)},
+          class_property{std::move(class_property_)},
           compress{compress_}
     {
     }
@@ -137,6 +139,7 @@ struct LocalizeBatonType
     std::string language_prefix;
     std::vector<std::string> worldviews;
     std::string worldview_property;
+    std::string class_property;
     bool compress;
 };
 
@@ -693,7 +696,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                     bool has_worldview_key = false;
                     bool name_was_set = false;
                     vtzero::property_value name_value;
-
+                    vtzero::property_value class_value;
                     // accumulate final properties (except _mbx_worldview translation to worldview) here
                     std::vector<std::pair<std::string, vtzero::property_value>> properties;
                     while (auto property = feature.next_property())
@@ -707,6 +710,15 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 worldviews_to_create = worldviews_for_feature(static_cast<std::string>(property.value().string_value()));
                             }
 
+                            continue;
+                        }
+
+                        if (property_key == baton_data_->class_property)
+                        {
+                            if (property.value().type() == vtzero::property_value_type::string_value)
+                            {
+                                class_value = property.value();
+                            }
                             continue;
                         }
 
@@ -759,6 +771,10 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                     if (has_worldview_key)
                     {
+                        if (class_value.valid())
+                        {
+                            properties.emplace_back("class", class_value);
+                        }
                         for (auto const& wv : worldviews_to_create)
                         {
                             build_localized_feature(feature, properties, wv, lbuilder);
@@ -766,11 +782,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                     }
                     else
                     {
+                        if (class_value.valid() && name_was_set)
+                        {
+                            properties.emplace_back("class", class_value);
+                        }
                         build_localized_feature(feature, properties, "", lbuilder);
                     }
                 }
             }
-
             std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
             {
@@ -854,6 +873,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     std::string language_prefix = "_mbx_";
     std::vector<std::string> worldviews;
     std::string worldview_property = "_mbx_worldview";
+    std::string class_property = "_mbx_class";
     bool compress = false;
     if (!params_val.IsObject())
     {
@@ -958,6 +978,17 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         worldview_property = worldview_property_val.As<Napi::String>();
     }
 
+    // params.class_property
+    if (params.Has(Napi::String::New(info.Env(), "class_property")))
+    {
+        Napi::Value class_property_val = params.Get(Napi::String::New(info.Env(), "class_property"));
+        if (!class_property_val.IsString())
+        {
+            return utils::CallbackError("params.class_property must be a string", info);
+        }
+        class_property = class_property_val.As<Napi::String>();
+    }
+
     // params.compress
     if (params.Has(Napi::String::New(info.Env(), "compress")))
     {
@@ -976,6 +1007,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         language_prefix,
         worldviews,
         worldview_property,
+        class_property,
         compress);
 
     auto* worker = new LocalizeWorker{std::move(baton_data), callback};
