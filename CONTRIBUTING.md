@@ -31,7 +31,7 @@ npm install -g documentation
 npm run docs
 ```
 
-* Note for MacOS: if you're having issue building on MacOS, try commenting out [`make_global_settings` in binding.gyp](https://github.com/mapbox/vtcomposite/blob/main/binding.gyp#L5-L9) (for more info see [this](https://github.com/mapbox/node-cpp-skel/pull/169#issuecomment-1068127191)).
+* Note for MacOS: if you're having problem building on MacOS, try commenting out [`make_global_settings` in binding.gyp](https://github.com/mapbox/vtcomposite/blob/main/binding.gyp#L5-L9) (for more info see [this](https://github.com/mapbox/node-cpp-skel/pull/169#issuecomment-1068127191)).
 
 # Benchmarks
 
