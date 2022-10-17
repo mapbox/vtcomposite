@@ -95,21 +95,25 @@ struct BatonType
 struct LocalizeBatonType
 {
     LocalizeBatonType(Napi::Buffer<char> const& buffer,
-                      std::string language_,
+                      std::vector<std::string> languages_,
                       std::string language_property_,
                       std::string language_prefix_,
                       std::vector<std::string> worldviews_,
                       std::string worldview_property_,
+                      std::string worldview_prefix_,
                       std::string class_property_,
+                      std::string class_prefix_,
                       bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
-          language{std::move(language_)},
+          languages{std::move(languages_)},
           language_property{std::move(language_property_)},
           language_prefix{std::move(language_prefix_)},
           worldviews{std::move(worldviews_)},
           worldview_property{std::move(worldview_property_)},
+          worldview_prefix{std::move(worldview_prefix_)},
           class_property{std::move(class_property_)},
+          class_prefix{std::move(class_prefix_)},
           compress{compress_}
     {
     }
@@ -134,12 +138,14 @@ struct LocalizeBatonType
     // members
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
-    std::string language;
+    std::vector<std::string> languages;
     std::string language_property;
     std::string language_prefix;
     std::vector<std::string> worldviews;
     std::string worldview_property;
+    std::string worldview_prefix;
     std::string class_property;
+    std::string class_prefix;
     bool compress;
 };
 
