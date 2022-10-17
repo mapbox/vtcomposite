@@ -31,6 +31,8 @@ npm install -g documentation
 npm run docs
 ```
 
+* Note for MacOS: if you're having issue building on MacOS, try commenting out [`make_global_settings` in binding.gyp](https://github.com/mapbox/vtcomposite/blob/main/binding.gyp#L5-L9) (for more info see [this](https://github.com/mapbox/node-cpp-skel/pull/169#issuecomment-1068127191)).
+
 # Benchmarks
 
 Benchmarks can be run with the bench/bench.js script to test vtcomposite against common real-world fixtures (provided by mvt-fixtures) and to test vtcomposite against its predecessor compositing library node-mapnik. When making changes in a pull request, please provide the benchmarks from the master branch and the HEAD of your current branch.  You can control the `concurrency`, `iterations`, and `package` of the benchmarks with the following command:
