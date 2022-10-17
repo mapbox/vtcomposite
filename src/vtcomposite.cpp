@@ -146,6 +146,7 @@ struct LocalizeBatonType
     std::string worldview_prefix;
     std::string class_property;
     std::string class_prefix;
+    bool return_localized_tile = (languages.isArray() || worldviews.isArray());
     bool compress;
 };
 
