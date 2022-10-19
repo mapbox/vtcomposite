@@ -848,7 +848,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                         final_properties.emplace_back(baton_data_->language_property, language_value);
                     }
 
-                    if (baton_data_->return_localized_tile) {
+                    if (baton_data_->return_localized_tile && original_language_value.valid()) {
                         final_properties.emplace_back(baton_data_->language_property + "_local", original_language_value);
                     }
 
