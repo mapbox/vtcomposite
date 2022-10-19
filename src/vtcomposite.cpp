@@ -632,16 +632,19 @@ struct LocalizeWorker : Napi::AsyncWorker
         try
         {
             std::string incompatible_worldview_key;
+            std::string incompatible_class_key;
             std::string compatible_worldview_key;
-            std::string replacement_class_key;
+            std::string compatible_class_key;
             if (baton_data_->return_localized_tile) {
                 incompatible_worldview_key = baton_data_->worldview_property;
+                incompatible_class_key = baton_data_->class_property;
                 compatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
-                replacement_class_key = baton_data_->class_prefix + baton_data_->class_property;
+                compatible_class_key = baton_data_->class_prefix + baton_data_->class_property;
             } else {
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
+                incompatible_class_key = baton_data_->class_prefix + baton_data_->class_property;
                 compatible_worldview_key = baton_data_->worldview_property;
-                replacement_class_key = baton_data_->class_property;
+                compatible_class_key = baton_data_->class_property;
             }
 
             vtzero::tile_builder tbuilder;
@@ -704,7 +707,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                             }
                         }
 
-                        // keep feature and collect its compatible worldview value if it is in the selected worldview or 'all' worldview; skip otherwise
+                        // keep feature and retain its compatible worldview value
+                        // if it is in the selected worldview or 'all' worldview;
+                        // skip otherwise
                         else if (property_key == compatible_worldview_key) {
                             if (property.value().type() == vtzero::property_value_type::string_value) {
                                 if (property.value() == "all") {
@@ -723,8 +728,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                             }
                         }
 
+                        // drop incompatible class property
+                        else if (property_key == incompatible_class_key) {
+                            // do nothing – keep this feature but don't need to retain this property
+                            continue;
+                        }
+
                         // collect class value
-                        else if (property_key == replacement_class_key) {
+                        else if (property_key == compatible_class_key) {
                             properties.emplace_back(baton_data_->class_property, property.value());
                             continue;
                         }
