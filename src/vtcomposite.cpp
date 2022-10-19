@@ -609,56 +609,19 @@ struct LocalizeWorker : Napi::AsyncWorker
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
 
-    // for a given feature, determine how many clones of the feature are
-    // required given a worldview.
-    // - If the feature has _mbx_worldview: all, return {"all"}
-    // - If there is no requested worldview "null", determine which legacy worldviews should be created
-    std::vector<std::string> worldviews_for_feature(std::string const& pval) const
-    {
-        if (pval == "all")
-        {
-            return {"all"};
-        }
-
-        std::vector<std::string> matching_worldviews;
-        // convert pval into vector of strings US,CN => {"US", "CN"}
-        std::vector<std::string> worldview_values = utils::split(pval);
-        // worldview: XX
-        if (!baton_data_->worldviews.empty())
-        {
-            utils::intersection(worldview_values, baton_data_->worldviews, matching_worldviews);
-        }
-
-        return matching_worldviews;
-    }
-
-    // create a feature from a list of properties
-    // optionally define a worldview property if provided
-    static void build_localized_feature(
-        vtzero::feature const& feature,
-        std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
-        std::string const& worldview,
-        vtzero::layer_builder& lbuilder)
+    // create a feature with new properties from a template feature
+    static void create_new_feature(
+      vtzero::feature const& template_feature,
+      std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
+      vtzero::layer_builder& lbuilder)
     {
         vtzero::geometry_feature_builder fbuilder{lbuilder};
-        fbuilder.copy_id(feature); // todo deduplicate this (vector tile spec says SHOULD be unique)
-        fbuilder.set_geometry(feature.geometry());
+        fbuilder.copy_id(template_feature); // TODO: deduplicate this (vector tile spec says SHOULD be unique)
+        fbuilder.set_geometry(template_feature.geometry());
 
-        if (!worldview.empty())
-        {
-            fbuilder.add_property("worldview", worldview);
-        }
-        for (auto const& property : properties)
-        {
-            // no-op on any property called "worldview" if worldviews have been
-            // created dynamically from _mbx_wordlview
-            if (!worldview.empty() && property.first == "worldview")
-            {
-                continue;
-            }
-
-            // add property to feature
-            fbuilder.add_property(property.first, property.second);
+        // add property to feature
+        for (auto const& property : properties) {
+          fbuilder.add_property(property.first, property.second);
         }
 
         fbuilder.commit();
@@ -668,6 +631,19 @@ struct LocalizeWorker : Napi::AsyncWorker
     {
         try
         {
+            std::string incompatible_worldview_key;
+            std::string compatible_worldview_key;
+            std::string replacement_class_key;
+            if (baton_data_->return_localized_tile) {
+                incompatible_worldview_key = baton_data_->worldview_property;
+                compatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
+                replacement_class_key = baton_data_->class_prefix + baton_data_->class_property;
+            } else {
+                incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
+                compatible_worldview_key = baton_data_->worldview_property;
+                replacement_class_key = baton_data_->class_property;
+            }
+
             vtzero::tile_builder tbuilder;
             std::string language_key;
             std::string language_key_prefixed;
@@ -699,33 +675,57 @@ struct LocalizeWorker : Napi::AsyncWorker
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
-                    std::vector<std::string> worldviews_to_create;
-                    bool has_worldview_key = false;
+                    bool skip_feature = false;
                     bool name_was_set = false;
                     vtzero::property_value name_value;
-                    vtzero::property_value class_value;
-                    // accumulate final properties (except _mbx_worldview translation to worldview) here
+
+                    // collect final properties
                     std::vector<std::pair<std::string, vtzero::property_value>> properties;
                     while (auto property = feature.next_property())
                     {
-                        std::string property_key = property.key().to_string();
-                        if (!has_worldview_key && property_key == baton_data_->worldview_property)
-                        {
-                            has_worldview_key = true;
-                            if (property.value().type() == vtzero::property_value_type::string_value)
-                            {
-                                worldviews_to_create = worldviews_for_feature(static_cast<std::string>(property.value().string_value()));
-                            }
+                        // if already know we'll be skipping this feature, don't need to comb through its properties
+                        if (skip_feature) continue;
 
-                            continue;
+                        std::string property_key = property.key().to_string();
+
+                        // skip feature only if the value of incompatible worldview key is not 'all'
+                        if (property_key == incompatible_worldview_key) {
+                            if (property.value().type() == vtzero::property_value_type::string_value) {
+                                if (property.value() == "all") {
+                                    // do nothing – keep this feature but don't need to preserve this property
+                                    continue;
+                                } else {
+                                    skip_feature = true;
+                                    continue;
+                                }
+                            } else {
+                                skip_feature = true;
+                                continue;
+                            }
                         }
 
-                        if (property_key == baton_data_->class_property)
-                        {
-                            if (property.value().type() == vtzero::property_value_type::string_value)
-                            {
-                                class_value = property.value();
+                        // keep feature and collect its compatible worldview value if it is in the selected worldview or 'all' worldview; skip otherwise
+                        else if (property_key == compatible_worldview_key) {
+                            if (property.value().type() == vtzero::property_value_type::string_value) {
+                                if (property.value() == "all") {
+                                    properties.emplace_back(baton_data_->worldview_property, property.value());
+                                    continue;
+                                } else if (property.value().contains(baton_data_->worldviews[0])) {
+                                    properties.emplace_back(baton_data_->worldview_property, baton_data_->worldviews[0]);
+                                    continue;
+                                } else {
+                                    skip_feature = true;
+                                    continue;
+                                }
+                            } else {
+                                skip_feature = true;
+                                continue;
                             }
+                        }
+
+                        // collect class value
+                        else if (property_key == replacement_class_key) {
+                            properties.emplace_back(baton_data_->class_property, property.value());
                             continue;
                         }
 
@@ -763,7 +763,11 @@ struct LocalizeWorker : Napi::AsyncWorker
                         }
 
                         properties.emplace_back(property_key, property.value());
-                    }
+
+                    } // end of properties loop
+
+                    // if skip feature, proceed to next feature
+                    if (skip_feature) continue;
 
                     if (name_value.valid())
                     {
@@ -776,27 +780,11 @@ struct LocalizeWorker : Napi::AsyncWorker
                         }
                     }
 
-                    if (has_worldview_key)
-                    {
-                        if (class_value.valid())
-                        {
-                            properties.emplace_back("class", class_value);
-                        }
-                        for (auto const& wv : worldviews_to_create)
-                        {
-                            build_localized_feature(feature, properties, wv, lbuilder);
-                        }
-                    }
-                    else
-                    {
-                        if (class_value.valid() && name_was_set)
-                        {
-                            properties.emplace_back("class", class_value);
-                        }
-                        build_localized_feature(feature, properties, "", lbuilder);
-                    }
-                }
-            }
+                    create_new_feature(feature, properties, lbuilder);
+
+                } // end of features loop
+            } // end of layers loop
+
             std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
             {
