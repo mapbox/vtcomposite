@@ -632,17 +632,20 @@ struct LocalizeWorker : Napi::AsyncWorker
     {
         try
         {
+            bool keep_every_worldview;
             std::string incompatible_worldview_key;
             std::string compatible_worldview_key;
             std::vector<std::string> class_key_precedence;
             if (baton_data_->return_localized_tile)
             {
+                keep_every_worldview = false;
                 incompatible_worldview_key = baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
 
                 class_key_precedence.push_back(baton_data_->class_prefix + baton_data->class_property)
                 class_key_precedence.push_back(baton_data->class_property);
             } else {
+                keep_every_worldview = true;
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
 
@@ -706,7 +709,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                             {
                                 if (property.value() == "all")
                                 {
-                                    // do nothing – keep this feature but don't need to preserve this property
+                                    // do nothing - keep this feature but don't need to preserve this property
                                     continue;
                                 }
                                 else
@@ -723,26 +726,28 @@ struct LocalizeWorker : Napi::AsyncWorker
                         }
 
                         // keep feature and retain its compatible worldview value
-                        // if it is in the selected worldview or 'all' worldview;
-                        // skip otherwise
                         else if (property_key == compatible_worldview_key)
                         {
                             if (property.value().type() == vtzero::property_value_type::string_value)
                             {
-                                if (property.value() == "all")
+                                if (keep_every_worldview)
                                 {
                                     final_properties.emplace_back(baton_data_->worldview_property, property.value());
                                     continue;
                                 }
-                                else if (property.value().contains(baton_data_->worldviews[0]))
-                                {
-                                    final_properties.emplace_back(baton_data_->worldview_property, baton_data_->worldviews[0]);
-                                    continue;
-                                }
                                 else
                                 {
-                                    skip_feature = true;
-                                    continue;
+                                    // keep only the feature in selected worldview or in 'all' worldview
+                                    if (property.value() == "all" || property.value().contains(baton_data_->worldviews[0]))
+                                    {
+                                        final_properties.emplace_back(baton_data_->worldview_property, property.value());
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        skip_feature = true;
+                                        continue;
+                                    }
                                 }
                             }
                             else
