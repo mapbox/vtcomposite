@@ -636,8 +636,8 @@ struct LocalizeWorker : Napi::AsyncWorker
             std::string incompatible_worldview_key;
             std::string compatible_worldview_key;
             std::vector<std::string> class_key_precedence;
-            bool keep_every_name;
-            std::vector<std::string> name_key_precedence;
+            bool keep_every_language;
+            std::vector<std::string> language_key_precedence;
             if (baton_data_->return_localized_tile)
             {
                 keep_every_worldview = false;
@@ -647,13 +647,13 @@ struct LocalizeWorker : Napi::AsyncWorker
                 class_key_precedence.push_back(baton_data_->class_prefix + baton_data->class_property)
                 class_key_precedence.push_back(baton_data->class_property);
 
-                keep_every_name = false;
+                keep_every_language = false;
                 for (auto const& lang : baton_data_->languages)
                 {
-                    name_key_precedence.push_back(baton_data_->language_property + "_" + lang);
-                    name_key_precedence.push_back(baton_data_->language_prefix + baton_data_->language_property + "_" + lang);
+                    language_key_precedence.push_back(baton_data_->language_property + "_" + lang);
+                    language_key_precedence.push_back(baton_data_->language_prefix + baton_data_->language_property + "_" + lang);
                 }
-                name_key_precedence.push_back(baton_data_->language)
+                language_key_precedence.push_back(baton_data_->language)
 
             } else {
                 keep_every_worldview = true;
@@ -662,8 +662,8 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                 class_key_precedence.push_back(baton_data->class_property);
 
-                keep_every_name = true;
-                name_key_precedence.push_back(baton_data_->language)
+                keep_every_language = true;
+                language_key_precedence.push_back(baton_data_->language)
             }
 
             vtzero::tile_builder tbuilder;
@@ -704,9 +704,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                     std::uint32_t class_key_idx = class_key_precedence.size();
                     vtzero::property_value class_value;
 
-                    std::uint32_t name_key_idx = name_key_precedence.size();
-                    vtzero::property_value name_value;
-                    vtzero::property_value original_name_value;
+                    std::uint32_t language_key_idx = language_key_precedence.size();
+                    vtzero::property_value language_value;
+                    vtzero::property_value original_language_value;
 
                     // collect final properties
                     std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
@@ -796,22 +796,22 @@ struct LocalizeWorker : Napi::AsyncWorker
                         )
                         {
                             // check if the property is of higher precedence that class key encountered so far
-                            std::uint32_t idx = std::find(name_key_precedence.begin(), name_key_precedence.end(), property_key)
-                            if (idx < name_key_idx)
+                            std::uint32_t idx = std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)
+                            if (idx < language_key_idx)
                             {
-                                name_key_idx = idx;
-                                name_value = property.value();
+                                language_key_idx = idx;
+                                language_value = property.value();
                             }
 
-                            // preserve original name value and wait till finish looping through all properties to assign a value
+                            // preserve original language value and wait till finish looping through all properties to assign a value
                             if (property_key == baton_data_->language_property)
                             {
-                                original_name_value = property.value();
+                                original_language_value = property.value();
                                 continue;
                             }
                             else
                             {
-                                if (keep_every_name)
+                                if (keep_every_language)
                                 {
                                     if (utils::startswith(property_key, baton_data_->language_prefix))
                                     {
@@ -848,13 +848,13 @@ struct LocalizeWorker : Napi::AsyncWorker
                         final_properties.emplace_back(baton_data->class_property, class_value);
                     }
 
-                    // use the name value of highest precedence
-                    if (name_value.valid()) {
-                        final_properties.emplace_back(baton_data->language_property, name_value);
+                    // use the language value of highest precedence
+                    if (language_value.valid()) {
+                        final_properties.emplace_back(baton_data->language_property, language_value);
                     }
 
                     if (return_localized_tile) {
-                        final_properties.emplace_back(baton_data_->language_property + "_local", original_name_value);
+                        final_properties.emplace_back(baton_data_->language_property + "_local", original_language_value);
                     }
 
                     create_new_feature(feature, final_properties, lbuilder);
