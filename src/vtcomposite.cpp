@@ -103,6 +103,7 @@ struct LocalizeBatonType
                       std::string worldview_prefix_,
                       std::string class_property_,
                       std::string class_prefix_,
+                      bool return_localized_tile_,
                       bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
@@ -114,6 +115,7 @@ struct LocalizeBatonType
           worldview_prefix{std::move(worldview_prefix_)},
           class_property{std::move(class_property_)},
           class_prefix{std::move(class_prefix_)},
+          return_localized_tile{std::move(return_localized_tile_)},
           compress{compress_}
     {
     }
@@ -146,7 +148,7 @@ struct LocalizeBatonType
     std::string worldview_prefix;
     std::string class_property;
     std::string class_prefix;
-    bool return_localized_tile = (languages.isArray() || worldviews.isArray());
+    bool return_localized_tile;
     bool compress;
 };
 
@@ -644,8 +646,8 @@ struct LocalizeWorker : Napi::AsyncWorker
                 incompatible_worldview_key = baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
 
-                class_key_precedence.push_back(baton_data_->class_prefix + baton_data->class_property)
-                class_key_precedence.push_back(baton_data->class_property);
+                class_key_precedence.push_back(baton_data_->class_prefix + baton_data_->class_property);
+                class_key_precedence.push_back(baton_data_->class_property);
 
                 keep_every_language = false;
                 for (auto const& lang : baton_data_->languages)
@@ -653,29 +655,20 @@ struct LocalizeWorker : Napi::AsyncWorker
                     language_key_precedence.push_back(baton_data_->language_property + "_" + lang);
                     language_key_precedence.push_back(baton_data_->language_prefix + baton_data_->language_property + "_" + lang);
                 }
-                language_key_precedence.push_back(baton_data_->language)
+                language_key_precedence.push_back(baton_data_->language_property);
 
             } else {
                 keep_every_worldview = true;
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
 
-                class_key_precedence.push_back(baton_data->class_property);
+                class_key_precedence.push_back(baton_data_->class_property);
 
                 keep_every_language = true;
-                language_key_precedence.push_back(baton_data_->language)
+                language_key_precedence.push_back(baton_data_->language_property);
             }
 
             vtzero::tile_builder tbuilder;
-            std::string language_key;
-            std::string language_key_prefixed;
-            if (!baton_data_->language.empty())
-            {
-                // {language_property}_{language} -> retain
-                language_key = baton_data_->language_property + "_" + baton_data_->language;
-                // {language_prefix}{language_property}_{language} -> drop
-                language_key_prefixed = baton_data_->language_prefix + language_key;
-            }
             std::vector<char> buffer_cache;
             vtzero::data_view tile_view{};
             if (gzip::is_compressed(baton_data_->data.data(), baton_data_->data.size()))
@@ -701,10 +694,10 @@ struct LocalizeWorker : Napi::AsyncWorker
                     bool skip_feature = false;
 
                     // will be searching for the class with lowest index in class_key_precedence
-                    std::uint32_t class_key_idx = class_key_precedence.size();
+                    std::uint32_t class_key_idx = static_cast<std::uint32_t>(class_key_precedence.size());
                     vtzero::property_value class_value;
 
-                    std::uint32_t language_key_idx = language_key_precedence.size();
+                    std::uint32_t language_key_idx = static_cast<std::uint32_t>(language_key_precedence.size());
                     vtzero::property_value language_value;
                     vtzero::property_value original_language_value;
 
@@ -722,7 +715,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                         {
                             if (property.value().type() == vtzero::property_value_type::string_value)
                             {
-                                if (property.value() == "all")
+                                if (property.value().string_value() == "all")
                                 {
                                     // do nothing - keep this feature but don't need to preserve this property
                                     continue;
@@ -753,7 +746,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 else
                                 {
                                     // keep only the feature in selected worldview or in 'all' worldview
-                                    if (property.value() == "all" || property.value().contains(baton_data_->worldviews[0]))
+                                    std::string const& property_value = static_cast<std::string>(property.value().string_value());
+                                    std::vector<std::string> property_value_list = utils::split(property_value);
+                                    if (property_value == "all" || std::find(property_value_list.begin(), property_value_list.end(), baton_data_->worldviews[0]) != property_value_list.end())
                                     {
                                         final_properties.emplace_back(baton_data_->worldview_property, property.value());
                                         continue;
@@ -779,7 +774,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                         )
                         {
                             // check if the property is of higher precedence that class key encountered so far
-                            std::uint32_t idx = std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key)
+                            std::uint32_t idx = static_cast<std::uint32_t>(std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key) - class_key_precedence.begin());
                             if (idx < class_key_idx)
                             {
                                 class_key_idx = idx;
@@ -796,7 +791,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                         )
                         {
                             // check if the property is of higher precedence that class key encountered so far
-                            std::uint32_t idx = std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)
+                            std::uint32_t idx = static_cast<std::uint32_t>(std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key) - language_key_precedence.begin());
                             if (idx < language_key_idx)
                             {
                                 language_key_idx = idx;
@@ -820,7 +815,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                                     }
                                     else
                                     {
-                                        final_properties.emplace(property_key, property.value());
+                                        final_properties.emplace_back(property_key, property.value());
                                         continue;
                                     }
                                 }
@@ -834,7 +829,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                         // all other properties
                         else {
-                            properties.emplace_back(property_key, property.value());
+                            final_properties.emplace_back(property_key, property.value());
                             continue;
                         }
 
@@ -845,15 +840,15 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                     // use the class value of highest precedence
                     if (class_value.valid()) {
-                        final_properties.emplace_back(baton_data->class_property, class_value);
+                        final_properties.emplace_back(baton_data_->class_property, class_value);
                     }
 
                     // use the language value of highest precedence
                     if (language_value.valid()) {
-                        final_properties.emplace_back(baton_data->language_property, language_value);
+                        final_properties.emplace_back(baton_data_->language_property, language_value);
                     }
 
-                    if (return_localized_tile) {
+                    if (baton_data_->return_localized_tile) {
                         final_properties.emplace_back(baton_data_->language_property + "_local", original_language_value);
                     }
 
@@ -950,6 +945,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     std::string class_property = "class";
     std::string class_prefix = "_mbx_";
     bool compress = false;
+    bool return_localized_tile = false;
 
     // validate params object
     Napi::Value params_val = info[0];
@@ -1001,6 +997,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
                 std::string language_item = language_item_val.As<Napi::String>();
                 languages.push_back(language_item);
             }
+            return_localized_tile = true;
         }
     }
 
@@ -1050,6 +1047,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
                 std::string worldview_item = worldview_item_val.As<Napi::String>();
                 worldviews.push_back(worldview_item);
             }
+            return_localized_tile = true;
         }
     }
 
@@ -1118,6 +1116,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         worldview_prefix,
         class_property,
         class_prefix,
+        return_localized_tile,
         compress);
 
     auto* worker = new LocalizeWorker{std::move(baton_data), callback};
