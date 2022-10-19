@@ -620,7 +620,8 @@ struct LocalizeWorker : Napi::AsyncWorker
         fbuilder.set_geometry(template_feature.geometry());
 
         // add property to feature
-        for (auto const& property : properties) {
+        for (auto const& property : properties)
+        {
           fbuilder.add_property(property.first, property.second);
         }
 
@@ -635,7 +636,8 @@ struct LocalizeWorker : Napi::AsyncWorker
             std::string compatible_worldview_key;
             std::string incompatible_class_key;
             std::string compatible_class_key;
-            if (baton_data_->return_localized_tile) {
+            if (baton_data_->return_localized_tile)
+            {
                 incompatible_worldview_key = baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
                 incompatible_class_key = baton_data_->class_property;
@@ -692,16 +694,23 @@ struct LocalizeWorker : Napi::AsyncWorker
                         std::string property_key = property.key().to_string();
 
                         // skip feature only if the value of incompatible worldview key is not 'all'
-                        if (property_key == incompatible_worldview_key) {
-                            if (property.value().type() == vtzero::property_value_type::string_value) {
-                                if (property.value() == "all") {
+                        if (property_key == incompatible_worldview_key)
+                        {
+                            if (property.value().type() == vtzero::property_value_type::string_value)
+                            {
+                                if (property.value() == "all")
+                                {
                                     // do nothing – keep this feature but don't need to preserve this property
                                     continue;
-                                } else {
+                                }
+                                else
+                                {
                                     skip_feature = true;
                                     continue;
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 skip_feature = true;
                                 continue;
                             }
@@ -710,32 +719,43 @@ struct LocalizeWorker : Napi::AsyncWorker
                         // keep feature and retain its compatible worldview value
                         // if it is in the selected worldview or 'all' worldview;
                         // skip otherwise
-                        else if (property_key == compatible_worldview_key) {
-                            if (property.value().type() == vtzero::property_value_type::string_value) {
-                                if (property.value() == "all") {
+                        else if (property_key == compatible_worldview_key)
+                        {
+                            if (property.value().type() == vtzero::property_value_type::string_value)
+                            {
+                                if (property.value() == "all")
+                                {
                                     properties.emplace_back(baton_data_->worldview_property, property.value());
                                     continue;
-                                } else if (property.value().contains(baton_data_->worldviews[0])) {
+                                }
+                                else if (property.value().contains(baton_data_->worldviews[0]))
+                                {
                                     properties.emplace_back(baton_data_->worldview_property, baton_data_->worldviews[0]);
                                     continue;
-                                } else {
+                                }
+                                else
+                                {
                                     skip_feature = true;
                                     continue;
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 skip_feature = true;
                                 continue;
                             }
                         }
 
                         // drop incompatible class property
-                        else if (property_key == incompatible_class_key) {
+                        else if (property_key == incompatible_class_key)
+                        {
                             // do nothing – keep this feature but don't need to retain this property
                             continue;
                         }
 
                         // collect class value
-                        else if (property_key == compatible_class_key) {
+                        else if (property_key == compatible_class_key)
+                        {
                             properties.emplace_back(baton_data_->class_property, property.value());
                             continue;
                         }
