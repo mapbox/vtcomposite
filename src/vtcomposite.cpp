@@ -632,18 +632,18 @@ struct LocalizeWorker : Napi::AsyncWorker
         try
         {
             std::string incompatible_worldview_key;
-            std::string incompatible_class_key;
             std::string compatible_worldview_key;
+            std::string incompatible_class_key;
             std::string compatible_class_key;
             if (baton_data_->return_localized_tile) {
                 incompatible_worldview_key = baton_data_->worldview_property;
-                incompatible_class_key = baton_data_->class_property;
                 compatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
+                incompatible_class_key = baton_data_->class_property;
                 compatible_class_key = baton_data_->class_prefix + baton_data_->class_property;
             } else {
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
-                incompatible_class_key = baton_data_->class_prefix + baton_data_->class_property;
                 compatible_worldview_key = baton_data_->worldview_property;
+                incompatible_class_key = baton_data_->class_prefix + baton_data_->class_property;
                 compatible_class_key = baton_data_->class_property;
             }
 
