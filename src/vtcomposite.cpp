@@ -636,6 +636,8 @@ struct LocalizeWorker : Napi::AsyncWorker
             std::string incompatible_worldview_key;
             std::string compatible_worldview_key;
             std::vector<std::string> class_key_precedence;
+            bool keep_every_name;
+            std::vector<std::string> name_key_precedence;
             if (baton_data_->return_localized_tile)
             {
                 keep_every_worldview = false;
@@ -644,12 +646,24 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                 class_key_precedence.push_back(baton_data_->class_prefix + baton_data->class_property)
                 class_key_precedence.push_back(baton_data->class_property);
+
+                keep_every_name = false;
+                for (auto const& lang : baton_data_->languages)
+                {
+                    name_key_precedence.push_back(baton_data_->language_property + "_" + lang);
+                    name_key_precedence.push_back(baton_data_->language_prefix + baton_data_->language_property + "_" + lang);
+                }
+                name_key_precedence.push_back(baton_data_->language)
+
             } else {
                 keep_every_worldview = true;
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
 
                 class_key_precedence.push_back(baton_data->class_property);
+
+                keep_every_name = true;
+                name_key_precedence.push_back(baton_data_->language)
             }
 
             vtzero::tile_builder tbuilder;
@@ -690,8 +704,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                     std::uint32_t class_key_idx = class_key_precedence.size();
                     vtzero::property_value class_value;
 
-                    bool name_was_set = false;
+                    std::uint32_t name_key_idx = name_key_precedence.size();
                     vtzero::property_value name_value;
+                    vtzero::property_value original_name_value;
 
                     // collect final properties
                     std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
@@ -774,40 +789,54 @@ struct LocalizeWorker : Napi::AsyncWorker
                             continue;
                         }
 
-                        // preserve original params.language_property value
-                        if (property_key == baton_data_->language_property)
+                        else if
+                        (
+                            utils::startswith(property_key, baton_data_->language_property) ||
+                            utils::startswith(property_key, baton_data_->language_prefix + baton_data_->language_property)
+                        )
                         {
-                            name_value = property.value();
-
-                            // if no language was specified, we want the name value to be constant
-                            if (baton_data_->language.empty())
+                            // check if the property is of higher precedence that class key encountered so far
+                            std::uint32_t idx = std::find(name_key_precedence.begin(), name_key_precedence.end(), property_key)
+                            if (idx < name_key_idx)
                             {
-                                final_properties.emplace_back(baton_data_->language_property, property.value());
-                                name_was_set = true;
+                                name_key_idx = idx;
+                                name_value = property.value();
                             }
-                            continue;
-                        }
-                        // set name to value from {prefix}{language_property}_{language}, if existing
-                        if (!baton_data_->language.empty() && !name_was_set && language_key_prefixed == property_key)
-                        {
-                            final_properties.emplace_back(baton_data_->language_property, property.value());
-                            name_was_set = true;
-                            continue;
-                        }
-                        // remove any properties that starts with the given params.language_prefix value
-                        if (property_key.find(baton_data_->language_prefix) == 0) // NOLINT(abseil-string-find-startswith)
-                        {
-                            continue;
-                        }
-                        // set name to {language_property}_{language}, if existing
-                        // and keep these legacy properties on the feature
-                        if (!baton_data_->language.empty() && !name_was_set && language_key == property_key)
-                        {
-                            final_properties.emplace_back(baton_data_->language_property, property.value());
-                            name_was_set = true;
+
+                            // preserve original name value and wait till finish looping through all properties to assign a value
+                            if (property_key == baton_data_->language_property)
+                            {
+                                original_name_value = property.value();
+                                continue;
+                            }
+                            else
+                            {
+                                if (keep_every_name)
+                                {
+                                    if (utils::startswith(property_key, baton_data_->language_prefix))
+                                    {
+                                        // drop properties that start with a prefix
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        final_properties.emplace(property_key, property.value());
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    // wait till we are done looping through all properties to add class value to final_properties
+                                    continue;
+                                }
+                            }
                         }
 
-                        properties.emplace_back(property_key, property.value());
+                        // all other properties
+                        else {
+                            properties.emplace_back(property_key, property.value());
+                            continue;
+                        }
 
                     } // end of properties loop
 
@@ -819,15 +848,13 @@ struct LocalizeWorker : Napi::AsyncWorker
                         final_properties.emplace_back(baton_data->class_property, class_value);
                     }
 
-                    if (name_value.valid())
-                    {
-                        std::string preserved_key = baton_data_->language_property + "_local";
-                        final_properties.emplace_back(preserved_key, name_value);
+                    // use the name value of highest precedence
+                    if (name_value.valid()) {
+                        final_properties.emplace_back(baton_data->language_property, name_value);
+                    }
 
-                        if (!name_was_set)
-                        {
-                            final_properties.emplace_back(baton_data_->language_property, name_value);
-                        }
+                    if (return_localized_tile) {
+                        final_properties.emplace_back(baton_data_->language_property + "_local", original_name_value);
                     }
 
                     create_new_feature(feature, final_properties, lbuilder);
