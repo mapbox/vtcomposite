@@ -634,19 +634,19 @@ struct LocalizeWorker : Napi::AsyncWorker
         {
             std::string incompatible_worldview_key;
             std::string compatible_worldview_key;
-            std::string incompatible_class_key;
-            std::string compatible_class_key;
+            std::vector<std::string> class_key_precedence;
             if (baton_data_->return_localized_tile)
             {
                 incompatible_worldview_key = baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
-                incompatible_class_key = baton_data_->class_property;
-                compatible_class_key = baton_data_->class_prefix + baton_data_->class_property;
+
+                class_key_precedence.push_back(baton_data_->class_prefix + baton_data->class_property)
+                class_key_precedence.push_back(baton_data->class_property);
             } else {
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
-                incompatible_class_key = baton_data_->class_prefix + baton_data_->class_property;
-                compatible_class_key = baton_data_->class_property;
+
+                class_key_precedence.push_back(baton_data->class_property);
             }
 
             vtzero::tile_builder tbuilder;
@@ -680,12 +680,18 @@ struct LocalizeWorker : Napi::AsyncWorker
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
+                    // will be skipping features with incompatible worldview
                     bool skip_feature = false;
+
+                    // will be searching for the class with lowest index in class_key_precedence
+                    std::uint32_t class_key_idx = class_key_precedence.size();
+                    vtzero::property_value class_value;
+
                     bool name_was_set = false;
                     vtzero::property_value name_value;
 
                     // collect final properties
-                    std::vector<std::pair<std::string, vtzero::property_value>> properties;
+                    std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
                     while (auto property = feature.next_property())
                     {
                         // if already know we'll be skipping this feature, don't need to comb through its properties
@@ -725,12 +731,12 @@ struct LocalizeWorker : Napi::AsyncWorker
                             {
                                 if (property.value() == "all")
                                 {
-                                    properties.emplace_back(baton_data_->worldview_property, property.value());
+                                    final_properties.emplace_back(baton_data_->worldview_property, property.value());
                                     continue;
                                 }
                                 else if (property.value().contains(baton_data_->worldviews[0]))
                                 {
-                                    properties.emplace_back(baton_data_->worldview_property, baton_data_->worldviews[0]);
+                                    final_properties.emplace_back(baton_data_->worldview_property, baton_data_->worldviews[0]);
                                     continue;
                                 }
                                 else
@@ -746,17 +752,20 @@ struct LocalizeWorker : Napi::AsyncWorker
                             }
                         }
 
-                        // drop incompatible class property
-                        else if (property_key == incompatible_class_key)
+                        else if
+                        (
+                            utils::startswith(property_key, baton_data_->class_property) ||
+                            utils::startswith(property_key, baton_data_->class_prefix + baton_data_->class_property)
+                        )
                         {
-                            // do nothing – keep this feature but don't need to retain this property
-                            continue;
-                        }
-
-                        // collect class value
-                        else if (property_key == compatible_class_key)
-                        {
-                            properties.emplace_back(baton_data_->class_property, property.value());
+                            // check if the property is of higher precedence that class key encountered so far
+                            std::uint32_t idx = std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key)
+                            if (idx < class_key_idx)
+                            {
+                                class_key_idx = idx;
+                                class_value = property.value();
+                            }
+                            // wait till we are done looping through all properties to add class value to final_properties
                             continue;
                         }
 
@@ -768,7 +777,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                             // if no language was specified, we want the name value to be constant
                             if (baton_data_->language.empty())
                             {
-                                properties.emplace_back(baton_data_->language_property, property.value());
+                                final_properties.emplace_back(baton_data_->language_property, property.value());
                                 name_was_set = true;
                             }
                             continue;
@@ -776,7 +785,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                         // set name to value from {prefix}{language_property}_{language}, if existing
                         if (!baton_data_->language.empty() && !name_was_set && language_key_prefixed == property_key)
                         {
-                            properties.emplace_back(baton_data_->language_property, property.value());
+                            final_properties.emplace_back(baton_data_->language_property, property.value());
                             name_was_set = true;
                             continue;
                         }
@@ -789,7 +798,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                         // and keep these legacy properties on the feature
                         if (!baton_data_->language.empty() && !name_was_set && language_key == property_key)
                         {
-                            properties.emplace_back(baton_data_->language_property, property.value());
+                            final_properties.emplace_back(baton_data_->language_property, property.value());
                             name_was_set = true;
                         }
 
@@ -800,18 +809,23 @@ struct LocalizeWorker : Napi::AsyncWorker
                     // if skip feature, proceed to next feature
                     if (skip_feature) continue;
 
+                    // use the class value of highest precedence
+                    if (class_value.valid()) {
+                        final_properties.emplace_back(baton_data->class_property, class_value);
+                    }
+
                     if (name_value.valid())
                     {
                         std::string preserved_key = baton_data_->language_property + "_local";
-                        properties.emplace_back(preserved_key, name_value);
+                        final_properties.emplace_back(preserved_key, name_value);
 
                         if (!name_was_set)
                         {
-                            properties.emplace_back(baton_data_->language_property, name_value);
+                            final_properties.emplace_back(baton_data_->language_property, name_value);
                         }
                     }
 
-                    create_new_feature(feature, properties, lbuilder);
+                    create_new_feature(feature, final_properties, lbuilder);
 
                 } // end of features loop
             } // end of layers loop
