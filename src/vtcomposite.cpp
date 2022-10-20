@@ -9,6 +9,7 @@
 #include <gzip/utils.hpp>
 // vtzero
 #include <vtzero/builder.hpp>
+#include <vtzero/encoded_property_value.hpp>
 #include <vtzero/property_value.hpp>
 #include <vtzero/vector_tile.hpp>
 // geometry.hpp
@@ -738,25 +739,52 @@ struct LocalizeWorker : Napi::AsyncWorker
                         {
                             if (property.value().type() == vtzero::property_value_type::string_value)
                             {
-                                if (keep_every_worldview)
+                                std::string property_value = static_cast<std::string>(property.value().string_value());
+
+                                // keep only the feature in selected worldview or in 'all' worldview
+                                if (property_value == "all")
                                 {
                                     final_properties.emplace_back(baton_data_->worldview_property, property.value());
                                     continue;
                                 }
                                 else
                                 {
-                                    // keep only the feature in selected worldview or in 'all' worldview
-                                    std::string const& property_value = static_cast<std::string>(property.value().string_value());
-                                    std::vector<std::string> property_value_list = utils::split(property_value);
-                                    if (property_value == "all" || std::find(property_value_list.begin(), property_value_list.end(), baton_data_->worldviews[0]) != property_value_list.end())
+                                    if (keep_every_worldview)
                                     {
-                                        final_properties.emplace_back(baton_data_->worldview_property, property.value());
+                                        // For now just return the first one;
+                                        // TODO: explode feature into multiple features, one for each worldview, if property.value() is a comma-separated list
+                                        std::vector<std::string> property_worldviews = utils::split(property_value);
+                                        vtzero::encoded_property_value epv{property_worldviews[0]};
+                                        vtzero::property_value pv{epv.data()};
+                                        final_properties.emplace_back(baton_data_->worldview_property, pv);
                                         continue;
                                     }
                                     else
                                     {
-                                        skip_feature = true;
-                                        continue;
+                                        std::vector<std::string> matching_worldviews;
+                                        std::vector<std::string> property_worldviews = utils::split(property_value);
+                                        utils::intersection(property_worldviews, baton_data_->worldviews, matching_worldviews);
+
+                                        // For now just process the first requested worldview;
+                                        if (matching_worldviews.empty()) {
+                                            skip_feature = true;
+                                            continue;
+                                        }
+                                        else if (std::find(matching_worldviews.begin(), matching_worldviews.end(), baton_data_->worldviews[0]) == matching_worldviews.end())
+                                        {
+                                            // TODO when support multiple worldviews: remove this else if block
+                                            skip_feature = true;
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            // TODO: support multiple worldviews
+                                            std::string const& first_wv{baton_data_->worldviews[0]};
+                                            vtzero::encoded_property_value epv{first_wv};
+                                            vtzero::property_value pv{epv.data()};
+                                            final_properties.emplace_back(baton_data_->worldview_property, pv);
+                                            continue;
+                                        }
                                     }
                                 }
                             }
