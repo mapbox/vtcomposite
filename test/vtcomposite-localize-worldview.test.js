@@ -631,9 +631,9 @@ test('[localize worldview] requesting localized language; feature with no worldv
 });
 
 /** ****************************************************************************
-  * TEST SET 4:
-  *  - custom worldview_property and worldview_prefix
-  ******************************************************************************/
+ * TEST SET 4:
+ *  - custom worldview_property and worldview_prefix
+ ******************************************************************************/
 test('[localize worldview] requesting non-localized tile; feature has custom worldview property key and prefix and is in "all" worldview', (assert) => {
   const feature = mvtFixtures.create({
     layers: [
@@ -924,9 +924,9 @@ test('[localize worldview] requesting localized worldview; feature has custom wo
 });
 
 /** ****************************************************************************
-   * TEST SET 5:
-   *  - custom worldview_default
-   ******************************************************************************/
+ * TEST SET 5:
+ *  - custom worldview_default
+ ******************************************************************************/
 test('[localize worldview] requesting non-localized tiles; feature in the default worldview', (assert) => {
   const feature = mvtFixtures.create({
     layers: [
@@ -1195,9 +1195,9 @@ test('[localize worldview] requesting localize langauge; feature not in the defa
 });
 
 /** ****************************************************************************
-* TEST SET 6:
-*  - test invalid params
-******************************************************************************/
+ * TEST SET 6:
+ *  - test invalid params
+ ******************************************************************************/
 
 test('[localize worldview] invalid params', (assert) => {
   const feature = mvtFixtures.create({
