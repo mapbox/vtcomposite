@@ -980,7 +980,6 @@ Napi::Value localize(Napi::CallbackInfo const& info)
 
     // param that'll be deduced from other params
     bool return_localized_tile = false;  // true only if languages or worldviews exist
-    bool worldviews_provided = false;  // true if worldviews exist
 
     // validate params object
     Napi::Value params_val = info[0];
@@ -1090,7 +1089,6 @@ Napi::Value localize(Napi::CallbackInfo const& info)
                     worldviews.push_back(worldview_item);
                 }
                 return_localized_tile = true;
-                worldviews_provided = true;
             }
             else
             {
@@ -1133,6 +1131,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         {
             return utils::CallbackError("params.worldview_default must be a non-empty string", info);
         }
+        worldview_default = worldview_default_val.As<Napi::String>();
     }
 
     // params.class_property (optional)
@@ -1173,15 +1172,12 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     // value of both params.languages and params.worldviews.
     if (return_localized_tile)
     {
-        if (!worldviews_provided)
+        if (worldviews.empty())
         {
             worldviews.reserve(1);
             worldviews.push_back(worldview_default);
         }
-        else
-        {
-            // do nothing – already knows which worldview to return
-        }
+        // else do nothing – already knows which worldview to return
     }
 
     std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(
