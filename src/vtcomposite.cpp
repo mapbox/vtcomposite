@@ -991,6 +991,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     }
     Napi::Object params = info[0].As<Napi::Object>();
 
+    // empty string to check against
+    Napi::String empty_string = Napi::String::New(info.Env(), "");
+
     // params.buffer (required)
     if (!params.Has(Napi::String::New(info.Env(), "buffer")))
     {
@@ -1023,9 +1026,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
                 for (std::uint32_t lg = 0; lg < num_languages; ++lg)
                 {
                     Napi::Value language_item_val = language_array.Get(lg);
-                    if (!language_item_val.IsString())
+                    if (!language_item_val.IsString() || language_item_val == empty_string)
                     {
-                        return utils::CallbackError("params.languages must be an array of strings", info);
+                        return utils::CallbackError("params.languages must be an array of non-empty strings", info);
                     }
                     std::string language_item = language_item_val.As<Napi::String>();
                     languages.push_back(language_item);
@@ -1047,9 +1050,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "language_property")))
     {
         Napi::Value language_property_val = params.Get(Napi::String::New(info.Env(), "language_property"));
-        if (!language_property_val.IsString())
+        if (!language_property_val.IsString() || language_property_val == empty_string)
         {
-            return utils::CallbackError("params.language_property must be a string", info);
+            return utils::CallbackError("params.language_property must be a non-empty string", info);
         }
         language_property = language_property_val.As<Napi::String>();
     }
@@ -1058,9 +1061,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "language_prefix")))
     {
         Napi::Value language_prefix_val = params.Get(Napi::String::New(info.Env(), "language_prefix"));
-        if (!language_prefix_val.IsString())
+        if (!language_prefix_val.IsString() || language_prefix_val == empty_string)
         {
-            return utils::CallbackError("params.language_prefix must be a string", info);
+            return utils::CallbackError("params.language_prefix must be a non-empty string", info);
         }
         language_prefix = language_prefix_val.As<Napi::String>();
     }
@@ -1079,9 +1082,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
                 for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
                 {
                     Napi::Value worldview_item_val = worldview_array.Get(wv);
-                    if (!worldview_item_val.IsString())
+                    if (!worldview_item_val.IsString() || worldview_item_val == empty_string)
                     {
-                        return utils::CallbackError("params.worldviews must be an array of strings", info);
+                        return utils::CallbackError("params.worldviews must be an array of non-empty strings", info);
                     }
                     std::string worldview_item = worldview_item_val.As<Napi::String>();
                     worldviews.push_back(worldview_item);
@@ -1104,9 +1107,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "worldview_property")))
     {
         Napi::Value worldview_property_val = params.Get(Napi::String::New(info.Env(), "worldview_property"));
-        if (!worldview_property_val.IsString())
+        if (!worldview_property_val.IsString() || worldview_property_val == empty_string)
         {
-            return utils::CallbackError("params.worldview_property must be a string", info);
+            return utils::CallbackError("params.worldview_property must be a non-empty string", info);
         }
         worldview_property = worldview_property_val.As<Napi::String>();
     }
@@ -1115,9 +1118,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "worldview_prefix")))
     {
         Napi::Value worldview_prefix_val = params.Get(Napi::String::New(info.Env(), "worldview_prefix"));
-        if (!worldview_prefix_val.IsString())
+        if (!worldview_prefix_val.IsString() || worldview_prefix_val == empty_string)
         {
-            return utils::CallbackError("params.worldview_prefix must be a string", info);
+            return utils::CallbackError("params.worldview_prefix must be a non-empty string", info);
         }
         worldview_prefix = worldview_prefix_val.As<Napi::String>();
     }
@@ -1126,20 +1129,19 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "worldview_default")))
     {
         Napi::Value worldview_default_val = params.Get(Napi::String::New(info.Env(), "worldview_default"));
-        if (!worldview_default_val.IsString())
+        if (!worldview_default_val.IsString() || worldview_default_val == empty_string)
         {
-            return utils::CallbackError("params.worldview_default must be a string", info);
+            return utils::CallbackError("params.worldview_default must be a non-empty string", info);
         }
-        worldview_default = worldview_default_val.As<Napi::String>();
     }
 
     // params.class_property (optional)
     if (params.Has(Napi::String::New(info.Env(), "class_property")))
     {
         Napi::Value class_property_val = params.Get(Napi::String::New(info.Env(), "class_property"));
-        if (!class_property_val.IsString())
+        if (!class_property_val.IsString() || class_property_val == empty_string)
         {
-            return utils::CallbackError("params.class_property must be a string", info);
+            return utils::CallbackError("params.class_property must be a non-empty string", info);
         }
         class_property = class_property_val.As<Napi::String>();
     }
@@ -1148,9 +1150,9 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "class_prefix")))
     {
         Napi::Value class_prefix_val = params.Get(Napi::String::New(info.Env(), "class_prefix"));
-        if (!class_prefix_val.IsString())
+        if (!class_prefix_val.IsString() || class_prefix_val == empty_string)
         {
-            return utils::CallbackError("params.class_prefix must be a string", info);
+            return utils::CallbackError("params.class_prefix must be a non-empty string", info);
         }
         class_prefix = class_prefix_val.As<Napi::String>();
     }

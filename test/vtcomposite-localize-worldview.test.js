@@ -1193,37 +1193,3 @@ test('[localize worldview] requesting localize langauge; feature not in the defa
     assert.end();
   });
 });
-
-/** ****************************************************************************
- * TEST SET 6:
- *  - test invalid params
- ******************************************************************************/
-
-test('[localize worldview] invalid params', (assert) => {
-  const feature = mvtFixtures.create({
-    layers: [
-      {
-        version: 2,
-        name: 'admin',
-        features: [
-          {
-            id: 10,
-            tags: [0, 0],
-            type: 1, // point
-            geometry: [9, 54, 38]
-          }
-        ],
-        keys: ['_mbx_worldview'],
-        values: [
-          { string_value: 'JP' }
-        ],
-        extent: 4096
-      }
-    ]
-  }).buffer;
-
-  assert.throws(() => { localize({ buffer: feature, worldviews: [] }); });
-  assert.throws(() => { localize({ buffer: feature, worldviews: null }); });
-  assert.throws(() => { localize({ buffer: feature, worldviews: undefined }); });
-  assert.end();
-});

@@ -9,9 +9,14 @@ const localize = vt.localize;
 test('[localize] success with all parameters', (assert) => {
   localize({
     buffer: mvtFixtures.get('064').buffer,
-    language: 'en',
+    languages: ['en'],
+    language_property: 'lang',
+    language_prefix: 'blah',
     worldviews: ['US'],
-    worldview_property: '_mbx_worldview',
+    worldview_property: 'wv',
+    worldview_prefix: 'whatever',
+    class_property: 'klass',
+    class_prefix: 'sth',
     compress: true
   }, (err, buffer) => {
     assert.ifError(err);
@@ -75,21 +80,85 @@ test('[localize] params.buffer', (assert) => {
   assert.end();
 });
 
-test('[localize] params.language', (assert) => {
+test('[localize] params.languages', (assert) => {
   localize({
-    buffer: Buffer.from('howdy'),
-    language: 1
+    buffer: Buffer.from('hi'),
+    languages: undefined
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.language must be null or a string', 'expected error message');
+    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
   });
 
   localize({
     buffer: Buffer.from('hi'),
-    language: '' // empty string
+    languages: null
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.language cannot be an empty string', 'expected error message');
+    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    languages: 1
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('hi'),
+    languages: '' // empty string
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('hi'),
+    languages: 'hi'
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('hi'),
+    languages: []
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('hi'),
+    languages: [1, 2, 3]
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.languages must be an array of non-empty strings', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('hi'),
+    languages: ['hi', null]
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.languages must be an array of non-empty strings', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('hi'),
+    languages: [undefined, 'hi']
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.languages must be an array of non-empty strings', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('hi'),
+    languages: ['hi', '']
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.languages must be an array of non-empty strings', 'expected error message');
   });
 
   assert.end();
@@ -98,20 +167,38 @@ test('[localize] params.language', (assert) => {
 test('[localize] params.language_property', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
-    language: 'es',
+    languages: ['es'],
     language_property: 1 // not a string
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.language_property must be a string', 'expected error message');
+    assert.equal(err.message, 'params.language_property must be a non-empty string', 'expected error message');
   });
 
   localize({
     buffer: Buffer.from('howdy'),
-    language: 'es',
+    languages: ['es'],
     language_property: null // null value
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.language_property must be a string', 'expected error message');
+    assert.equal(err.message, 'params.language_property must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    languages: ['es'],
+    language_property: undefined
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language_property must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    languages: ['es'],
+    language_property: ''
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language_property must be a non-empty string', 'expected error message');
   });
 
   assert.end();
@@ -120,20 +207,38 @@ test('[localize] params.language_property', (assert) => {
 test('[localize] params.language_prefix', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
-    language: 'es',
+    languages: ['es'],
     language_prefix: 1 // not a string
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.language_prefix must be a string', 'expected error message');
+    assert.equal(err.message, 'params.language_prefix must be a non-empty string', 'expected error message');
   });
 
   localize({
     buffer: Buffer.from('howdy'),
-    language: 'es',
+    languages: ['es'],
     language_prefix: null // null value
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.language_prefix must be a string', 'expected error message');
+    assert.equal(err.message, 'params.language_prefix must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    languages: ['es'],
+    language_prefix: undefined
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language_prefix must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    languages: ['es'],
+    language_prefix: ''
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.language_prefix must be a non-empty string', 'expected error message');
   });
 
   assert.end();
@@ -142,26 +247,82 @@ test('[localize] params.language_prefix', (assert) => {
 test('[localize] params.worldviews', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
+    worldviews: null
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: undefined
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
     worldviews: 1 // not an array
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldview must be an array', 'expected error message');
+    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
   });
 
   localize({
     buffer: Buffer.from('howdy'),
-    worldviews: [1, 2, 3] // array with non-strings
+    worldviews: ''
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldview must be an array of strings', 'expected error message');
+    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
   });
 
   localize({
     buffer: Buffer.from('howdy'),
-    worldviews: ['USA'] // array with >2 char strings
+    worldviews: 'US'
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldview items must be strings of 2 characters', 'expected error message');
+    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: []
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: [1, 2, 3]
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldviews must be an array of non-empty strings', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['hi', null]
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldviews must be an array of non-empty strings', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: [undefined, 'howdy']
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldviews must be an array of non-empty strings', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['howdy', '']
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldviews must be an array of non-empty strings', 'expected error message');
   });
 
   assert.end();
@@ -174,20 +335,195 @@ test('[localize] params.worldview_property', (assert) => {
     worldview_property: 1 // not a string
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldview_property must be a string', 'expected error message');
+    assert.equal(err.message, 'params.worldview_property must be a non-empty string', 'expected error message');
   });
 
-  assert.end();
-});
-
-test('[localize] params.compress', (assert) => {
   localize({
     buffer: Buffer.from('howdy'),
-    compress: 1 // not a boolean
+    worldviews: ['US'],
+    worldview_property: null
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.compress must be a boolean', 'expected error message');
+    assert.equal(err.message, 'params.worldview_property must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['US'],
+    worldview_property: undefined
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_property must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['US'],
+    worldview_property: ''
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_property must be a non-empty string', 'expected error message');
   });
 
   assert.end();
 });
+
+test('[localize] params.worldview_prefix', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['US'],
+    worldview_prefix: 1 // not a string
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_prefix must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['US'],
+    worldview_prefix: null
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_prefix must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['US'],
+    worldview_prefix: undefined
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_prefix must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldviews: ['US'],
+    worldview_prefix: ''
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_prefix must be a non-empty string', 'expected error message');
+  });
+
+  assert.end();
+});
+
+test('[localize] params.worldview_default', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldview_default: 1 // not a string
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_default must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldview_default: null
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_default must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldview_default: undefined
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_default must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    worldview_default: ''
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.worldview_default must be a non-empty string', 'expected error message');
+  });
+
+  assert.end();
+});
+
+test('[localize] params.class_property', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    class_property: 1 // not a string
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.class_property must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    class_property: null
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.class_property must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    class_property: undefined
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.class_property must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    class_property: ''
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.class_property must be a non-empty string', 'expected error message');
+  });
+
+  assert.end();
+});
+
+test('[localize] params.class_prefix', (assert) => {
+  localize({
+    buffer: Buffer.from('howdy'),
+    class_prefix: 1 // not a string
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.class_prefix must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    class_prefix: null
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.class_prefix must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    class_prefix: undefined
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.class_prefix must be a non-empty string', 'expected error message');
+  });
+
+  localize({
+    buffer: Buffer.from('howdy'),
+    class_prefix: ''
+  }, (err) => {
+    assert.ok(err);
+    assert.equal(err.message, 'params.class_prefix must be a non-empty string', 'expected error message');
+  });
+
+  assert.end();
+});
+
+// test('[localize] params.compress', (assert) => {
+//   localize({
+//     buffer: Buffer.from('howdy'),
+//     compress: 1 // not a boolean
+//   }, (err) => {
+//     assert.ok(err);
+//     assert.equal(err.message, 'params.compress must be a boolean', 'expected error message');
+//   });
+//
+//   assert.end();
+// });
