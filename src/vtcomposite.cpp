@@ -119,6 +119,9 @@ struct LocalizeBatonType
           return_localized_tile{std::move(return_localized_tile_)},
           compress{compress_}
     {
+        // Note: for LocalizeBatonType, return_localized_tile_ dictates whether it
+        // will return a localized or non-localized tile; the existence and value of
+        // languages_ and worldviews_ does not matter.
     }
 
     ~LocalizeBatonType() noexcept
@@ -963,17 +966,21 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     // mandatory params
     Napi::Buffer<char> buffer;
 
-    // default param values
+    // optional params and their default values
     std::vector<std::string> languages;  // default is undefined
     std::string language_property = "name";
     std::string language_prefix = "_mbx_";
     std::vector<std::string> worldviews;  // default is undefined
     std::string worldview_property = "worldview";
     std::string worldview_prefix = "_mbx_";
+    std::string worldview_default = "US";
     std::string class_property = "class";
     std::string class_prefix = "_mbx_";
     bool compress = false;
-    bool return_localized_tile = false;
+
+    // param that'll be deduced from other params
+    bool return_localized_tile = false;  // true only if languages or worldviews exist
+    bool worldviews_provided = false;  // true if worldviews exist
 
     // validate params object
     Napi::Value params_val = info[0];
@@ -1005,27 +1012,34 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "languages")))
     {
         Napi::Value language_val = params.Get(Napi::String::New(info.Env(), "languages"));
-        if (!language_val.IsArray() && !language_val.IsNull() && !language_val.IsUndefined())
-        {
-            return utils::CallbackError("params.languages must be an array or null", info);
-        }
-
         if (language_val.IsArray()) {
             Napi::Array language_array = language_val.As<Napi::Array>();
             std::uint32_t num_languages = language_array.Length();
-            languages.reserve(num_languages);
 
-            for (std::uint32_t lg = 0; lg < num_languages; ++lg)
+            if (num_languages > 0)
             {
-                Napi::Value language_item_val = language_array.Get(lg);
-                if (!language_item_val.IsString())
+                languages.reserve(num_languages);
+
+                for (std::uint32_t lg = 0; lg < num_languages; ++lg)
                 {
-                    return utils::CallbackError("params.languages must be an array of strings", info);
+                    Napi::Value language_item_val = language_array.Get(lg);
+                    if (!language_item_val.IsString())
+                    {
+                        return utils::CallbackError("params.languages must be an array of strings", info);
+                    }
+                    std::string language_item = language_item_val.As<Napi::String>();
+                    languages.push_back(language_item);
                 }
-                std::string language_item = language_item_val.As<Napi::String>();
-                languages.push_back(language_item);
+                return_localized_tile = true;
             }
-            return_localized_tile = true;
+            else
+            {
+                return utils::CallbackError("params.languages must be a non-empty array", info);
+            }
+        }
+        else
+        {
+            return utils::CallbackError("params.languages must be a non-empty array", info);
         }
     }
 
@@ -1055,27 +1069,34 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "worldviews")))
     {
         Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldviews"));
-        if (!worldview_val.IsArray() && !worldview_val.IsNull() && !worldview_val.IsUndefined())
-        {
-            return utils::CallbackError("params.worldviews must be an array or null", info);
-        }
-
         if (worldview_val.IsArray()) {
             Napi::Array worldview_array = worldview_val.As<Napi::Array>();
             std::uint32_t num_worldviews = worldview_array.Length();
-            worldviews.reserve(num_worldviews);
 
-            for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
-            {
-                Napi::Value worldview_item_val = worldview_array.Get(wv);
-                if (!worldview_item_val.IsString())
+            if (num_worldviews > 0) {
+                worldviews.reserve(num_worldviews);
+
+                for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
                 {
-                    return utils::CallbackError("params.worldviews must be an array of strings", info);
+                    Napi::Value worldview_item_val = worldview_array.Get(wv);
+                    if (!worldview_item_val.IsString())
+                    {
+                        return utils::CallbackError("params.worldviews must be an array of strings", info);
+                    }
+                    std::string worldview_item = worldview_item_val.As<Napi::String>();
+                    worldviews.push_back(worldview_item);
                 }
-                std::string worldview_item = worldview_item_val.As<Napi::String>();
-                worldviews.push_back(worldview_item);
+                return_localized_tile = true;
+                worldviews_provided = true;
             }
-            return_localized_tile = true;
+            else
+            {
+                return utils::CallbackError("params.worldviews must be a non-empty array", info);
+            }
+        }
+        else
+        {
+            return utils::CallbackError("params.worldviews must be a non-empty array", info);
         }
     }
 
@@ -1099,6 +1120,17 @@ Napi::Value localize(Napi::CallbackInfo const& info)
             return utils::CallbackError("params.worldview_prefix must be a string", info);
         }
         worldview_prefix = worldview_prefix_val.As<Napi::String>();
+    }
+
+    // params.worldview_default (optional)
+    if (params.Has(Napi::String::New(info.Env(), "worldview_default")))
+    {
+        Napi::Value worldview_default_val = params.Get(Napi::String::New(info.Env(), "worldview_default"));
+        if (!worldview_default_val.IsString())
+        {
+            return utils::CallbackError("params.worldview_default must be a string", info);
+        }
+        worldview_default = worldview_default_val.As<Napi::String>();
     }
 
     // params.class_property (optional)
@@ -1132,6 +1164,22 @@ Napi::Value localize(Napi::CallbackInfo const& info)
             return utils::CallbackError("params.compress must be a boolean", info);
         }
         compress = comp_value.As<Napi::Boolean>().Value();
+    }
+
+    // This if block must be validated *after* params.languages and params.worldviews
+    // because it checks return_localized_tile which is dictated by the
+    // value of both params.languages and params.worldviews.
+    if (return_localized_tile)
+    {
+        if (!worldviews_provided)
+        {
+            worldviews.reserve(1);
+            worldviews.push_back(worldview_default);
+        }
+        else
+        {
+            // do nothing – already knows which worldview to return
+        }
     }
 
     std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(
