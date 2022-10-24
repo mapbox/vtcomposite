@@ -617,9 +617,9 @@ struct LocalizeWorker : Napi::AsyncWorker
 
     // create a feature with new properties from a template feature
     static void create_new_feature(
-      vtzero::feature const& template_feature,
-      std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
-      vtzero::layer_builder& lbuilder)
+        vtzero::feature const& template_feature,
+        std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
+        vtzero::layer_builder& lbuilder)
     {
         vtzero::geometry_feature_builder fbuilder{lbuilder};
         fbuilder.copy_id(template_feature); // TODO: deduplicate this (vector tile spec says SHOULD be unique)
@@ -628,7 +628,7 @@ struct LocalizeWorker : Napi::AsyncWorker
         // add property to feature
         for (auto const& property : properties)
         {
-          fbuilder.add_property(property.first, property.second);
+            fbuilder.add_property(property.first, property.second);
         }
 
         fbuilder.commit();
@@ -660,8 +660,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                     language_key_precedence.push_back(baton_data_->language_prefix + baton_data_->language_property + "_" + lang);
                 }
                 language_key_precedence.push_back(baton_data_->language_property);
-
-            } else {
+            }
+            else
+            {
                 keep_every_worldview = true;
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
@@ -710,7 +711,10 @@ struct LocalizeWorker : Napi::AsyncWorker
                     while (auto property = feature.next_property())
                     {
                         // if already know we'll be skipping this feature, don't need to comb through its properties
-                        if (skip_feature) continue;
+                        if (skip_feature)
+                        {
+                            continue;
+                        }
 
                         std::string property_key = property.key().to_string();
 
@@ -769,7 +773,8 @@ struct LocalizeWorker : Napi::AsyncWorker
                                         utils::intersection(property_worldviews, baton_data_->worldviews, matching_worldviews);
 
                                         // For now just process the first requested worldview;
-                                        if (matching_worldviews.empty()) {
+                                        if (matching_worldviews.empty())
+                                        {
                                             skip_feature = true;
                                             continue;
                                         }
@@ -798,11 +803,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                             }
                         }
 
-                        else if
-                        (
+                        else if (
                             utils::startswith(property_key, baton_data_->class_property) ||
-                            utils::startswith(property_key, baton_data_->class_prefix + baton_data_->class_property)
-                        )
+                            utils::startswith(property_key, baton_data_->class_prefix + baton_data_->class_property))
                         {
                             // check if the property is of higher precedence that class key encountered so far
                             std::uint32_t idx = static_cast<std::uint32_t>(std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key) - class_key_precedence.begin());
@@ -815,11 +818,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                             continue;
                         }
 
-                        else if
-                        (
+                        else if (
                             utils::startswith(property_key, baton_data_->language_property) ||
-                            utils::startswith(property_key, baton_data_->language_prefix + baton_data_->language_property)
-                        )
+                            utils::startswith(property_key, baton_data_->language_prefix + baton_data_->language_property))
                         {
                             // check if the property is of higher precedence that class key encountered so far
                             std::uint32_t idx = static_cast<std::uint32_t>(std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key) - language_key_precedence.begin());
@@ -859,7 +860,8 @@ struct LocalizeWorker : Napi::AsyncWorker
                         }
 
                         // all other properties
-                        else {
+                        else
+                        {
                             final_properties.emplace_back(property_key, property.value());
                             continue;
                         }
@@ -867,26 +869,32 @@ struct LocalizeWorker : Napi::AsyncWorker
                     } // end of properties loop
 
                     // if skip feature, proceed to next feature
-                    if (skip_feature) continue;
+                    if (skip_feature)
+                    {
+                        continue;
+                    }
 
                     // use the class value of highest precedence
-                    if (class_value.valid()) {
+                    if (class_value.valid())
+                    {
                         final_properties.emplace_back(baton_data_->class_property, class_value);
                     }
 
                     // use the language value of highest precedence
-                    if (language_value.valid()) {
+                    if (language_value.valid())
+                    {
                         final_properties.emplace_back(baton_data_->language_property, language_value);
                     }
 
-                    if (baton_data_->return_localized_tile && original_language_value.valid()) {
+                    if (baton_data_->return_localized_tile && original_language_value.valid())
+                    {
                         final_properties.emplace_back(baton_data_->language_property + "_local", original_language_value);
                     }
 
                     create_new_feature(feature, final_properties, lbuilder);
 
                 } // end of features loop
-            } // end of layers loop
+            }     // end of layers loop
 
             std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
@@ -967,10 +975,10 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     Napi::Buffer<char> buffer;
 
     // optional params and their default values
-    std::vector<std::string> languages;  // default is undefined
+    std::vector<std::string> languages; // default is undefined
     std::string language_property = "name";
     std::string language_prefix = "_mbx_";
-    std::vector<std::string> worldviews;  // default is undefined
+    std::vector<std::string> worldviews; // default is undefined
     std::string worldview_property = "worldview";
     std::string worldview_prefix = "_mbx_";
     std::string worldview_default = "US";
@@ -979,7 +987,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     bool compress = false;
 
     // param that'll be deduced from other params
-    bool return_localized_tile = false;  // true only if languages or worldviews exist
+    bool return_localized_tile = false; // true only if languages or worldviews exist
 
     // validate params object
     Napi::Value params_val = info[0];
@@ -1019,7 +1027,8 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "languages")))
     {
         Napi::Value language_val = params.Get(Napi::String::New(info.Env(), "languages"));
-        if (language_val.IsArray()) {
+        if (language_val.IsArray())
+        {
             Napi::Array language_array = language_val.As<Napi::Array>();
             std::uint32_t num_languages = language_array.Length();
 
@@ -1081,11 +1090,13 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "worldviews")))
     {
         Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldviews"));
-        if (worldview_val.IsArray()) {
+        if (worldview_val.IsArray())
+        {
             Napi::Array worldview_array = worldview_val.As<Napi::Array>();
             std::uint32_t num_worldviews = worldview_array.Length();
 
-            if (num_worldviews > 0) {
+            if (num_worldviews > 0)
+            {
                 worldviews.reserve(num_worldviews);
 
                 for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
