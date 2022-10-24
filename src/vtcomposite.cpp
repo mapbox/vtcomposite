@@ -1010,6 +1010,11 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     }
     buffer = buffer_obj.As<Napi::Buffer<char>>();
 
+    // params.language is an invalid param
+    if (params.Has(Napi::String::New(info.Env(), "language")))
+    {
+        return utils::CallbackError("params.language is an invalid param... do you mean params.languages?", info);
+    }
     // params.languages (optional)
     if (params.Has(Napi::String::New(info.Env(), "languages")))
     {
@@ -1067,6 +1072,11 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         language_prefix = language_prefix_val.As<Napi::String>();
     }
 
+    // params.worldview is an invalid param
+    if (params.Has(Napi::String::New(info.Env(), "worldview")))
+    {
+        return utils::CallbackError("params.worldview is an invalid param... do you mean params.worldviews?", info);
+    }
     // params.worldviews (optional)
     if (params.Has(Napi::String::New(info.Env(), "worldviews")))
     {
