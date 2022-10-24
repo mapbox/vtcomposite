@@ -8,11 +8,12 @@ const mvtFixtures = require('@mapbox/mvt-fixtures');
 const test = require('tape');
 const zlib = require('zlib');
 
+
 test('[localize] success: buffer size stays the same when no changes needed', (assert) => {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
   const params = {
     buffer: singlePointBuffer,
-    language: 'piglatin'
+    languages: ['piglatin']
   };
 
   localize(params, (err, vtBuffer) => {
@@ -29,7 +30,7 @@ test('[localize] success: single gzipped VT', (assert) => {
   const gzipped_buffer = zlib.gzipSync(singlePointBuffer);
   const params = {
     buffer: gzipped_buffer,
-    language: 'piglatin'
+    languages: ['piglatin']
   };
   localize(params, (err, vtBuffer) => {
     assert.notOk(err);
@@ -42,7 +43,7 @@ test('[localize] success: gzipped output', (assert) => {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
   const params = {
     buffer: singlePointBuffer,
-    language: 'piglatin',
+    languages: ['piglatin'],
     compress: true
   };
   localize(params, (err, vtBuffer) => {
@@ -57,7 +58,7 @@ test('[localize] success: gzipped input and output', (assert) => {
   const gzipped_buffer = zlib.gzipSync(singlePointBuffer);
   const params = {
     buffer: gzipped_buffer,
-    language: 'piglatin',
+    languages: ['piglatin'],
     compress: true
   };
   localize(params, (err, vtBuffer) => {
@@ -77,7 +78,7 @@ test('[localize] success - same layer names, same features, same extents', (asse
   const bottomLayerExtent = initialOutputInfo.layers.bottom.extent;
   const params = {
     buffer: initialBuffer,
-    language: 'es'
+    languages: ['es']
   };
 
   localize(params, (err, localizedBuffer) => {
@@ -96,13 +97,13 @@ test('[localize] success - same layer names, same features, same extents', (asse
   });
 });
 
-test('[localize] success - feature without name_ or _mbx prefixed properties has same properties', (assert) => {
+test('[localize] success - feature without name_* or _mbx_name_* prefixed properties has same properties', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialOutputInfo = vtinfo(initialBuffer);
   const initialFeature = initialOutputInfo.layers.top.feature(0);
   const params = {
     buffer: initialBuffer,
-    language: 'es'
+    languages: ['es']  // initialFeature does not have name_es
   };
 
   localize(params, (err, vtBuffer) => {
@@ -117,19 +118,17 @@ test('[localize] success - feature without name_ or _mbx prefixed properties has
 test('[localize] success - feature with specified language in name_{language} property', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
-    'name': 'Espana',
-    '_mbx_name_de': 'Spanien',
-    'name_fr': 'Espagne',
-    '_mbx_name_fr': 'Espagne',
-    'name_en': 'Spain',
-    'population': 20
+    name: 'Espana',
+    _mbx_name_de: 'Spanien',
+    name_fr: 'Espagne',
+    _mbx_name_fr: 'Espagne',
+    name_en: 'Spain',
+    population: 20
   };
   const localizedProperties = {
-    'name': 'Spain',
-    'name_local': 'Espana',
-    'name_fr': 'Espagne',
-    'name_en': 'Spain',
-    'population': 20
+    name: 'Spain',
+    name_local: 'Espana',
+    population: 20
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(1);
@@ -137,7 +136,7 @@ test('[localize] success - feature with specified language in name_{language} pr
 
   const params = {
     buffer: initialBuffer,
-    language: 'en'
+    languages: ['en']
   };
 
   localize(params, (err, vtBuffer) => {
@@ -152,18 +151,17 @@ test('[localize] success - feature with specified language in name_{language} pr
 test('[localize] success - feature with specified language in _mbx_name_{language} property', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
-    'name': 'Germany',
-    'name_en': 'Germany',
-    'name_fr': 'Allemagne',
-    '_mbx_name_fr': 'La Allemagne',
-    '_mbx_name_de': 'Deutschland',
-    '_mbx_other': 'Alemania'
+    name: 'Germany',
+    name_en: 'Germany',
+    name_fr: 'Allemagne',
+    _mbx_name_fr: 'La Allemagne',
+    _mbx_name_de: 'Deutschland',
+    _mbx_other: 'Alemania'
   };
   const localizedProperties = {
-    'name': 'Deutschland',
-    'name_local': 'Germany',
-    'name_en': 'Germany',
-    'name_fr': 'Allemagne',
+    name: 'Deutschland',
+    name_local: 'Germany',
+    _mbx_other: 'Alemania',
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(0);
@@ -171,14 +169,14 @@ test('[localize] success - feature with specified language in _mbx_name_{languag
 
   const params = {
     buffer: initialBuffer,
-    language: 'de'
+    languages: ['de']
   };
 
   localize(params, (err, vtBuffer) => {
     assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     const localizedFeature = outputInfo.layers.bottom.feature(0);
-    assert.deepEqual(localizedFeature.properties, localizedProperties, 'expected name_local, updated name, dropped _mbx properties');
+    assert.deepEqual(localizedFeature.properties, localizedProperties, 'expected name_local, updated name, dropped _mbx_name_* properties');
     assert.end();
   });
 });
@@ -186,18 +184,17 @@ test('[localize] success - feature with specified language in _mbx_name_{languag
 test('[localize] success - feature with specified language in both name_{language} and _mbx_name_{language} properties', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const initialProperties = {
-    'name': 'Germany',
-    'name_en': 'Germany',
-    'name_fr': 'Allemagne',
-    '_mbx_name_fr': 'La Allemagne',
-    '_mbx_name_de': 'Deutschland',
-    '_mbx_other': 'Alemania'
+    name: 'Germany',
+    name_en: 'Germany',
+    _mbx_name_fr: 'La Allemagne',
+    name_fr: 'Allemagne',
+    _mbx_name_de: 'Deutschland',
+    _mbx_other: 'Alemania'
   };
   const localizedProperties = {
-    'name': 'Allemagne',
-    'name_local': 'Germany',
-    'name_en': 'Germany',
-    'name_fr': 'Allemagne', // choosing first encountered property in (name_fr, _mbx_name_fr)
+    name: 'Allemagne',  // name_{language} takes precedence over _mbx_name_{language}
+    name_local: 'Germany',
+    _mbx_other: 'Alemania'
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(0);
@@ -205,14 +202,14 @@ test('[localize] success - feature with specified language in both name_{languag
 
   const params = {
     buffer: initialBuffer,
-    language: 'fr'
+    languages: ['fr']
   };
 
   localize(params, (err, vtBuffer) => {
     assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     const localizedFeature = outputInfo.layers.bottom.feature(0);
-    assert.deepEqual(localizedFeature.properties, localizedProperties, 'expected name_local, updated name, dropped _mbx properties');
+    assert.deepEqual(localizedFeature.properties, localizedProperties, 'expected name_local, updated name, dropped _mbx_name_* properties');
     assert.end();
   });
 });
@@ -230,7 +227,7 @@ test('[localize] success - _mbx prefixed property keys removed from all layers',
     'population'
   ];
   const topLayerKeysExpected = topLayerKeys;
-  const bottomLayerKeysExpected = ['name_en', 'name_fr', 'name_local', 'name', 'population'];
+  const bottomLayerKeysExpected = ['_mbx_other', 'name', 'name_local', 'population'];
 
   const initialOutputInfo = vtinfo(initialBuffer);
   assert.deepEqual(initialOutputInfo.layers.top._keys, topLayerKeys, 'expected initial keys');
@@ -238,19 +235,19 @@ test('[localize] success - _mbx prefixed property keys removed from all layers',
 
   const params = {
     buffer: initialBuffer,
-    language: 'gr'
+    languages: ['gr']
   };
 
   localize(params, (err, vtBuffer) => {
     assert.notOk(err);
     const outputInfo = vtinfo(vtBuffer);
     assert.deepEqual(outputInfo.layers.top._keys, topLayerKeysExpected, 'expected same keys');
-    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected added name_local, dropped _mbx keys');
+    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected added name_local, dropped _mbx_name_* keys');
     assert.end();
   });
 });
 
-test('[localize] success - no language specified', (assert) => {
+test('[localize] success - no language specified but has worldview specified (i.e. return localized features)', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const topLayerKeys = ['population'];
   const bottomLayerKeys = [
@@ -263,20 +260,17 @@ test('[localize] success - no language specified', (assert) => {
     'population'
   ];
   const topLayerKeysExpected = topLayerKeys;
-  const bottomLayerKeysExpected = ['name', 'name_en', 'name_fr', 'name_local', 'population'];
+  const bottomLayerKeysExpected = ['_mbx_other', 'name', 'name_local', 'population'];
 
   const localizedProperties0 = {
-    'name': 'Germany',
-    'name_local': 'Germany',
-    'name_en': 'Germany',
-    'name_fr': 'Allemagne',
+    name: 'Germany',
+    name_local: 'Germany',
+    _mbx_other: 'Alemania'
   };
   const localizedProperties1 = {
-    'name': 'Espana',
-    'name_local': 'Espana',
-    'name_fr': 'Espagne',
-    'name_en': 'Spain',
-    'population': 20
+    name: 'Espana',
+    name_local: 'Espana',
+    population: 20
   };
 
   const initialOutputInfo = vtinfo(initialBuffer);
@@ -285,7 +279,7 @@ test('[localize] success - no language specified', (assert) => {
 
   const params = {
     buffer: initialBuffer,
-    language: null
+    worldviews: ['US']
   };
 
   localize(params, (err, vtBuffer) => {
@@ -293,10 +287,60 @@ test('[localize] success - no language specified', (assert) => {
     const outputInfo = vtinfo(vtBuffer);
     const localizedFeature0 = outputInfo.layers.bottom.feature(0);
     const localizedFeature1 = outputInfo.layers.bottom.feature(1);
-    assert.deepEqual(localizedFeature0.properties, localizedProperties0, 'expected same name, dropped _mbx properties');
-    assert.deepEqual(localizedFeature1.properties, localizedProperties1, 'expected same name, dropped _mbx properties');
+    assert.deepEqual(localizedFeature0.properties, localizedProperties0, 'expected same name, dropped _mbx_name_* properties');
+    assert.deepEqual(localizedFeature1.properties, localizedProperties1, 'expected same name, dropped _mbx_name_* properties');
     assert.deepEqual(outputInfo.layers.top._keys, topLayerKeysExpected, 'expected same keys');
-    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected dropped _mbx keys');
+    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected dropped _mbx_name_* keys');
+    assert.end();
+  });
+});
+
+test('[localize] success - no language specified, no worldview specified (i.e. return non-localized features)', (assert) => {
+  const initialBuffer = mvtFixtures.get('063').buffer;
+  const topLayerKeys = ['population'];
+  const bottomLayerKeys = [
+    'name',
+    'name_en',
+    'name_fr',
+    '_mbx_name_fr',
+    '_mbx_name_de',
+    '_mbx_other',
+    'population'
+  ];
+  const topLayerKeysExpected = topLayerKeys;
+  const bottomLayerKeysExpected = ['name_en', 'name_fr', '_mbx_other', 'name', 'population'];
+
+  const localizedProperties0 = {
+    name: 'Germany',
+    name_en: 'Germany',
+    name_fr: 'Allemagne',
+    _mbx_other: 'Alemania'
+  };
+  const localizedProperties1 = {
+    name: 'Espana',
+    name_fr: 'Espagne',
+    name_en: 'Spain',
+    population: 20
+  };
+
+  const initialOutputInfo = vtinfo(initialBuffer);
+  assert.deepEqual(initialOutputInfo.layers.top._keys, topLayerKeys, 'expected initial keys');
+  assert.deepEqual(initialOutputInfo.layers.bottom._keys, bottomLayerKeys, 'expected initial keys');
+
+  const params = {
+    buffer: initialBuffer
+    // no lanugages and worldviews = return non-localized tile
+  };
+
+  localize(params, (err, vtBuffer) => {
+    assert.notOk(err);
+    const outputInfo = vtinfo(vtBuffer);
+    const localizedFeature0 = outputInfo.layers.bottom.feature(0);
+    const localizedFeature1 = outputInfo.layers.bottom.feature(1);
+    assert.deepEqual(localizedFeature0.properties, localizedProperties0, 'expected same name, dropped _mbx_name_* properties');
+    assert.deepEqual(localizedFeature1.properties, localizedProperties1, 'expected same name, dropped _mbx_name_* properties');
+    assert.deepEqual(outputInfo.layers.top._keys, topLayerKeysExpected, 'expected same keys');
+    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected dropped _mbx_name_* keys');
     assert.end();
   });
 });
@@ -330,7 +374,7 @@ test('[localize language] custom params.language_property and params.language_pr
         }
       ]
     }).buffer,
-    language: 'jp',
+    languages: ['jp'],
     language_property: 'language',
     language_prefix: '_drop_me_'
   };
@@ -341,7 +385,6 @@ test('[localize language] custom params.language_property and params.language_pr
     assert.equal(info.layers.places.length, 1, 'expected number of features');
     assert.deepEqual(info.layers.places.feature(0).properties, {
       language: 'kon\'nichiwa',
-      language_es: 'hola',
       language_local: 'hello'
     }, 'expected properties');
     assert.end();
@@ -375,7 +418,7 @@ test('[localize language] language codes >2 characters are viable translations',
         }
       ]
     }).buffer,
-    language: 'zh-Hant',
+    languages: ['zh-Hant'],
     language_property: 'language',
     language_prefix: '_pre_'
   };
@@ -387,6 +430,103 @@ test('[localize language] language codes >2 characters are viable translations',
     assert.deepEqual(info.layers.places.feature(0).properties, {
       language: 'Nǐ hǎo',
       language_local: 'hello'
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] fallback to second language if the first does not exist', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // language: hello
+                1, 1, // _pre_language_zh-Hant: Nǐ hǎo
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'language', '_pre_language_zh-Hant' ],
+          values: [
+            { string_value: 'hello' },
+            { string_value: 'Nǐ hǎo' }
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['en', 'zh-Hant'],
+    language_property: 'language',
+    language_prefix: '_pre_'
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      language: 'Nǐ hǎo',
+      language_local: 'hello'
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] _mbx_worldview and _mbx_class dropped; other _mbx_* are kept', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // name: hello
+                1, 1, // _mbx_name_zh-Hant: Nǐ hǎo,
+                2, 2,
+                3, 3,
+                4, 4
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'name', '_mbx_name_zh-Hant', '_mbx_worldview', '_mbx_class', '_mbx_other'],
+          values: [
+            { string_value: 'hello' },
+            { string_value: 'Nǐ hǎo' },
+            { string_value: 'CN' },
+            { string_value: 'sea'},
+            { string_value: 'blah'},
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['fr', 'de', 'zh-Hant'],
+    // use default name-, worldview- and class-related params, except for worldview_default
+    worldview_default: 'CN'
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      name: 'Nǐ hǎo',
+      name_local: 'hello',
+      worldview: 'CN',
+      class: 'sea',
+      _mbx_other: 'blah'
     }, 'expected properties');
     assert.end();
   });
