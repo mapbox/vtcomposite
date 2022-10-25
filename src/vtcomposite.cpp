@@ -116,7 +116,7 @@ struct LocalizeBatonType
           worldview_prefix{std::move(worldview_prefix_)},
           class_property{std::move(class_property_)},
           class_prefix{std::move(class_prefix_)},
-          return_localized_tile{std::move(return_localized_tile_)},
+          return_localized_tile{return_localized_tile_},
           compress{compress_}
     {
         // Note: for LocalizeBatonType, return_localized_tile_ dictates whether it
@@ -638,11 +638,11 @@ struct LocalizeWorker : Napi::AsyncWorker
     {
         try
         {
-            bool keep_every_worldview;
+            bool keep_every_worldview = true;
             std::string incompatible_worldview_key;
             std::string compatible_worldview_key;
             std::vector<std::string> class_key_precedence;
-            bool keep_every_language;
+            bool keep_every_language = true;
             std::vector<std::string> language_key_precedence;
             if (baton_data_->return_localized_tile)
             {
@@ -699,10 +699,10 @@ struct LocalizeWorker : Napi::AsyncWorker
                     bool skip_feature = false;
 
                     // will be searching for the class with lowest index in class_key_precedence
-                    std::uint32_t class_key_idx = static_cast<std::uint32_t>(class_key_precedence.size());
+                    auto class_key_idx = static_cast<std::uint32_t>(class_key_precedence.size());
                     vtzero::property_value class_value;
 
-                    std::uint32_t language_key_idx = static_cast<std::uint32_t>(language_key_precedence.size());
+                    auto language_key_idx = static_cast<std::uint32_t>(language_key_precedence.size());
                     vtzero::property_value language_value;
                     vtzero::property_value original_language_value;
 
@@ -723,21 +723,15 @@ struct LocalizeWorker : Napi::AsyncWorker
                         {
                             if (property.value().type() == vtzero::property_value_type::string_value)
                             {
-                                if (property.value().string_value() == "all")
-                                {
-                                    // do nothing - keep this feature but don't need to preserve this property
-                                    continue;
-                                }
-                                else
+                                if (property.value().string_value() != "all")
                                 {
                                     skip_feature = true;
-                                    continue;
                                 }
+                                // else do nothing - keep this feature but don't need to preserve this property.
                             }
                             else
                             {
                                 skip_feature = true;
-                                continue;
                             }
                         }
 
@@ -752,7 +746,6 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 if (property_value == "all")
                                 {
                                     final_properties.emplace_back(baton_data_->worldview_property, property.value());
-                                    continue;
                                 }
                                 else
                                 {
@@ -764,7 +757,6 @@ struct LocalizeWorker : Napi::AsyncWorker
                                         vtzero::encoded_property_value epv{property_worldviews[0]};
                                         vtzero::property_value pv{epv.data()};
                                         final_properties.emplace_back(baton_data_->worldview_property, pv);
-                                        continue;
                                     }
                                     else
                                     {
@@ -773,16 +765,10 @@ struct LocalizeWorker : Napi::AsyncWorker
                                         utils::intersection(property_worldviews, baton_data_->worldviews, matching_worldviews);
 
                                         // For now just process the first requested worldview;
-                                        if (matching_worldviews.empty())
-                                        {
-                                            skip_feature = true;
-                                            continue;
-                                        }
-                                        else if (std::find(matching_worldviews.begin(), matching_worldviews.end(), baton_data_->worldviews[0]) == matching_worldviews.end())
+                                        if (std::find(matching_worldviews.begin(), matching_worldviews.end(), baton_data_->worldviews[0]) == matching_worldviews.end())
                                         {
                                             // TODO when support multiple worldviews: remove this else if block
                                             skip_feature = true;
-                                            continue;
                                         }
                                         else
                                         {
@@ -791,7 +777,6 @@ struct LocalizeWorker : Napi::AsyncWorker
                                             vtzero::encoded_property_value epv{first_wv};
                                             vtzero::property_value pv{epv.data()};
                                             final_properties.emplace_back(baton_data_->worldview_property, pv);
-                                            continue;
                                         }
                                     }
                                 }
@@ -799,7 +784,6 @@ struct LocalizeWorker : Napi::AsyncWorker
                             else
                             {
                                 skip_feature = true;
-                                continue;
                             }
                         }
 
@@ -815,7 +799,6 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 class_value = property.value();
                             }
                             // wait till we are done looping through all properties to add class value to final_properties
-                            continue;
                         }
 
                         else if (
@@ -834,28 +817,18 @@ struct LocalizeWorker : Napi::AsyncWorker
                             if (property_key == baton_data_->language_property)
                             {
                                 original_language_value = property.value();
-                                continue;
                             }
                             else
                             {
                                 if (keep_every_language)
                                 {
-                                    if (utils::startswith(property_key, baton_data_->language_prefix))
-                                    {
-                                        // drop properties that start with a prefix
-                                        continue;
-                                    }
-                                    else
+                                    if (!utils::startswith(property_key, baton_data_->language_prefix))
                                     {
                                         final_properties.emplace_back(property_key, property.value());
-                                        continue;
                                     }
+                                    // else – drop properties that start with a prefix
                                 }
-                                else
-                                {
-                                    // wait till we are done looping through all properties to add class value to final_properties
-                                    continue;
-                                }
+                                // else – wait till we are done looping through all properties to add class value to final_properties
                             }
                         }
 
@@ -863,7 +836,6 @@ struct LocalizeWorker : Napi::AsyncWorker
                         else
                         {
                             final_properties.emplace_back(property_key, property.value());
-                            continue;
                         }
 
                     } // end of properties loop
