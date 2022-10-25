@@ -616,9 +616,11 @@ struct LocalizeWorker : Napi::AsyncWorker
           output_buffer_{std::make_unique<std::string>()} {}
 
     // create a feature with new properties from a template feature
-    static void create_new_feature(
+    static void build_new_feature(
         vtzero::feature const& template_feature,
         std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
+        std::string const& worldview_key,
+        std::string const& worldview_val,
         vtzero::layer_builder& lbuilder)
     {
         vtzero::geometry_feature_builder fbuilder{lbuilder};
@@ -628,10 +630,29 @@ struct LocalizeWorker : Napi::AsyncWorker
         // add property to feature
         for (auto const& property : properties)
         {
+            if (property.first == worldview_key) // safeguard – should always evaluate to false
+            {
+                continue;
+            }
             fbuilder.add_property(property.first, property.second);
         }
 
+        if (!worldview_key.empty())
+        {
+            fbuilder.add_property(worldview_key, worldview_val);
+        }
+
         fbuilder.commit();
+    }
+
+    // returns a vector of requested worldviews that the feature exists in
+    static std::vector<std::string> worldviews_for_feature(std::vector<std::string> available_worldviews, std::vector<std::string> target_worldviews)
+    {
+        target_worldviews.emplace_back("all");
+
+        std::vector<std::string> matching_worldviews;
+        utils::intersection(available_worldviews, target_worldviews, matching_worldviews);
+        return matching_worldviews;
     }
 
     void Execute() override
@@ -698,6 +719,10 @@ struct LocalizeWorker : Napi::AsyncWorker
                     // will be skipping features with incompatible worldview
                     bool skip_feature = false;
 
+                    // will be creating one clone of the feature for each worldview if worldview property exists
+                    bool has_worldview_key = false;
+                    std::vector<std::string> worldviews_to_create;
+
                     // will be searching for the class with lowest index in class_key_precedence
                     auto class_key_idx = static_cast<std::uint32_t>(class_key_precedence.size());
                     vtzero::property_value class_value;
@@ -718,70 +743,58 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                         std::string property_key = property.key().to_string();
 
-                        // skip feature only if the value of incompatible worldview key is not 'all'
-                        if (property_key == incompatible_worldview_key)
+                        if (
+                            utils::startswith(property_key, baton_data_->worldview_property) ||
+                            utils::startswith(property_key, baton_data_->worldview_prefix + baton_data_->worldview_property))
                         {
-                            if (property.value().type() == vtzero::property_value_type::string_value)
+                            // skip feature only if the value of incompatible worldview key is not 'all'
+                            if (property_key == incompatible_worldview_key)
                             {
-                                if (property.value().string_value() != "all")
+                                if (property.value().type() == vtzero::property_value_type::string_value)
                                 {
-                                    skip_feature = true;
-                                }
-                                // else do nothing - keep this feature but don't need to preserve this property.
-                            }
-                            else
-                            {
-                                skip_feature = true;
-                            }
-                        }
-
-                        // keep feature and retain its compatible worldview value
-                        else if (property_key == compatible_worldview_key)
-                        {
-                            if (property.value().type() == vtzero::property_value_type::string_value)
-                            {
-                                std::string property_value = static_cast<std::string>(property.value().string_value());
-
-                                // keep only the feature in selected worldview or in 'all' worldview
-                                if (property_value == "all")
-                                {
-                                    final_properties.emplace_back(baton_data_->worldview_property, property.value());
+                                    if (property.value().string_value() != "all")
+                                    {
+                                        skip_feature = true;
+                                    }
+                                    // else do nothing - keep this feature but don't need to preserve this property.
                                 }
                                 else
                                 {
+                                    skip_feature = true;
+                                }
+                            }
+
+                            // keep feature and retain its compatible worldview value
+                            else if (property_key == compatible_worldview_key)
+                            {
+                                has_worldview_key = true;
+
+                                if (property.value().type() == vtzero::property_value_type::string_value)
+                                {
+                                    std::string property_value = static_cast<std::string>(property.value().string_value());
+
+                                    std::vector<std::string> available_worldviews = utils::split(property_value);
+
+                                    // determine which worldviews to create a clone of the feature
                                     if (keep_every_worldview)
                                     {
-                                        // For now just return the first one;
-                                        // TODO: explode feature into multiple features, one for each worldview, if property.value() is a comma-separated list
-                                        std::vector<std::string> property_worldviews = utils::split(property_value);
-                                        vtzero::encoded_property_value epv{property_worldviews[0]};
-                                        vtzero::property_value pv{epv.data()};
-                                        final_properties.emplace_back(baton_data_->worldview_property, pv);
+                                        worldviews_to_create = worldviews_for_feature(available_worldviews, available_worldviews);
                                     }
                                     else
                                     {
-                                        std::vector<std::string> matching_worldviews;
-                                        std::vector<std::string> property_worldviews = utils::split(property_value);
-                                        utils::intersection(property_worldviews, baton_data_->worldviews, matching_worldviews);
-
-                                        // For now just process the first requested worldview;
-                                        if (std::find(matching_worldviews.begin(), matching_worldviews.end(), baton_data_->worldviews[0]) == matching_worldviews.end())
+                                        worldviews_to_create = worldviews_for_feature(available_worldviews, baton_data_->worldviews);
+                                        if (worldviews_to_create.empty())
                                         {
-                                            // TODO when support multiple worldviews: remove this else if block
                                             skip_feature = true;
-                                        }
-                                        else
-                                        {
-                                            // TODO: support multiple worldviews
-                                            std::string const& first_wv{baton_data_->worldviews[0]};
-                                            vtzero::encoded_property_value epv{first_wv};
-                                            vtzero::property_value pv{epv.data()};
-                                            final_properties.emplace_back(baton_data_->worldview_property, pv);
                                         }
                                     }
                                 }
+                                else
+                                {
+                                    skip_feature = true;
+                                }
                             }
-                            else
+                            else // safeguard – should never reach here
                             {
                                 skip_feature = true;
                             }
@@ -798,7 +811,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 class_key_idx = idx;
                                 class_value = property.value();
                             }
-                            // wait till we are done looping through all properties to add class value to final_properties
+                            // wait till we are done looping through all properties before we add class value to final_properties
                         }
 
                         else if (
@@ -863,7 +876,19 @@ struct LocalizeWorker : Napi::AsyncWorker
                         final_properties.emplace_back(baton_data_->language_property + "_local", original_language_value);
                     }
 
-                    create_new_feature(feature, final_properties, lbuilder);
+                    // build new feature(s)
+                    if (has_worldview_key)
+                    {
+                        if (!worldviews_to_create.empty())
+                        { // safeguard – should always evalute to true
+                            // Take just the first worldview. TODO: support all worldviews.
+                            build_new_feature(feature, final_properties, baton_data_->worldview_property, worldviews_to_create[0], lbuilder);
+                        }
+                    }
+                    else
+                    {
+                        build_new_feature(feature, final_properties, "", "", lbuilder);
+                    }
 
                 } // end of features loop
             }     // end of layers loop
