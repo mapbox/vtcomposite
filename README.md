@@ -117,7 +117,7 @@ The existence of the parameters `params.languages` and `params.worldviews` deter
 - Localized feature: when either `params.languages` or `params.worldviews` exists.
   - A new `{language_property}_local` property is created to keep the original value of `{language_property}`
   - The value of `{language_property}` is replaced with the first translation found by looping through `params.languages`.
-    - First searches for `{language_property}_{language}` and then `{language_prefix}{language_property}_{langauge}` before moving on to the next language in `params.languages`.
+    - First searches for `{language_property}_{language}` and then `{language_prefix}{language_property}_{language}` before moving on to the next language in `params.languages`.
   - Properties like `{language_property}_{language}` are dropped.
   - Properties like `{language_prefix}{language_property}_{language}` are dropped.
   - All features with `{worldview_property}` are dropped except for those that have the value `all`.
