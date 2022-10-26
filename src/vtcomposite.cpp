@@ -684,13 +684,13 @@ struct LocalizeWorker : Napi::AsyncWorker
             }
             else
             {
-                keep_every_worldview = true;  // reassign to the same value as default for clarity
+                keep_every_worldview = true; // reassign to the same value as default for clarity
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
 
                 class_key_precedence.push_back(baton_data_->class_property);
 
-                keep_every_language = true;  // reassign to the same value as default for clarity
+                keep_every_language = true; // reassign to the same value as default for clarity
                 language_key_precedence.push_back(baton_data_->language_property);
             }
 
@@ -733,14 +733,14 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                     // collect final properties
                     std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
-                    while (auto property = feature.next_property() &&)
+                    while (auto property = feature.next_property())
                     {
                         // if already know we'll be skipping this feature, don't need to comb through its properties
                         if (skip_feature)
                         {
                             continue;
                         }
-                        
+
                         std::string property_key = property.key().to_string();
 
                         if (
