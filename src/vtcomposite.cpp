@@ -818,7 +818,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                             utils::startswith(property_key, baton_data_->language_property) ||
                             utils::startswith(property_key, baton_data_->language_prefix + baton_data_->language_property))
                         {
-                            // check if the property is of higher precedence that class key encountered so far
+                            // check if the property is of higher precedence that language key encountered so far
                             std::uint32_t idx = static_cast<std::uint32_t>(std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key) - language_key_precedence.begin());
                             if (idx < language_key_idx)
                             {
