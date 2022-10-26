@@ -88,8 +88,8 @@ A filtering function for modifying a tile's features and properties to support l
     - The value is used to search for additional translations that match the following format: `{language_prefix}{language_property}_{language}`.
   - `params.worldviews` **Array<String>** array of ISO 3166-1 alpha-2 country codes used to filter out features of different worldviews.
     - Optional parameter.
-    - For now, only the first item in the array will be processed; the rest are discarded. (*TODO in the future*: expand support for more than one worldviews.)
-  -`params.worldview_property` **String** the name of the property that specifies in which worldview a feature belongs.
+    - For now, only the first item in the array will be processed; the rest are discarded (*TODO in the future*: expand support for more than one worldviews).
+  - `params.worldview_property` **String** the name of the property that specifies in which worldview a feature belongs.
     - Default value: `worldview`.
     - The vector tile encoded property must contain a single ISO 3166-1 alpha-2 country code or a comma-separated string of country codes that define which worldviews the feature represents (for example: `JP`, `IN,RU,US`).
   - `params.worldview_prefix` **String** prefix for the worldview property.
@@ -123,7 +123,7 @@ The existence of the parameters `params.languages` and `params.worldviews` deter
   - All features with `{worldview_property}` are dropped except for those that have the value `all`.
   - Features with `{worldview_prefix}{worldview_property}` are kept if their `{worldview_prefix}{worldview_property}` value is
     - `all`, or
-    - a comma-separated list that contains the first item of `parmas.worldviews`, in which case the value of `{worldview_prefix}{worldview_property}` is replaced by that one single worldview country code.
+    - a comma-separated list that contains the first item of `parmas.worldviews`, in which a property `{worldview_property}` is created from that one single worldview country code and the property `{worldview_prefix}{worldview_property}` is dropped.
   - If `{class_prefix}{class_property}` exists,
     - Property `{class_property}` is replaced with the value in `{class_prefix}{class_property}`.
     - Property `{class_prefix}{class_property}` is dropped.

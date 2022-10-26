@@ -684,13 +684,13 @@ struct LocalizeWorker : Napi::AsyncWorker
             }
             else
             {
-                keep_every_worldview = true;
+                keep_every_worldview = true;  // reassign to the same value as default for clarity
                 incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
 
                 class_key_precedence.push_back(baton_data_->class_property);
 
-                keep_every_language = true;
+                keep_every_language = true;  // reassign to the same value as default for clarity
                 language_key_precedence.push_back(baton_data_->language_property);
             }
 
@@ -733,14 +733,14 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                     // collect final properties
                     std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
-                    while (auto property = feature.next_property())
+                    while (auto property = feature.next_property() &&)
                     {
                         // if already know we'll be skipping this feature, don't need to comb through its properties
                         if (skip_feature)
                         {
                             continue;
                         }
-
+                        
                         std::string property_key = property.key().to_string();
 
                         if (
@@ -805,7 +805,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                             utils::startswith(property_key, baton_data_->class_prefix + baton_data_->class_property))
                         {
                             // check if the property is of higher precedence that class key encountered so far
-                            std::uint32_t idx = static_cast<std::uint32_t>(std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key) - class_key_precedence.begin());
+                            std::uint32_t idx = static_cast<std::uint32_t>(std::distance(class_key_precedence.begin(), std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key)));
                             if (idx < class_key_idx)
                             {
                                 class_key_idx = idx;
@@ -819,14 +819,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                             utils::startswith(property_key, baton_data_->language_prefix + baton_data_->language_property))
                         {
                             // check if the property is of higher precedence that language key encountered so far
-                            std::uint32_t idx = static_cast<std::uint32_t>(std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key) - language_key_precedence.begin());
+                            std::uint32_t idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)));
                             if (idx < language_key_idx)
                             {
                                 language_key_idx = idx;
                                 language_value = property.value();
                             }
 
-                            // preserve original language value and wait till finish looping through all properties to assign a value
+                            // preserve original language value, and wait till finish looping through all properties to assign a value
                             if (property_key == baton_data_->language_property)
                             {
                                 original_language_value = property.value();
@@ -841,7 +841,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                                     }
                                     // else – drop properties that start with a prefix
                                 }
-                                // else – wait till we are done looping through all properties to add class value to final_properties
+                                // else – wait till we are done looping through all properties to add {language} value to final_properties
                             }
                         }
 
@@ -1192,7 +1192,6 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     {
         if (worldviews.empty())
         {
-            worldviews.reserve(1);
             worldviews.push_back(worldview_default);
         }
         // else do nothing – already knows which worldview to return
