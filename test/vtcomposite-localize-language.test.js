@@ -161,7 +161,6 @@ test('[localize] success - feature with specified language in _mbx_name_{languag
   const localizedProperties = {
     name: 'Deutschland',
     name_local: 'Germany',
-    _mbx_other: 'Alemania',
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(0);
@@ -193,8 +192,7 @@ test('[localize] success - feature with specified language in both name_{languag
   };
   const localizedProperties = {
     name: 'Allemagne',  // name_{language} takes precedence over _mbx_name_{language}
-    name_local: 'Germany',
-    _mbx_other: 'Alemania'
+    name_local: 'Germany'
   };
   const initialOutputInfo = vtinfo(initialBuffer);
   const feature = initialOutputInfo.layers.bottom.feature(0);
@@ -227,7 +225,7 @@ test('[localize] success - _mbx prefixed property keys removed from all layers',
     'population'
   ];
   const topLayerKeysExpected = topLayerKeys;
-  const bottomLayerKeysExpected = ['_mbx_other', 'name', 'name_local', 'population'];
+  const bottomLayerKeysExpected = ['name', 'name_local', 'population'];
 
   const initialOutputInfo = vtinfo(initialBuffer);
   assert.deepEqual(initialOutputInfo.layers.top._keys, topLayerKeys, 'expected initial keys');
@@ -260,12 +258,11 @@ test('[localize] success - no language specified but has worldview specified (i.
     'population'
   ];
   const topLayerKeysExpected = topLayerKeys;
-  const bottomLayerKeysExpected = ['_mbx_other', 'name', 'name_local', 'population'];
+  const bottomLayerKeysExpected = ['name', 'name_local', 'population'];
 
   const localizedProperties0 = {
     name: 'Germany',
-    name_local: 'Germany',
-    _mbx_other: 'Alemania'
+    name_local: 'Germany'
   };
   const localizedProperties1 = {
     name: 'Espana',
@@ -308,13 +305,12 @@ test('[localize] success - no language specified, no worldview specified (i.e. r
     'population'
   ];
   const topLayerKeysExpected = topLayerKeys;
-  const bottomLayerKeysExpected = ['name_en', 'name_fr', '_mbx_other', 'name', 'population'];
+  const bottomLayerKeysExpected = ['name_en', 'name_fr', 'name', 'population'];
 
   const localizedProperties0 = {
     name: 'Germany',
     name_en: 'Germany',
-    name_fr: 'Allemagne',
-    _mbx_other: 'Alemania'
+    name_fr: 'Allemagne'
   };
   const localizedProperties1 = {
     name: 'Espana',
@@ -345,7 +341,7 @@ test('[localize] success - no language specified, no worldview specified (i.e. r
   });
 });
 
-test('[localize language] custom params.language_property and params.language_prefix properties', (assert) => {
+test('[localize language] custom params.language_property and params.hidden_prefix properties', (assert) => {
   const params = {
     buffer: mvtFixtures.create({
       layers: [
@@ -376,7 +372,7 @@ test('[localize language] custom params.language_property and params.language_pr
     }).buffer,
     languages: ['jp'],
     language_property: 'language',
-    language_prefix: '_drop_me_'
+    hidden_prefix: '_drop_me_'
   };
 
   localize(params, (err, buffer) => {
@@ -420,7 +416,7 @@ test('[localize language] language codes >2 characters are viable translations',
     }).buffer,
     languages: ['zh-Hant'],
     language_property: 'language',
-    language_prefix: '_pre_'
+    hidden_prefix: '_pre_'
   };
 
   localize(params, (err, buffer) => {
@@ -464,7 +460,7 @@ test('[localize language] fallback to second language if the first does not exis
     }).buffer,
     languages: ['en', 'zh-Hant'],
     language_property: 'language',
-    language_prefix: '_pre_'
+    hidden_prefix: '_pre_'
   };
 
   localize(params, (err, buffer) => {
@@ -479,7 +475,7 @@ test('[localize language] fallback to second language if the first does not exis
   });
 });
 
-test('[localize language] _mbx_worldview and _mbx_class dropped; other _mbx_* are kept', (assert) => {
+test('[localize language] _mbx_worldview and _mbx_class dropped; other _mbx_* also dropped', (assert) => {
   const params = {
     buffer: mvtFixtures.create({
       layers: [
@@ -525,8 +521,7 @@ test('[localize language] _mbx_worldview and _mbx_class dropped; other _mbx_* ar
       name: 'Nǐ hǎo',
       name_local: 'hello',
       worldview: 'CN',
-      class: 'sea',
-      _mbx_other: 'blah'
+      class: 'sea'
     }, 'expected properties');
     assert.end();
   });

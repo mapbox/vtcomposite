@@ -671,7 +671,7 @@ test('[localize worldview] requesting localized language; feature with no worldv
 
 /** ****************************************************************************
  * TEST SET 4:
- *  - custom worldview_property and worldview_prefix
+ *  - custom worldview_property and hidden_prefix
  ******************************************************************************/
 test('[localize worldview] requesting non-localized tile; feature has custom worldview property key and prefix and is in "all" worldview', (assert) => {
   const feature = mvtFixtures.create({
@@ -702,7 +702,7 @@ test('[localize worldview] requesting non-localized tile; feature has custom wor
   const params = {
     buffer: feature,
     worldview_property: 'wwoorrllddvviieeww',
-    worldview_prefix: 'mmbbxx_'
+    hidden_prefix: 'mmbbxx_'
     // no languages or worldviews = request non-localized tile
   };
 
@@ -744,7 +744,7 @@ test('[localize worldview] requesting non-localized tile; feature has custom wor
   const params = {
     buffer: feature,
     worldview_property: 'wwoorrllddvviieeww',
-    worldview_prefix: 'mmbbxx_'
+    hidden_prefix: 'mmbbxx_'
     // no languages or worldviews = request non-localized tile
   };
 
@@ -787,7 +787,7 @@ test('[localize worldview] requesting non-localized tile; feature has custom wor
   const params = {
     buffer: feature,
     worldview_property: 'wwoorrllddvviieeww',
-    worldview_prefix: 'mmbbxx_'
+    hidden_prefix: 'mmbbxx_'
     // no languages or worldviews = request non-localized tile
   };
 
@@ -825,7 +825,7 @@ test('[localize worldview] requesting localized worldview; feature has custom wo
   const params = {
     buffer: feature,
     worldview_property: 'wwoorrllddvviieeww',
-    worldview_prefix: 'mmbbxx_',
+    hidden_prefix: 'mmbbxx_',
     worldviews: ['US']
   };
 
@@ -867,7 +867,7 @@ test('[localize worldview] requesting localized worldview; feature has custom wo
   const params = {
     buffer: feature,
     worldview_property: 'wwoorrllddvviieeww',
-    worldview_prefix: 'mmbbxx_',
+    hidden_prefix: 'mmbbxx_',
     worldviews: ['US']
   };
 
@@ -909,7 +909,7 @@ test('[localize worldview] requesting localized worldview; feature has custom wo
   const params = {
     buffer: feature,
     worldview_property: 'wwoorrllddvviieeww',
-    worldview_prefix: 'mmbbxx_',
+    hidden_prefix: 'mmbbxx_',
     worldviews: ['US']
   };
 
@@ -950,7 +950,7 @@ test('[localize worldview] requesting localized worldview; feature has custom wo
   const params = {
     buffer: feature,
     worldview_property: 'wwoorrllddvviieeww',
-    worldview_prefix: 'mmbbxx_',
+    hidden_prefix: 'mmbbxx_',
     worldviews: ['JP']
   };
 

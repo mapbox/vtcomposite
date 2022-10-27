@@ -735,7 +735,7 @@ test('[localize class] requesting localized language; feature has class', (asser
 
 /** ****************************************************************************
  * TEST SET 5:
- *  - test custom class_property and class_prefix
+ *  - test custom class_property and hidden_prefix
  ******************************************************************************/
 test('[localize class] requesting non-localized tile; feature with custom class property and prefix but compatible worldview key in "all" worldview', (assert) => {
   const feature = mvtFixtures.create({
@@ -767,7 +767,7 @@ test('[localize class] requesting non-localized tile; feature with custom class 
   const params = {
     buffer: feature,
     class_property: 'ccllaassss',
-    class_prefix: 'mmbbxx_'
+    hidden_prefix: 'mmbbxx_'
     // no languages or worldviews = requesting non-localized tile
   };
 
@@ -800,7 +800,7 @@ test('[localize class] requesting localized language; feature with custom class 
             geometry: [9, 55, 38]
           }
         ],
-        keys: ['_mbx_worldview', 'mmbbxx_ccllaassss', 'worldview', 'ccllaassss'],
+        keys: ['_mmbbxx_worldview', '_mmbbxx_ccllaassss', 'worldview', 'ccllaassss'],
         values: [
           { string_value: 'all' },
           { string_value: 'affogato' },
@@ -814,7 +814,7 @@ test('[localize class] requesting localized language; feature with custom class 
   const params = {
     buffer: feature,
     class_property: 'ccllaassss',
-    class_prefix: 'mmbbxx_',
+    hidden_prefix: '_mmbbxx_',
     languages: ['ja']
   };
 

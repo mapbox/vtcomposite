@@ -96,26 +96,22 @@ struct BatonType
 struct LocalizeBatonType
 {
     LocalizeBatonType(Napi::Buffer<char> const& buffer,
+                      std::string hidden_prefix_,
                       std::vector<std::string> languages_,
                       std::string language_property_,
-                      std::string language_prefix_,
                       std::vector<std::string> worldviews_,
                       std::string worldview_property_,
-                      std::string worldview_prefix_,
                       std::string class_property_,
-                      std::string class_prefix_,
                       bool return_localized_tile_,
                       bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
+          hidden_prefix{std::move(hidden_prefix_)},
           languages{std::move(languages_)},
           language_property{std::move(language_property_)},
-          language_prefix{std::move(language_prefix_)},
           worldviews{std::move(worldviews_)},
           worldview_property{std::move(worldview_property_)},
-          worldview_prefix{std::move(worldview_prefix_)},
           class_property{std::move(class_property_)},
-          class_prefix{std::move(class_prefix_)},
           return_localized_tile{return_localized_tile_},
           compress{compress_}
     {
@@ -144,14 +140,12 @@ struct LocalizeBatonType
     // members
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
+    std::string hidden_prefix;
     std::vector<std::string> languages;
     std::string language_property;
-    std::string language_prefix;
     std::vector<std::string> worldviews;
     std::string worldview_property;
-    std::string worldview_prefix;
     std::string class_property;
-    std::string class_prefix;
     bool return_localized_tile;
     bool compress;
 };
@@ -669,23 +663,23 @@ struct LocalizeWorker : Napi::AsyncWorker
             {
                 keep_every_worldview = false;
                 incompatible_worldview_key = baton_data_->worldview_property;
-                compatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
+                compatible_worldview_key = baton_data_->hidden_prefix + baton_data_->worldview_property;
 
-                class_key_precedence.push_back(baton_data_->class_prefix + baton_data_->class_property);
+                class_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->class_property);
                 class_key_precedence.push_back(baton_data_->class_property);
 
                 keep_every_language = false;
                 for (auto const& lang : baton_data_->languages)
                 {
                     language_key_precedence.push_back(baton_data_->language_property + "_" + lang);
-                    language_key_precedence.push_back(baton_data_->language_prefix + baton_data_->language_property + "_" + lang);
+                    language_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->language_property + "_" + lang);
                 }
                 language_key_precedence.push_back(baton_data_->language_property);
             }
             else
             {
                 keep_every_worldview = true; // reassign to the same value as default for clarity
-                incompatible_worldview_key = baton_data_->worldview_prefix + baton_data_->worldview_property;
+                incompatible_worldview_key = baton_data_->hidden_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
 
                 class_key_precedence.push_back(baton_data_->class_property);
@@ -749,7 +743,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                         if (
                             utils::startswith(property_key, baton_data_->worldview_property) ||
-                            utils::startswith(property_key, baton_data_->worldview_prefix + baton_data_->worldview_property))
+                            utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->worldview_property))
                         {
                             // skip feature only if the value of incompatible worldview key is not 'all'
                             if (property_key == incompatible_worldview_key)
@@ -806,7 +800,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                         else if (
                             utils::startswith(property_key, baton_data_->class_property) ||
-                            utils::startswith(property_key, baton_data_->class_prefix + baton_data_->class_property))
+                            utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->class_property))
                         {
                             // check if the property is of higher precedence that class key encountered so far
                             std::uint32_t idx = static_cast<std::uint32_t>(std::distance(class_key_precedence.begin(), std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key)));
@@ -820,7 +814,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                         else if (
                             utils::startswith(property_key, baton_data_->language_property) ||
-                            utils::startswith(property_key, baton_data_->language_prefix + baton_data_->language_property))
+                            utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->language_property))
                         {
                             // check if the property is of higher precedence that language key encountered so far
                             std::uint32_t idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)));
@@ -839,7 +833,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                             {
                                 if (keep_every_language)
                                 {
-                                    if (!utils::startswith(property_key, baton_data_->language_prefix))
+                                    if (!utils::startswith(property_key, baton_data_->hidden_prefix))
                                     {
                                         final_properties.emplace_back(property_key, property.value());
                                     }
@@ -850,10 +844,12 @@ struct LocalizeWorker : Napi::AsyncWorker
                         }
 
                         // all other properties
-                        else
+                        else if (!utils::startswith(property_key, baton_data_->hidden_prefix))
                         {
                             final_properties.emplace_back(property_key, property.value());
                         }
+
+                        // else – drop property key that starts with {hidden_prefix}
 
                     } // end of properties loop
 
@@ -976,15 +972,13 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     Napi::Buffer<char> buffer;
 
     // optional params and their default values
+    std::string hidden_prefix = "_mbx_";
     std::vector<std::string> languages; // default is undefined
     std::string language_property = "name";
-    std::string language_prefix = "_mbx_";
     std::vector<std::string> worldviews; // default is undefined
     std::string worldview_property = "worldview";
-    std::string worldview_prefix = "_mbx_";
     std::string worldview_default = "US";
     std::string class_property = "class";
-    std::string class_prefix = "_mbx_";
     bool compress = false;
 
     // param that'll be deduced from other params
@@ -1018,6 +1012,17 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         return utils::CallbackError("params.buffer is not a true Buffer", info);
     }
     buffer = buffer_obj.As<Napi::Buffer<char>>();
+
+    // params.hidden_prefix (optional)
+    if (params.Has(Napi::String::New(info.Env(), "hidden_prefix")))
+    {
+        Napi::Value hidden_prefix_val = params.Get(Napi::String::New(info.Env(), "hidden_prefix"));
+        if (!hidden_prefix_val.IsString() || hidden_prefix_val == empty_string)
+        {
+            return utils::CallbackError("params.hidden_prefix must be a non-empty string", info);
+        }
+        hidden_prefix = hidden_prefix_val.As<Napi::String>();
+    }
 
     // params.language is an invalid param
     if (params.Has(Napi::String::New(info.Env(), "language")))
@@ -1069,17 +1074,6 @@ Napi::Value localize(Napi::CallbackInfo const& info)
             return utils::CallbackError("params.language_property must be a non-empty string", info);
         }
         language_property = language_property_val.As<Napi::String>();
-    }
-
-    // params.language_prefix (optional)
-    if (params.Has(Napi::String::New(info.Env(), "language_prefix")))
-    {
-        Napi::Value language_prefix_val = params.Get(Napi::String::New(info.Env(), "language_prefix"));
-        if (!language_prefix_val.IsString() || language_prefix_val == empty_string)
-        {
-            return utils::CallbackError("params.language_prefix must be a non-empty string", info);
-        }
-        language_prefix = language_prefix_val.As<Napi::String>();
     }
 
     // params.worldview is an invalid param
@@ -1134,17 +1128,6 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         worldview_property = worldview_property_val.As<Napi::String>();
     }
 
-    // params.worldview_prefix (optional)
-    if (params.Has(Napi::String::New(info.Env(), "worldview_prefix")))
-    {
-        Napi::Value worldview_prefix_val = params.Get(Napi::String::New(info.Env(), "worldview_prefix"));
-        if (!worldview_prefix_val.IsString() || worldview_prefix_val == empty_string)
-        {
-            return utils::CallbackError("params.worldview_prefix must be a non-empty string", info);
-        }
-        worldview_prefix = worldview_prefix_val.As<Napi::String>();
-    }
-
     // params.worldview_default (optional)
     if (params.Has(Napi::String::New(info.Env(), "worldview_default")))
     {
@@ -1165,17 +1148,6 @@ Napi::Value localize(Napi::CallbackInfo const& info)
             return utils::CallbackError("params.class_property must be a non-empty string", info);
         }
         class_property = class_property_val.As<Napi::String>();
-    }
-
-    // params.class_prefix (optional)
-    if (params.Has(Napi::String::New(info.Env(), "class_prefix")))
-    {
-        Napi::Value class_prefix_val = params.Get(Napi::String::New(info.Env(), "class_prefix"));
-        if (!class_prefix_val.IsString() || class_prefix_val == empty_string)
-        {
-            return utils::CallbackError("params.class_prefix must be a non-empty string", info);
-        }
-        class_prefix = class_prefix_val.As<Napi::String>();
     }
 
     // params.compress (optional)
@@ -1203,14 +1175,12 @@ Napi::Value localize(Napi::CallbackInfo const& info)
 
     std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(
         buffer,
+        hidden_prefix,
         languages,
         language_property,
-        language_prefix,
         worldviews,
         worldview_property,
-        worldview_prefix,
         class_property,
-        class_prefix,
         return_localized_tile,
         compress);
 
