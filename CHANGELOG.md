@@ -1,3 +1,7 @@
+# 2.0.0
+
+- Updates the `localize` function to return features with either all properties localized or features with no properties localized; nothing in between [#129](https://github.com/mapbox/vtcomposite/pull/129).
+
 # 1.1.0
 
 - Updates the `localize` function to translate `_mbx_class` to `class` when `_mbx_worldview` is provided along with matching worldview filtering

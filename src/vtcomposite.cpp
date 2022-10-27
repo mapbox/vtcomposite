@@ -9,6 +9,7 @@
 #include <gzip/utils.hpp>
 // vtzero
 #include <vtzero/builder.hpp>
+#include <vtzero/encoded_property_value.hpp>
 #include <vtzero/property_value.hpp>
 #include <vtzero/vector_tile.hpp>
 // geometry.hpp
@@ -95,23 +96,28 @@ struct BatonType
 struct LocalizeBatonType
 {
     LocalizeBatonType(Napi::Buffer<char> const& buffer,
-                      std::string language_,
+                      std::string hidden_prefix_,
+                      std::vector<std::string> languages_,
                       std::string language_property_,
-                      std::string language_prefix_,
                       std::vector<std::string> worldviews_,
                       std::string worldview_property_,
                       std::string class_property_,
+                      bool return_localized_tile_,
                       bool compress_)
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
-          language{std::move(language_)},
+          hidden_prefix{std::move(hidden_prefix_)},
+          languages{std::move(languages_)},
           language_property{std::move(language_property_)},
-          language_prefix{std::move(language_prefix_)},
           worldviews{std::move(worldviews_)},
           worldview_property{std::move(worldview_property_)},
           class_property{std::move(class_property_)},
+          return_localized_tile{return_localized_tile_},
           compress{compress_}
     {
+        // Note: for LocalizeBatonType, return_localized_tile_ dictates whether it
+        // will return a localized or non-localized tile; the existence and value of
+        // languages_ and worldviews_ does not matter.
     }
 
     ~LocalizeBatonType() noexcept
@@ -134,12 +140,13 @@ struct LocalizeBatonType
     // members
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
-    std::string language;
+    std::string hidden_prefix;
+    std::vector<std::string> languages;
     std::string language_property;
-    std::string language_prefix;
     std::vector<std::string> worldviews;
     std::string worldview_property;
     std::string class_property;
+    bool return_localized_tile;
     bool compress;
 };
 
@@ -602,75 +609,86 @@ struct LocalizeWorker : Napi::AsyncWorker
           baton_data_{std::move(baton_data)},
           output_buffer_{std::make_unique<std::string>()} {}
 
-    // for a given feature, determine how many clones of the feature are
-    // required given a worldview.
-    // - If the feature has _mbx_worldview: all, return {"all"}
-    // - If there is no requested worldview "null", determine which legacy worldviews should be created
-    std::vector<std::string> worldviews_for_feature(std::string const& pval) const
-    {
-        if (pval == "all")
-        {
-            return {"all"};
-        }
-
-        std::vector<std::string> matching_worldviews;
-        // convert pval into vector of strings US,CN => {"US", "CN"}
-        std::vector<std::string> worldview_values = utils::split(pval);
-        // worldview: XX
-        if (!baton_data_->worldviews.empty())
-        {
-            utils::intersection(worldview_values, baton_data_->worldviews, matching_worldviews);
-        }
-
-        return matching_worldviews;
-    }
-
-    // create a feature from a list of properties
-    // optionally define a worldview property if provided
-    static void build_localized_feature(
-        vtzero::feature const& feature,
+    // create a feature with new properties from a template feature
+    static void build_new_feature(
+        vtzero::feature const& template_feature,
         std::vector<std::pair<std::string, vtzero::property_value>> const& properties,
-        std::string const& worldview,
+        std::string const& worldview_key,
+        std::string const& worldview_val,
         vtzero::layer_builder& lbuilder)
     {
         vtzero::geometry_feature_builder fbuilder{lbuilder};
-        fbuilder.copy_id(feature); // todo deduplicate this (vector tile spec says SHOULD be unique)
-        fbuilder.set_geometry(feature.geometry());
+        fbuilder.copy_id(template_feature); // TODO: deduplicate this (vector tile spec says SHOULD be unique)
+        fbuilder.set_geometry(template_feature.geometry());
 
-        if (!worldview.empty())
-        {
-            fbuilder.add_property("worldview", worldview);
-        }
+        // add property to feature
         for (auto const& property : properties)
         {
-            // no-op on any property called "worldview" if worldviews have been
-            // created dynamically from _mbx_wordlview
-            if (!worldview.empty() && property.first == "worldview")
+            if (property.first == worldview_key) // safeguard – should always evaluate to false
             {
                 continue;
             }
-
-            // add property to feature
             fbuilder.add_property(property.first, property.second);
         }
 
+        if (!worldview_key.empty())
+        {
+            fbuilder.add_property(worldview_key, worldview_val);
+        }
+
         fbuilder.commit();
+    }
+
+    // returns a vector of requested worldviews that the feature exists in
+    static std::vector<std::string> worldviews_for_feature(std::vector<std::string> available_worldviews, std::vector<std::string> target_worldviews)
+    {
+        target_worldviews.emplace_back("all");
+
+        std::vector<std::string> matching_worldviews;
+        utils::intersection(available_worldviews, target_worldviews, matching_worldviews);
+        return matching_worldviews;
     }
 
     void Execute() override
     {
         try
         {
-            vtzero::tile_builder tbuilder;
-            std::string language_key;
-            std::string language_key_prefixed;
-            if (!baton_data_->language.empty())
+            bool keep_every_worldview = true;
+            std::string incompatible_worldview_key;
+            std::string compatible_worldview_key;
+            std::vector<std::string> class_key_precedence;
+            bool keep_every_language = true;
+            std::vector<std::string> language_key_precedence;
+            if (baton_data_->return_localized_tile)
             {
-                // {language_property}_{language} -> retain
-                language_key = baton_data_->language_property + "_" + baton_data_->language;
-                // {language_prefix}{language_property}_{language} -> drop
-                language_key_prefixed = baton_data_->language_prefix + language_key;
+                keep_every_worldview = false;
+                incompatible_worldview_key = baton_data_->worldview_property;
+                compatible_worldview_key = baton_data_->hidden_prefix + baton_data_->worldview_property;
+
+                class_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->class_property);
+                class_key_precedence.push_back(baton_data_->class_property);
+
+                keep_every_language = false;
+                for (auto const& lang : baton_data_->languages)
+                {
+                    language_key_precedence.push_back(baton_data_->language_property + "_" + lang);
+                    language_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->language_property + "_" + lang);
+                }
+                language_key_precedence.push_back(baton_data_->language_property);
             }
+            else
+            {
+                keep_every_worldview = true; // reassign to the same value as default for clarity
+                incompatible_worldview_key = baton_data_->hidden_prefix + baton_data_->worldview_property;
+                compatible_worldview_key = baton_data_->worldview_property;
+
+                class_key_precedence.push_back(baton_data_->class_property);
+
+                keep_every_language = true; // reassign to the same value as default for clarity
+                language_key_precedence.push_back(baton_data_->language_property);
+            }
+
+            vtzero::tile_builder tbuilder;
             std::vector<char> buffer_cache;
             vtzero::data_view tile_view{};
             if (gzip::is_compressed(baton_data_->data.data(), baton_data_->data.size()))
@@ -692,104 +710,189 @@ struct LocalizeWorker : Napi::AsyncWorker
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
-                    std::vector<std::string> worldviews_to_create;
+                    // a flag to indicate whether This feature will be dropped; will set this flag
+                    // to true when we encounter a property that suggests this feature should be
+                    // discarded (for example, if the feature has an incompatible worldview key/value).
+                    bool skip_feature = false;
+
+                    // will be creating one clone of the feature for each worldview if worldview property exists
                     bool has_worldview_key = false;
-                    bool name_was_set = false;
-                    vtzero::property_value name_value;
+                    std::vector<std::string> worldviews_to_create;
+
+                    // will be searching for the class with lowest index in class_key_precedence
+                    auto class_key_idx = static_cast<std::uint32_t>(class_key_precedence.size());
                     vtzero::property_value class_value;
-                    // accumulate final properties (except _mbx_worldview translation to worldview) here
-                    std::vector<std::pair<std::string, vtzero::property_value>> properties;
+
+                    auto language_key_idx = static_cast<std::uint32_t>(language_key_precedence.size());
+                    vtzero::property_value language_value;
+                    vtzero::property_value original_language_value;
+
+                    // collect final properties
+                    std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
                     while (auto property = feature.next_property())
                     {
-                        std::string property_key = property.key().to_string();
-                        if (!has_worldview_key && property_key == baton_data_->worldview_property)
+                        // if true, we've already encounterd a property that indicates
+                        // we will be discard this feature, so we can fast forward this while loop and
+                        // don't need to comb through the rest of its properties.
+                        if (skip_feature)
                         {
-                            has_worldview_key = true;
-                            if (property.value().type() == vtzero::property_value_type::string_value)
-                            {
-                                worldviews_to_create = worldviews_for_feature(static_cast<std::string>(property.value().string_value()));
-                            }
-
                             continue;
                         }
 
-                        if (property_key == baton_data_->class_property)
+                        std::string property_key = property.key().to_string();
+
+                        if (
+                            utils::startswith(property_key, baton_data_->worldview_property) ||
+                            utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->worldview_property))
                         {
-                            if (property.value().type() == vtzero::property_value_type::string_value)
+                            // skip feature only if the value of incompatible worldview key is not 'all'
+                            if (property_key == incompatible_worldview_key)
                             {
+                                if (property.value().type() == vtzero::property_value_type::string_value)
+                                {
+                                    if (property.value().string_value() != "all")
+                                    {
+                                        skip_feature = true;
+                                    }
+                                    // else do nothing - keep this feature but don't need to preserve this property.
+                                }
+                                else
+                                {
+                                    skip_feature = true;
+                                }
+                            }
+
+                            // keep feature and retain its compatible worldview value
+                            else if (property_key == compatible_worldview_key)
+                            {
+                                has_worldview_key = true;
+
+                                if (property.value().type() == vtzero::property_value_type::string_value)
+                                {
+                                    std::string property_value = static_cast<std::string>(property.value().string_value());
+
+                                    std::vector<std::string> available_worldviews = utils::split(property_value);
+
+                                    // determine which worldviews to create a clone of the feature
+                                    if (keep_every_worldview)
+                                    {
+                                        worldviews_to_create = worldviews_for_feature(available_worldviews, available_worldviews);
+                                    }
+                                    else
+                                    {
+                                        worldviews_to_create = worldviews_for_feature(available_worldviews, baton_data_->worldviews);
+                                        if (worldviews_to_create.empty())
+                                        {
+                                            skip_feature = true;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    skip_feature = true;
+                                }
+                            }
+                            else // safeguard – should never reach here
+                            {
+                                skip_feature = true;
+                            }
+                        }
+
+                        else if (
+                            utils::startswith(property_key, baton_data_->class_property) ||
+                            utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->class_property))
+                        {
+                            // check if the property is of higher precedence that class key encountered so far
+                            std::uint32_t idx = static_cast<std::uint32_t>(std::distance(class_key_precedence.begin(), std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key)));
+                            if (idx < class_key_idx)
+                            {
+                                class_key_idx = idx;
                                 class_value = property.value();
                             }
-                            continue;
+                            // wait till we are done looping through all properties before we add class value to final_properties
                         }
 
-                        // preserve original params.language_property value
-                        if (property_key == baton_data_->language_property)
+                        else if (
+                            utils::startswith(property_key, baton_data_->language_property) ||
+                            utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->language_property))
                         {
-                            name_value = property.value();
-
-                            // if no language was specified, we want the name value to be constant
-                            if (baton_data_->language.empty())
+                            // check if the property is of higher precedence that language key encountered so far
+                            std::uint32_t idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)));
+                            if (idx < language_key_idx)
                             {
-                                properties.emplace_back(baton_data_->language_property, property.value());
-                                name_was_set = true;
+                                language_key_idx = idx;
+                                language_value = property.value();
                             }
-                            continue;
-                        }
-                        // set name to value from {prefix}{language_property}_{language}, if existing
-                        if (!baton_data_->language.empty() && !name_was_set && language_key_prefixed == property_key)
-                        {
-                            properties.emplace_back(baton_data_->language_property, property.value());
-                            name_was_set = true;
-                            continue;
-                        }
-                        // remove any properties that starts with the given params.language_prefix value
-                        if (property_key.find(baton_data_->language_prefix) == 0) // NOLINT(abseil-string-find-startswith)
-                        {
-                            continue;
-                        }
-                        // set name to {language_property}_{language}, if existing
-                        // and keep these legacy properties on the feature
-                        if (!baton_data_->language.empty() && !name_was_set && language_key == property_key)
-                        {
-                            properties.emplace_back(baton_data_->language_property, property.value());
-                            name_was_set = true;
+
+                            // preserve original language value, and wait till finish looping through all properties to assign a value
+                            if (property_key == baton_data_->language_property)
+                            {
+                                original_language_value = property.value();
+                            }
+                            else
+                            {
+                                if (keep_every_language)
+                                {
+                                    if (!utils::startswith(property_key, baton_data_->hidden_prefix))
+                                    {
+                                        final_properties.emplace_back(property_key, property.value());
+                                    }
+                                    // else – drop properties that start with a prefix
+                                }
+                                // else – wait till we are done looping through all properties to add {language} value to final_properties
+                            }
                         }
 
-                        properties.emplace_back(property_key, property.value());
-                    }
+                        // all other properties
+                        else if (!utils::startswith(property_key, baton_data_->hidden_prefix))
+                        {
+                            final_properties.emplace_back(property_key, property.value());
+                        }
 
-                    if (name_value.valid())
+                        // else – drop property key that starts with {hidden_prefix}
+
+                    } // end of properties loop
+
+                    // if skip feature, proceed to next feature
+                    if (skip_feature)
                     {
-                        std::string preserved_key = baton_data_->language_property + "_local";
-                        properties.emplace_back(preserved_key, name_value);
-
-                        if (!name_was_set)
-                        {
-                            properties.emplace_back(baton_data_->language_property, name_value);
-                        }
+                        continue;
                     }
 
+                    // use the class value of highest precedence
+                    if (class_value.valid())
+                    {
+                        final_properties.emplace_back(baton_data_->class_property, class_value);
+                    }
+
+                    // use the language value of highest precedence
+                    if (language_value.valid())
+                    {
+                        final_properties.emplace_back(baton_data_->language_property, language_value);
+                    }
+
+                    if (baton_data_->return_localized_tile && original_language_value.valid())
+                    {
+                        final_properties.emplace_back(baton_data_->language_property + "_local", original_language_value);
+                    }
+
+                    // build new feature(s)
                     if (has_worldview_key)
                     {
-                        if (class_value.valid())
-                        {
-                            properties.emplace_back("class", class_value);
-                        }
-                        for (auto const& wv : worldviews_to_create)
-                        {
-                            build_localized_feature(feature, properties, wv, lbuilder);
+                        if (!worldviews_to_create.empty())
+                        { // safeguard – should always evalute to true
+                            // Take just the first worldview. TODO: support all worldviews.
+                            build_new_feature(feature, final_properties, baton_data_->worldview_property, worldviews_to_create[0], lbuilder);
                         }
                     }
                     else
                     {
-                        if (class_value.valid() && name_was_set)
-                        {
-                            properties.emplace_back("class", class_value);
-                        }
-                        build_localized_feature(feature, properties, "", lbuilder);
+                        build_new_feature(feature, final_properties, "", "", lbuilder);
                     }
-                }
-            }
+
+                } // end of features loop
+            }     // end of layers loop
+
             std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
             {
@@ -865,22 +968,33 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     }
     Napi::Function callback = callback_val.As<Napi::Function>();
 
+    // mandatory params
+    Napi::Buffer<char> buffer;
+
+    // optional params and their default values
+    std::string hidden_prefix = "_mbx_";
+    std::vector<std::string> languages; // default is undefined
+    std::string language_property = "name";
+    std::vector<std::string> worldviews; // default is undefined
+    std::string worldview_property = "worldview";
+    std::string worldview_default = "US";
+    std::string class_property = "class";
+    bool compress = false;
+
+    // param that'll be deduced from other params
+    bool return_localized_tile = false; // true only if languages or worldviews exist
+
     // validate params object
     Napi::Value params_val = info[0];
-    Napi::Buffer<char> buffer;
-    std::string language;
-    std::string language_property = "name";
-    std::string language_prefix = "_mbx_";
-    std::vector<std::string> worldviews;
-    std::string worldview_property = "_mbx_worldview";
-    std::string class_property = "_mbx_class";
-    bool compress = false;
     if (!params_val.IsObject())
     {
         Napi::Error::New(info.Env(), "first argument must be an object").ThrowAsJavaScriptException();
         return info.Env().Null();
     }
     Napi::Object params = info[0].As<Napi::Object>();
+
+    // empty string to check against
+    Napi::String empty_string = Napi::String::New(info.Env(), "");
 
     // params.buffer (required)
     if (!params.Has(Napi::String::New(info.Env(), "buffer")))
@@ -892,7 +1006,6 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     {
         return utils::CallbackError("params.buffer must be a Buffer", info);
     }
-
     Napi::Object buffer_obj = buffer_val.As<Napi::Object>();
     if (!buffer_obj.IsBuffer())
     {
@@ -900,21 +1013,55 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     }
     buffer = buffer_obj.As<Napi::Buffer<char>>();
 
-    // params.language (optional)
+    // params.hidden_prefix (optional)
+    if (params.Has(Napi::String::New(info.Env(), "hidden_prefix")))
+    {
+        Napi::Value hidden_prefix_val = params.Get(Napi::String::New(info.Env(), "hidden_prefix"));
+        if (!hidden_prefix_val.IsString() || hidden_prefix_val == empty_string)
+        {
+            return utils::CallbackError("params.hidden_prefix must be a non-empty string", info);
+        }
+        hidden_prefix = hidden_prefix_val.As<Napi::String>();
+    }
+
+    // params.language is an invalid param
     if (params.Has(Napi::String::New(info.Env(), "language")))
     {
-        Napi::Value language_val = params.Get(Napi::String::New(info.Env(), "language"));
-        if (!language_val.IsString() && !language_val.IsNull() && !language_val.IsUndefined())
+        return utils::CallbackError("params.language is an invalid param... do you mean params.languages?", info);
+    }
+    // params.languages (optional)
+    if (params.Has(Napi::String::New(info.Env(), "languages")))
+    {
+        Napi::Value language_val = params.Get(Napi::String::New(info.Env(), "languages"));
+        if (language_val.IsArray())
         {
-            return utils::CallbackError("params.language must be null or a string", info);
-        }
-        if (language_val.IsString())
-        {
-            language = language_val.As<Napi::String>();
-            if (language.length() == 0)
+            Napi::Array language_array = language_val.As<Napi::Array>();
+            std::uint32_t num_languages = language_array.Length();
+
+            if (num_languages > 0)
             {
-                return utils::CallbackError("params.language cannot be an empty string", info);
+                languages.reserve(num_languages);
+
+                for (std::uint32_t lg = 0; lg < num_languages; ++lg)
+                {
+                    Napi::Value language_item_val = language_array.Get(lg);
+                    if (!language_item_val.IsString() || language_item_val == empty_string)
+                    {
+                        return utils::CallbackError("params.languages must be an array of non-empty strings", info);
+                    }
+                    std::string language_item = language_item_val.As<Napi::String>();
+                    languages.push_back(language_item);
+                }
+                return_localized_tile = true;
             }
+            else
+            {
+                return utils::CallbackError("params.languages must be a non-empty array", info);
+            }
+        }
+        else
+        {
+            return utils::CallbackError("params.languages must be a non-empty array", info);
         }
     }
 
@@ -922,74 +1069,88 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     if (params.Has(Napi::String::New(info.Env(), "language_property")))
     {
         Napi::Value language_property_val = params.Get(Napi::String::New(info.Env(), "language_property"));
-        if (!language_property_val.IsString())
+        if (!language_property_val.IsString() || language_property_val == empty_string)
         {
-            return utils::CallbackError("params.language_property must be a string", info);
+            return utils::CallbackError("params.language_property must be a non-empty string", info);
         }
         language_property = language_property_val.As<Napi::String>();
     }
 
-    // params.language_prefix (optional)
-    if (params.Has(Napi::String::New(info.Env(), "language_prefix")))
+    // params.worldview is an invalid param
+    if (params.Has(Napi::String::New(info.Env(), "worldview")))
     {
-        Napi::Value language_prefix_val = params.Get(Napi::String::New(info.Env(), "language_prefix"));
-        if (!language_prefix_val.IsString())
-        {
-            return utils::CallbackError("params.language_prefix must be a string", info);
-        }
-        language_prefix = language_prefix_val.As<Napi::String>();
+        return utils::CallbackError("params.worldview is an invalid param... do you mean params.worldviews?", info);
     }
-
-    // params.worldview
+    // params.worldviews (optional)
     if (params.Has(Napi::String::New(info.Env(), "worldviews")))
     {
         Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldviews"));
-        if (!worldview_val.IsArray())
+        if (worldview_val.IsArray())
         {
-            return utils::CallbackError("params.worldview must be an array", info);
+            Napi::Array worldview_array = worldview_val.As<Napi::Array>();
+            std::uint32_t num_worldviews = worldview_array.Length();
+
+            if (num_worldviews > 0)
+            {
+                worldviews.reserve(num_worldviews);
+
+                for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
+                {
+                    Napi::Value worldview_item_val = worldview_array.Get(wv);
+                    if (!worldview_item_val.IsString() || worldview_item_val == empty_string)
+                    {
+                        return utils::CallbackError("params.worldviews must be an array of non-empty strings", info);
+                    }
+                    std::string worldview_item = worldview_item_val.As<Napi::String>();
+                    worldviews.push_back(worldview_item);
+                }
+                return_localized_tile = true;
+            }
+            else
+            {
+                return utils::CallbackError("params.worldviews must be a non-empty array", info);
+            }
         }
-        Napi::Array worldview_array = worldview_val.As<Napi::Array>();
-        std::uint32_t num_worldviews = worldview_array.Length();
-        worldviews.reserve(num_worldviews);
-        for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
+        else
         {
-            Napi::Value worldview_item_val = worldview_array.Get(wv);
-            if (!worldview_item_val.IsString())
-            {
-                return utils::CallbackError("params.worldview must be an array of strings", info);
-            }
-            std::string worldview_item = worldview_item_val.As<Napi::String>();
-            if (worldview_item.length() != 2)
-            {
-                return utils::CallbackError("params.worldview items must be strings of 2 characters", info);
-            }
-            worldviews.push_back(worldview_item);
+            return utils::CallbackError("params.worldviews must be a non-empty array", info);
         }
     }
 
-    // params.worldview_property
+    // params.worldview_property (optional)
     if (params.Has(Napi::String::New(info.Env(), "worldview_property")))
     {
         Napi::Value worldview_property_val = params.Get(Napi::String::New(info.Env(), "worldview_property"));
-        if (!worldview_property_val.IsString())
+        if (!worldview_property_val.IsString() || worldview_property_val == empty_string)
         {
-            return utils::CallbackError("params.worldview_property must be a string", info);
+            return utils::CallbackError("params.worldview_property must be a non-empty string", info);
         }
         worldview_property = worldview_property_val.As<Napi::String>();
     }
 
-    // params.class_property
+    // params.worldview_default (optional)
+    if (params.Has(Napi::String::New(info.Env(), "worldview_default")))
+    {
+        Napi::Value worldview_default_val = params.Get(Napi::String::New(info.Env(), "worldview_default"));
+        if (!worldview_default_val.IsString() || worldview_default_val == empty_string)
+        {
+            return utils::CallbackError("params.worldview_default must be a non-empty string", info);
+        }
+        worldview_default = worldview_default_val.As<Napi::String>();
+    }
+
+    // params.class_property (optional)
     if (params.Has(Napi::String::New(info.Env(), "class_property")))
     {
         Napi::Value class_property_val = params.Get(Napi::String::New(info.Env(), "class_property"));
-        if (!class_property_val.IsString())
+        if (!class_property_val.IsString() || class_property_val == empty_string)
         {
-            return utils::CallbackError("params.class_property must be a string", info);
+            return utils::CallbackError("params.class_property must be a non-empty string", info);
         }
         class_property = class_property_val.As<Napi::String>();
     }
 
-    // params.compress
+    // params.compress (optional)
     if (params.Has(Napi::String::New(info.Env(), "compress")))
     {
         Napi::Value comp_value = params.Get(Napi::String::New(info.Env(), "compress"));
@@ -1000,14 +1161,27 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         compress = comp_value.As<Napi::Boolean>().Value();
     }
 
+    // This if block must be validated *after* params.languages and params.worldviews
+    // because it checks return_localized_tile which is dictated by the
+    // value of both params.languages and params.worldviews.
+    if (return_localized_tile)
+    {
+        if (worldviews.empty())
+        {
+            worldviews.push_back(worldview_default);
+        }
+        // else do nothing – already knows which worldview to return
+    }
+
     std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(
         buffer,
-        language,
+        hidden_prefix,
+        languages,
         language_property,
-        language_prefix,
         worldviews,
         worldview_property,
         class_property,
+        return_localized_tile,
         compress);
 
     auto* worker = new LocalizeWorker{std::move(baton_data), callback};

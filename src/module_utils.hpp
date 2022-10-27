@@ -29,6 +29,12 @@ inline std::vector<std::string> split(std::string const& input)
     return values;
 }
 
+// checks if a string starts with a given substring
+inline bool startswith(std::string const& astring, std::string const& substring)
+{
+    return substring.length() <= astring.length() && std::equal(substring.begin(), substring.end(), astring.begin());
+}
+
 // finds the intersection of two vectors of strings
 // and assigns the intersection to a new vector passed by reference
 // results are returned in alphabetically ascending order
