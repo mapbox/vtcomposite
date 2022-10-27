@@ -1,4 +1,4 @@
-# 1.2.0
+# 2.0.0
 
 - Updates the `localize` function to return features with either all properties localized or features with no properties localized; nothing in between [#129](https://github.com/mapbox/vtcomposite/pull/129).
 
