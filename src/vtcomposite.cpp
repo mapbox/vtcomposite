@@ -716,7 +716,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                 vtzero::layer_builder lbuilder{tbuilder, layer.name(), layer.version(), layer.extent()};
                 while (auto feature = layer.next_feature())
                 {
-                    // will be skipping features with incompatible worldview
+                    // a flag to indicate whether This feature will be dropped; will set this flag
+                    // to true when we encounter a property that suggests this feature should be
+                    // discarded (for example, if the feature has an incompatible worldview key/value).
                     bool skip_feature = false;
 
                     // will be creating one clone of the feature for each worldview if worldview property exists
@@ -735,7 +737,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                     std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
                     while (auto property = feature.next_property())
                     {
-                        // if already know we'll be skipping this feature, don't need to comb through its properties
+                        // if true, we've already encounterd a property that indicates
+                        // we will be discard this feature, so we can fast forward this while loop and
+                        // don't need to comb through the rest of its properties.
                         if (skip_feature)
                         {
                             continue;
