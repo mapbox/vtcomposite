@@ -1035,33 +1035,25 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         Napi::Value language_val = params.Get(Napi::String::New(info.Env(), "languages"));
         if (language_val.IsArray())
         {
+            return_localized_tile = true;
+
             Napi::Array language_array = language_val.As<Napi::Array>();
             std::uint32_t num_languages = language_array.Length();
 
-            if (num_languages > 0)
+            for (std::uint32_t lg = 0; lg < num_languages; ++lg)
             {
-                languages.reserve(num_languages);
-
-                for (std::uint32_t lg = 0; lg < num_languages; ++lg)
+                Napi::Value language_item_val = language_array.Get(lg);
+                if (!language_item_val.IsString() || language_item_val == empty_string)
                 {
-                    Napi::Value language_item_val = language_array.Get(lg);
-                    if (!language_item_val.IsString() || language_item_val == empty_string)
-                    {
-                        return utils::CallbackError("params.languages must be an array of non-empty strings", info);
-                    }
-                    std::string language_item = language_item_val.As<Napi::String>();
-                    languages.push_back(language_item);
+                    return utils::CallbackError("params.languages must be an array of non-empty strings", info);
                 }
-                return_localized_tile = true;
-            }
-            else
-            {
-                return utils::CallbackError("params.languages must be a non-empty array", info);
+                std::string language_item = language_item_val.As<Napi::String>();
+                languages.push_back(language_item);
             }
         }
         else
         {
-            return utils::CallbackError("params.languages must be a non-empty array", info);
+            return utils::CallbackError("params.languages must be an array", info);
         }
     }
 
@@ -1087,33 +1079,25 @@ Napi::Value localize(Napi::CallbackInfo const& info)
         Napi::Value worldview_val = params.Get(Napi::String::New(info.Env(), "worldviews"));
         if (worldview_val.IsArray())
         {
+            return_localized_tile = true;
+
             Napi::Array worldview_array = worldview_val.As<Napi::Array>();
             std::uint32_t num_worldviews = worldview_array.Length();
 
-            if (num_worldviews > 0)
+            for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
             {
-                worldviews.reserve(num_worldviews);
-
-                for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
+                Napi::Value worldview_item_val = worldview_array.Get(wv);
+                if (!worldview_item_val.IsString() || worldview_item_val == empty_string)
                 {
-                    Napi::Value worldview_item_val = worldview_array.Get(wv);
-                    if (!worldview_item_val.IsString() || worldview_item_val == empty_string)
-                    {
-                        return utils::CallbackError("params.worldviews must be an array of non-empty strings", info);
-                    }
-                    std::string worldview_item = worldview_item_val.As<Napi::String>();
-                    worldviews.push_back(worldview_item);
+                    return utils::CallbackError("params.worldviews must be an array of non-empty strings", info);
                 }
-                return_localized_tile = true;
-            }
-            else
-            {
-                return utils::CallbackError("params.worldviews must be a non-empty array", info);
+                std::string worldview_item = worldview_item_val.As<Napi::String>();
+                worldviews.push_back(worldview_item);
             }
         }
         else
         {
-            return utils::CallbackError("params.worldviews must be a non-empty array", info);
+            return utils::CallbackError("params.worldviews must be an array", info);
         }
     }
 
