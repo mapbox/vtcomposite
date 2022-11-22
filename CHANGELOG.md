@@ -1,3 +1,7 @@
+# 2.0.1
+
+- Fixes a bug in `localize` function that throws an error when languages or worldviews is an empty array [#131](https://github.com/mapbox/vtcomposite/pull/131)
+
 # 2.0.0
 
 - Updates the `localize` function to return features with either all properties localized or features with no properties localized; nothing in between [#129](https://github.com/mapbox/vtcomposite/pull/129).
