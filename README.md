@@ -79,14 +79,14 @@ A filtering function for modifying a tile's features and properties to support l
   - `params.hidden_prefix` **String** prefix for any additional properties that will be used to override non-prefixed properties.
     - Default value: `_mbx_`.
     - Any property that starts with this prefix are considered hidden properties and thus will be dropped.
-  - `params.languages` **Array<String>** array of IETF BCP 47 language codes used to search for matching translations available in a feature's properties.
+  - `params.languages` **Array<Optional<String>>** array of IETF BCP 47 language codes used to search for matching translations available in a feature's properties.
     - Optional parameter.
     - All language-related properties must match the following format: `{hidden_prefix}{language_property}_{language}`.
     - Default properties are `_mbx_name_{language}`; for example, the `_mbx_name_jp` property contains the Japanese translation for the value in `name`.
   - `params.language_property` **String** the primary property in features that identifies the feature in a language.
     - Default value: `name`.
     - This values is used to search for additional translations that match the following format `{language_property}_{language}`.
-  - `params.worldviews` **Array<String>** array of ISO 3166-1 alpha-2 country codes used to filter out features of different worldviews.
+  - `params.worldviews` **Array<Optional<String>>** array of ISO 3166-1 alpha-2 country codes used to filter out features of different worldviews.
     - Optional parameter.
     - For now, only the first item in the array will be processed; the rest are discarded (*TODO in the future*: expand support for more than one worldviews).
   - `params.worldview_property` **String** the name of the property that specifies in which worldview a feature belongs.
