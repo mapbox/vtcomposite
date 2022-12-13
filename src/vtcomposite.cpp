@@ -1040,6 +1040,8 @@ Napi::Value localize(Napi::CallbackInfo const& info)
             Napi::Array language_array = language_val.As<Napi::Array>();
             std::uint32_t num_languages = language_array.Length();
 
+            languages.reserve(num_languages);
+
             for (std::uint32_t lg = 0; lg < num_languages; ++lg)
             {
                 Napi::Value language_item_val = language_array.Get(lg);
@@ -1083,6 +1085,10 @@ Napi::Value localize(Napi::CallbackInfo const& info)
 
             Napi::Array worldview_array = worldview_val.As<Napi::Array>();
             std::uint32_t num_worldviews = worldview_array.Length();
+
+            // will put params.worldview_default into worldviews if params.worldviews is empty
+            // hence reserving minimum 1 slot
+            worldviews.reserve(num_worldviews > 0 ? num_worldviews : 1);
 
             for (std::uint32_t wv = 0; wv < num_worldviews; ++wv)
             {
