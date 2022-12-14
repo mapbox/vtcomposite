@@ -471,6 +471,44 @@ test('[localize worldview] requesting localized worldview; feature with no world
   });
 });
 
+test('[localize worldview] worldviews is an empty list; feature with compatible worldview key in the default worldview', (assert) => {
+  const feature = mvtFixtures.create({
+    layers: [
+      {
+        version: 2,
+        name: 'admin',
+        features: [
+          {
+            id: 10,
+            tags: [0, 0],
+            type: 1, // point
+            geometry: [9, 54, 38]
+          }
+        ],
+        keys: ['_mbx_worldview'],
+        values: [
+          { string_value: 'CN,JP,TR,US' }  // contains the default worldview which is US
+        ],
+        extent: 4096
+      }
+    ]
+  }).buffer;
+
+  const params = {
+    buffer: feature,
+    worldviews: []
+    // default worldview is US
+  };
+
+  localize(params, (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 1, 'has one feature');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, { worldview: 'US' }, 'expected properties');
+    assert.end();
+  });
+});
 
 /** ****************************************************************************
  * TEST SET 3:

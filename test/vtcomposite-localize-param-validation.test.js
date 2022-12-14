@@ -120,7 +120,7 @@ test('[localize] params.languages', (assert) => {
     languages: undefined
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.languages must be an array', 'expected error message');
   });
 
   localize({
@@ -128,7 +128,7 @@ test('[localize] params.languages', (assert) => {
     languages: null
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.languages must be an array', 'expected error message');
   });
 
   localize({
@@ -136,7 +136,7 @@ test('[localize] params.languages', (assert) => {
     languages: 1
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.languages must be an array', 'expected error message');
   });
 
   localize({
@@ -144,7 +144,7 @@ test('[localize] params.languages', (assert) => {
     languages: '' // empty string
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.languages must be an array', 'expected error message');
   });
 
   localize({
@@ -152,15 +152,14 @@ test('[localize] params.languages', (assert) => {
     languages: 'hi'
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.languages must be an array', 'expected error message');
   });
 
   localize({
-    buffer: Buffer.from('hi'),
+    buffer: mvtFixtures.get('064').buffer,
     languages: []
   }, (err) => {
-    assert.ok(err);
-    assert.equal(err.message, 'params.languages must be a non-empty array', 'expected error message');
+    assert.ifError(err);  // [] is valid; should not have any error
   });
 
   localize({
@@ -244,7 +243,7 @@ test('[localize] params.worldviews', (assert) => {
     worldviews: null
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.worldviews must be an array', 'expected error message');
   });
 
   localize({
@@ -252,7 +251,7 @@ test('[localize] params.worldviews', (assert) => {
     worldviews: undefined
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.worldviews must be an array', 'expected error message');
   });
 
   localize({
@@ -260,7 +259,7 @@ test('[localize] params.worldviews', (assert) => {
     worldviews: 1 // not an array
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.worldviews must be an array', 'expected error message');
   });
 
   localize({
@@ -268,7 +267,7 @@ test('[localize] params.worldviews', (assert) => {
     worldviews: ''
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.worldviews must be an array', 'expected error message');
   });
 
   localize({
@@ -276,15 +275,14 @@ test('[localize] params.worldviews', (assert) => {
     worldviews: 'US'
   }, (err) => {
     assert.ok(err);
-    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+    assert.equal(err.message, 'params.worldviews must be an array', 'expected error message');
   });
 
   localize({
-    buffer: Buffer.from('howdy'),
+    buffer: mvtFixtures.get('064').buffer,
     worldviews: []
   }, (err) => {
-    assert.ok(err);
-    assert.equal(err.message, 'params.worldviews must be a non-empty array', 'expected error message');
+    assert.ifError(err);  // [] is valid; should not have any error
   });
 
   localize({

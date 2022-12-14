@@ -245,6 +245,53 @@ test('[localize] success - _mbx prefixed property keys removed from all layers',
   });
 });
 
+test('[localize] success - languages is an empty list and no worldview specified (i.e. still returns localized)', (assert) => {
+  const initialBuffer = mvtFixtures.get('063').buffer;
+  const topLayerKeys = ['population'];
+  const bottomLayerKeys = [
+    'name',
+    'name_en',
+    'name_fr',
+    '_mbx_name_fr',
+    '_mbx_name_de',
+    '_mbx_other',
+    'population'
+  ];
+  const topLayerKeysExpected = topLayerKeys;
+  const bottomLayerKeysExpected = ['name', 'name_local', 'population'];
+
+  const localizedProperties0 = {
+    name: 'Germany',
+    name_local: 'Germany'
+  };
+  const localizedProperties1 = {
+    name: 'Espana',
+    name_local: 'Espana',
+    population: 20
+  };
+
+  const initialOutputInfo = vtinfo(initialBuffer);
+  assert.deepEqual(initialOutputInfo.layers.top._keys, topLayerKeys, 'expected initial keys');
+  assert.deepEqual(initialOutputInfo.layers.bottom._keys, bottomLayerKeys, 'expected initial keys');
+
+  const params = {
+    buffer: initialBuffer,
+    languages: []
+  };
+
+  localize(params, (err, vtBuffer) => {
+    assert.notOk(err);
+    const outputInfo = vtinfo(vtBuffer);
+    const localizedFeature0 = outputInfo.layers.bottom.feature(0);
+    const localizedFeature1 = outputInfo.layers.bottom.feature(1);
+    assert.deepEqual(localizedFeature0.properties, localizedProperties0, 'expected same name, dropped _mbx_name_* properties');
+    assert.deepEqual(localizedFeature1.properties, localizedProperties1, 'expected same name, dropped _mbx_name_* properties');
+    assert.deepEqual(outputInfo.layers.top._keys, topLayerKeysExpected, 'expected same keys');
+    assert.deepEqual(outputInfo.layers.bottom._keys, bottomLayerKeysExpected, 'expected dropped _mbx_name_* keys');
+    assert.end();
+  });
+});
+
 test('[localize] success - no language specified but has worldview specified (i.e. return localized features)', (assert) => {
   const initialBuffer = mvtFixtures.get('063').buffer;
   const topLayerKeys = ['population'];
