@@ -22,7 +22,6 @@
 #include <utility>
 #include <vector>
 
-
 namespace vtile {
 
 static constexpr std::uint32_t MVT_VERSION_1 = 1U;
@@ -841,7 +840,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 omit_local_langauge = std::any_of(
                                     baton_data_->omit_scripts.begin(),
                                     baton_data_->omit_scripts.end(),
-                                    [&](std::string script) {
+                                    [&](const std::string& script) {
                                         return (script == property.value().string_value());
                                     });
                             }
