@@ -79,10 +79,15 @@ A filtering function for modifying a tile's features and properties to support l
   - `params.hidden_prefix` **String** prefix for any additional properties that will be used to override non-prefixed properties.
     - Default value: `_mbx_`.
     - Any property that starts with this prefix are considered hidden properties and thus will be dropped.
-  - `params.languages` **Array<Optional<String>>** array of IETF BCP 47 language codes used to search for matching translations available in a feature's properties.
+  - `params.languages` **Array<Optional<String>>** array of IETF BCP 47 language codes or the string `local`, used to search for matching translations available in a feature's properties.
     - Optional parameter.
     - All language-related properties must match the following format: `{hidden_prefix}{language_property}_{language}`.
     - Default properties are `_mbx_name_{language}`; for example, the `_mbx_name_jp` property contains the Japanese translation for the value in `name`.
+    - `local` language code represents "`{language_property}` is in a script that is not in the `params.omit_scripts` list".
+      - The script of `{language_property}`, if available, must be stored in the `{language_property}_script` property.
+      - If `{language_property}_script` not in the `params.omit_scripts` list, use `{language_property}` when searching for matching translation.
+      - If `{language_property}_script` is in the `params.omit_scripts` list, skip `{language_property}` when searching for matching translation.
+  - `params.omit_scripts` **Array<Optional<String>>** array of scripts to skip `local` language code.
   - `params.language_property` **String** the primary property in features that identifies the feature in a language.
     - Default value: `name`.
     - This values is used to search for additional translations that match the following format `{language_property}_{language}`.
