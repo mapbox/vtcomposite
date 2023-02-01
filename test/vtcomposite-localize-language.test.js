@@ -573,3 +573,291 @@ test('[localize language] _mbx_worldview and _mbx_class dropped; other _mbx_* al
     assert.end();
   });
 });
+
+test('[localize language] local language', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // name: 你好
+                1, 1, // name_script: Han,
+                2, 2,
+                3, 3
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'name', 'name_script', 'name_zh-Hant', 'name_en'],
+          values: [
+            { string_value: '你好' },
+            { string_value: 'Han' },
+            { string_value: 'Nǐ hǎo' },
+            { string_value: 'hello' },
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['local']
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      name: '你好',
+      name_local: '你好',
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] local language with fallback', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // name: 你好
+                1, 1, // name_script: Han,
+                2, 2,
+                3, 3,
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'name', 'name_script', 'name_zh-Hant', 'name_en'],
+          values: [
+            { string_value: '你好' },
+            { string_value: 'Han' },
+            { string_value: 'Nǐ hǎo' },
+            { string_value: 'hello' }
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['local', 'en']
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      name: '你好',
+      name_local: '你好',
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] local script is in omit list, falling back to the next language', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // name: 你好
+                1, 1, // name_script: Han,
+                2, 2,
+                3, 3,
+                4, 4
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'name', 'name_script', 'name_zh-Hant', 'name_en', '_mbx_name_fi'],
+          values: [
+            { string_value: '你好' },
+            { string_value: 'Han' },
+            { string_value: 'Nǐ hǎo' },
+            { string_value: 'hello' },
+            { string_value: 'moi' },
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['de', 'local', 'fi'],
+    omit_scripts: ["Han"]
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      name: 'moi',  // local language is in an omitted script so falling back to the next language
+      name_local: '你好',
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] local script is in omit list, no fallback language found', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // name: 你好
+                1, 1, // name_script: Han,
+                2, 2,
+                3, 3,
+                4, 4
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'name', 'name_script', 'name_zh-Hant', 'name_en', '_mbx_name_fi'],
+          values: [
+            { string_value: '你好' },
+            { string_value: 'Han' },
+            { string_value: 'Nǐ hǎo' },
+            { string_value: 'hello' },
+            { string_value: 'moi' },
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['de', 'local', 'fr'],
+    omit_scripts: ["Han"]
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      name: '你好',  // went through languages list and no valid value found. last resort is the original name, irrepective of its script.
+      name_local: '你好',
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] name_local exists in the input tile', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // name: 你好
+                1, 1, // name_script: Han,
+                2, 2,
+                3, 3,
+                4, 4
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'name', 'name_script', 'name_local', 'name_en', '_mbx_name_fi'],
+          values: [
+            { string_value: '你好' },
+            { string_value: 'Han' },
+            { string_value: 'Nǐ hǎo' },
+            { string_value: 'hello' },
+            { string_value: 'moi' },
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['de', 'local', 'fi'],
+    omit_scripts: ["Han"]
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      name: 'Nǐ hǎo',  // from name_local in input tile
+      name_local: '你好',
+    }, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] _mbx_name_local exists in the input tile', (assert) => {
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: [
+                0, 0, // name: 你好
+                1, 1, // name_script: Han,
+                2, 2,
+                3, 3,
+                4, 4
+              ],
+              type: 1, // point
+              geometry: [ 9, 54, 38 ]
+            }
+          ],
+          keys: [ 'name', 'name_script', '_mbx_name_local', 'name_en', '_mbx_name_fi'],
+          values: [
+            { string_value: '你好' },
+            { string_value: 'Han' },
+            { string_value: 'Nǐ hǎo' },
+            { string_value: 'hello' },
+            { string_value: 'moi' },
+          ],
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['de', 'local', 'fi'],
+    omit_scripts: ["Han"]
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(info.layers.places.feature(0).properties, {
+      name: 'Nǐ hǎo',  // from _mbx_name_local in input tile
+      name_local: '你好',
+    }, 'expected properties');
+    assert.end();
+  });
+});

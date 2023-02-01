@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+
 namespace vtile {
 
 static constexpr std::uint32_t MVT_VERSION_1 = 1U;
@@ -893,10 +894,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                         else
                         {
                             // the original language is in an acceptable script;
-                            // next, check if `local` is in the list of desired languages.
-                            std::uint32_t local_language_key_idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), "local")));
+                            // next, check if `local` is in the list of desired languages
+                            // (by checking if `{language_property}_local` is in the language_key_precedence list)
+                            std::uint32_t local_language_key_idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), baton_data_->language_property + "_local")));
                             if (local_language_key_idx < language_key_idx)
                             {
+                                // note the `<`: this means if there exists a `{language_property}_local` or a `{language_prefix}{language_property}_local`
+                                // already exists in the input tile, the code does not enter this if block.
+                                // {language_property}_local` and `{language_prefix}{language_property}_local` take precedence over the local language.
                                 final_properties.emplace_back(baton_data_->language_property, original_language_value);
                             }
                             else
