@@ -742,8 +742,8 @@ struct LocalizeWorker : Napi::AsyncWorker
                         std::string property_key = property.key().to_string();
 
                         if (
-                            utils::startswith(property_key, baton_data_->worldview_property) ||
-                            utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->worldview_property))
+                            (property_key == baton_data_->worldview_property) ||
+                            (property_key == baton_data_->hidden_prefix + baton_data_->worldview_property))
                         {
                             // skip feature only if the value of incompatible worldview key is not 'all'
                             if (property_key == incompatible_worldview_key)
@@ -799,8 +799,8 @@ struct LocalizeWorker : Napi::AsyncWorker
                         }
 
                         else if (
-                            utils::startswith(property_key, baton_data_->class_property) ||
-                            utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->class_property))
+                            (property_key == baton_data_->class_property) ||
+                            (property_key == baton_data_->hidden_prefix + baton_data_->class_property))
                         {
                             // check if the property is of higher precedence that class key encountered so far
                             std::uint32_t idx = static_cast<std::uint32_t>(std::distance(class_key_precedence.begin(), std::find(class_key_precedence.begin(), class_key_precedence.end(), property_key)));

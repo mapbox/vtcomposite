@@ -239,16 +239,18 @@ test('[localize class] requesting localized worldview; feature with compatible w
             id: 10,
             tags: [
               0, 0, // _mbx_worldview
-              1, 1  // _mbx_class
+              1, 1,  // _mbx_class
+              2, 2
             ],
             type: 1, // point
             geometry: [9, 55, 38]
           }
         ],
-        keys: ['_mbx_worldview', '_mbx_class'],
+        keys: ['_mbx_worldview', '_mbx_class', 'classes'],
         values: [
           { string_value: 'US' },
           { string_value: 'affogato' },
+          { string_value: 'should_not_change' },
         ],
         extent: 4096
       }
@@ -265,7 +267,7 @@ test('[localize class] requesting localized worldview; feature with compatible w
     const tile = vtinfo(vtBuffer);
     assert.ok('admin' in tile.layers, 'has admin layer');
     assert.equal(tile.layers.admin.length, 1, 'has one feature');
-    assert.deepEqual(tile.layers.admin.feature(0).properties, { worldview: 'US', class: 'affogato' }, 'expected properties');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, { worldview: 'US', class: 'affogato', classes: 'should_not_change' }, 'expected properties');
     assert.end();
   });
 });

@@ -1,3 +1,7 @@
+# 2.0.2
+
+- Fixes a bug in `localize` where the class and worldview key prefixes were true for soft matches, which unintentionally filters out features where `class = class*`. Now the logic uses an exact match so `class != classes`. [#134](https://github.com/mapbox/vtcomposite/pull/134)
+
 # 2.0.1
 
 - Fixes a bug in `localize` function that throws an error when languages or worldviews is an empty array [#131](https://github.com/mapbox/vtcomposite/pull/131)
