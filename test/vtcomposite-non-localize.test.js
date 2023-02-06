@@ -103,7 +103,7 @@ test('[localize] no localization param, feature without _mbx_worldview', (assert
           ],
           keys: [ 'worldview', 'worldview_type', 'class', 'class_type', 'name', 'name_script', 'name_en', '_mbx_fi'],
           values: [
-            { string_value: 'JP' },
+            { string_value: 'CN,JP,US' },
             { string_value: 'multiple' },
             { string_value: 'disputed_city' },
             { string_value: 'single' },
@@ -123,7 +123,7 @@ test('[localize] no localization param, feature without _mbx_worldview', (assert
     const info = vtinfo(buffer);
     assert.equal(info.layers.places.length, 1, 'expected number of features');
     assert.deepEqual(info.layers.places.feature(0).properties, {
-      worldview: 'JP',
+      worldview: 'CN,JP,US',
       worldview_type: 'multiple',
       class: 'disputed_city',
       class_type: 'single',
@@ -162,7 +162,7 @@ test('[localize] no localization param, feature with _mbx_worldview', (assert) =
           ],
           keys: [ '_mbx_worldview', 'worldview_type', '_mbx_class', 'class_type', 'name', 'name_script', 'name_en', '_mbx_fi'],
           values: [
-            { string_value: 'JP' },
+            { string_value: 'CN,JP,US' },
             { string_value: 'multiple' },
             { string_value: 'city' },
             { string_value: 'single' },
