@@ -843,6 +843,11 @@ struct LocalizeWorker : Napi::AsyncWorker
                                     [&](const std::string& script) {
                                         return (script == property.value().string_value());
                                     });
+
+                                if (keep_every_language)
+                                {
+                                    final_properties.emplace_back(property_key, property.value());
+                                }
                             }
                             else
                             {
