@@ -776,15 +776,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 {
                                     std::string property_value = static_cast<std::string>(property.value().string_value());
 
-                                    std::vector<std::string> available_worldviews = utils::split(property_value);
-
                                     // determine which worldviews to create a clone of the feature
                                     if (keep_every_worldview)
                                     {
-                                        worldviews_to_create = worldviews_for_feature(available_worldviews, available_worldviews);
+                                        worldviews_to_create = {property_value};
                                     }
                                     else
                                     {
+                                        std::vector<std::string> available_worldviews = utils::split(property_value);
                                         worldviews_to_create = worldviews_for_feature(available_worldviews, baton_data_->worldviews);
                                         if (worldviews_to_create.empty())
                                         {
