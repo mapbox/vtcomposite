@@ -1,6 +1,7 @@
 # 2.1.0
 
-- Add lanuage code "local" [#133](https://github.com/mapbox/vtcomposite/pull/133)
+- Add language code "local" [#133](https://github.com/mapbox/vtcomposite/pull/133)
+- Fixes a bug where `worldview` value in a non-localized tile can be truncated [#133](https://github.com/mapbox/vtcomposite/pull/133)
 
 # 2.0.2
 
