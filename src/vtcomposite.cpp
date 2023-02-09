@@ -890,7 +890,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                         // `local` language is "the original language in an acceptable script".
                         if (omit_local_langauge)
                         {
-                            // don't need to check if `local` is in the desired list of language
+                            // don't need to check if `local` is in the desired list of languages
                             // because the script of the original language is not acceptable.
                             final_properties.emplace_back(baton_data_->language_property, language_value);
                         }
