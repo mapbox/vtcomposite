@@ -1,3 +1,8 @@
+# 2.1.0
+
+- Add language code "local" [#133](https://github.com/mapbox/vtcomposite/pull/133)
+- Fixes a bug where `worldview` value in a non-localized tile can be truncated [#133](https://github.com/mapbox/vtcomposite/pull/133)
+
 # 2.0.2
 
 - Fixes a bug in `localize` where the class and worldview key prefixes were true for soft matches, which unintentionally filters out features where `class = class*`. Now the logic uses an exact match so `class != classes`. [#134](https://github.com/mapbox/vtcomposite/pull/134)

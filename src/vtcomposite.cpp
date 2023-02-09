@@ -97,6 +97,7 @@ struct LocalizeBatonType
 {
     LocalizeBatonType(Napi::Buffer<char> const& buffer,
                       std::string hidden_prefix_,
+                      std::vector<std::string> omit_scripts_,
                       std::vector<std::string> languages_,
                       std::string language_property_,
                       std::vector<std::string> worldviews_,
@@ -107,6 +108,7 @@ struct LocalizeBatonType
         : data{buffer.Data(), buffer.Length()},
           buffer_ref{Napi::Persistent(buffer)},
           hidden_prefix{std::move(hidden_prefix_)},
+          omit_scripts{std::move(omit_scripts_)},
           languages{std::move(languages_)},
           language_property{std::move(language_property_)},
           worldviews{std::move(worldviews_)},
@@ -141,6 +143,7 @@ struct LocalizeBatonType
     vtzero::data_view data;
     Napi::Reference<Napi::Buffer<char>> buffer_ref;
     std::string hidden_prefix;
+    std::vector<std::string> omit_scripts;
     std::vector<std::string> languages;
     std::string language_property;
     std::vector<std::string> worldviews;
@@ -659,6 +662,7 @@ struct LocalizeWorker : Napi::AsyncWorker
             std::vector<std::string> class_key_precedence;
             bool keep_every_language = true;
             std::vector<std::string> language_key_precedence;
+
             if (baton_data_->return_localized_tile)
             {
                 keep_every_worldview = false;
@@ -726,6 +730,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                     auto language_key_idx = static_cast<std::uint32_t>(language_key_precedence.size());
                     vtzero::property_value language_value;
                     vtzero::property_value original_language_value;
+                    bool omit_local_langauge = false;
 
                     // collect final properties
                     std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
@@ -771,15 +776,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 {
                                     std::string property_value = static_cast<std::string>(property.value().string_value());
 
-                                    std::vector<std::string> available_worldviews = utils::split(property_value);
-
                                     // determine which worldviews to create a clone of the feature
                                     if (keep_every_worldview)
                                     {
-                                        worldviews_to_create = worldviews_for_feature(available_worldviews, available_worldviews);
+                                        worldviews_to_create = {property_value};
                                     }
                                     else
                                     {
+                                        std::vector<std::string> available_worldviews = utils::split(property_value);
                                         worldviews_to_create = worldviews_for_feature(available_worldviews, baton_data_->worldviews);
                                         if (worldviews_to_create.empty())
                                         {
@@ -829,6 +833,21 @@ struct LocalizeWorker : Napi::AsyncWorker
                             {
                                 original_language_value = property.value();
                             }
+                            else if (property_key == baton_data_->language_property + "_script")
+                            {
+                                // true if script is in the omitted list
+                                omit_local_langauge = std::any_of(
+                                    baton_data_->omit_scripts.begin(),
+                                    baton_data_->omit_scripts.end(),
+                                    [&](const std::string& script) {
+                                        return (script == property.value().string_value());
+                                    });
+
+                                if (keep_every_language)
+                                {
+                                    final_properties.emplace_back(property_key, property.value());
+                                }
+                            }
                             else
                             {
                                 if (keep_every_language)
@@ -868,7 +887,31 @@ struct LocalizeWorker : Napi::AsyncWorker
                     // use the language value of highest precedence
                     if (language_value.valid())
                     {
-                        final_properties.emplace_back(baton_data_->language_property, language_value);
+                        // `local` language is "the original language in an acceptable script".
+                        if (omit_local_langauge)
+                        {
+                            // don't need to check if `local` is in the desired list of languages
+                            // because the script of the original language is not acceptable.
+                            final_properties.emplace_back(baton_data_->language_property, language_value);
+                        }
+                        else
+                        {
+                            // the original language is in an acceptable script;
+                            // next, check if `local` is in the list of desired languages
+                            // (by checking if `{language_property}_local` is in the language_key_precedence list)
+                            std::uint32_t local_language_key_idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), baton_data_->language_property + "_local")));
+                            if (local_language_key_idx < language_key_idx)
+                            {
+                                // note the `<`: this means if there exists a `{language_property}_local` or a `{language_prefix}{language_property}_local`
+                                // already exists in the input tile, the code does not enter this if block.
+                                // {language_property}_local` and `{language_prefix}{language_property}_local` take precedence over the local language.
+                                final_properties.emplace_back(baton_data_->language_property, original_language_value);
+                            }
+                            else
+                            {
+                                final_properties.emplace_back(baton_data_->language_property, language_value);
+                            }
+                        }
                     }
 
                     if (baton_data_->return_localized_tile && original_language_value.valid())
@@ -973,7 +1016,8 @@ Napi::Value localize(Napi::CallbackInfo const& info)
 
     // optional params and their default values
     std::string hidden_prefix = "_mbx_";
-    std::vector<std::string> languages; // default is undefined
+    std::vector<std::string> omit_scripts; // default is undefined
+    std::vector<std::string> languages;    // default is undefined
     std::string language_property = "name";
     std::vector<std::string> worldviews; // default is undefined
     std::string worldview_property = "worldview";
@@ -1022,6 +1066,34 @@ Napi::Value localize(Napi::CallbackInfo const& info)
             return utils::CallbackError("params.hidden_prefix must be a non-empty string", info);
         }
         hidden_prefix = hidden_prefix_val.As<Napi::String>();
+    }
+
+    // params.omit_scripts (optional)
+    if (params.Has(Napi::String::New(info.Env(), "omit_scripts")))
+    {
+        Napi::Value scripts_val = params.Get(Napi::String::New(info.Env(), "omit_scripts"));
+        if (scripts_val.IsArray())
+        {
+            Napi::Array scripts_array = scripts_val.As<Napi::Array>();
+            std::uint32_t num_scripts = scripts_array.Length();
+
+            omit_scripts.reserve(num_scripts);
+
+            for (std::uint32_t s = 0; s < num_scripts; ++s)
+            {
+                Napi::Value script_item_val = scripts_array.Get(s);
+                if (!script_item_val.IsString() || script_item_val == empty_string)
+                {
+                    return utils::CallbackError("params.omit_scripts must be an array of non-empty strings", info);
+                }
+                std::string script_item = script_item_val.As<Napi::String>();
+                omit_scripts.push_back(script_item);
+            }
+        }
+        else
+        {
+            return utils::CallbackError("params.omit_scripts must be an array", info);
+        }
     }
 
     // params.language is an invalid param
@@ -1166,6 +1238,7 @@ Napi::Value localize(Napi::CallbackInfo const& info)
     std::unique_ptr<LocalizeBatonType> baton_data = std::make_unique<LocalizeBatonType>(
         buffer,
         hidden_prefix,
+        omit_scripts,
         languages,
         language_property,
         worldviews,
