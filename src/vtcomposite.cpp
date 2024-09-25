@@ -947,6 +947,8 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 language_property_final_value = language_value;
                             }
 
+                            std::unordered_map<std::string, bool> added_languages;
+
                             for (size_t i = 0; i < property_languages.size(); ++i) {
                                 std::string language_key = property_languages[i].first;
                                 std::string language_value = property_languages[i].second;
@@ -955,7 +957,13 @@ struct LocalizeWorker : Napi::AsyncWorker
                                     continue;
                                 }
 
+                                // if current languages was already added to final properties skips it
+                                if (added_languages.find(language_key) != hashmap.end()) {
+                                    continue;
+                                }
+
                                 final_properties.emplace_back(language_key, language_value);
+                                added_languages[language_key] = true;
                             }
                         }
                     }
