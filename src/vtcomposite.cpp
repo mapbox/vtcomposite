@@ -850,7 +850,6 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 );
                             }
 
-                            // it's a langauge property
                             // check if the property is of higher precedence that language key encountered so far
                             std::uint32_t idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)));
                             if (idx < language_key_idx)
@@ -880,7 +879,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 }
                             }
                             else
-                            {                                // @todo add the logic to add the extra languages
+                            {
                                 if (keep_every_language)
                                 {
                                     if (!utils::startswith(property_key, baton_data_->hidden_prefix))
