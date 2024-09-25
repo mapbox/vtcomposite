@@ -652,6 +652,16 @@ struct LocalizeWorker : Napi::AsyncWorker
         return matching_worldviews;
     }
 
+    std::string remove_hidden_prefix(std::string property_key, std::string hidden_prefix) {
+        bool has_hidden_prefix = utils::startswith(hidden_prefix, property_key);
+
+        if (has_hidden_prefix) {
+            return property_key.substr(hidden_prefix.length());
+        }
+
+        return property_key;
+    }
+
     void Execute() override
     {
         try
@@ -662,6 +672,7 @@ struct LocalizeWorker : Napi::AsyncWorker
             std::vector<std::string> class_key_precedence;
             bool keep_every_language = true;
             std::vector<std::string> language_key_precedence;
+            bool is_international_tile_with_all_languages;
 
             if (baton_data_->return_localized_tile)
             {
@@ -675,6 +686,10 @@ struct LocalizeWorker : Napi::AsyncWorker
                 keep_every_language = false;
                 for (auto const& lang : baton_data_->languages)
                 {
+                    if (lang == "all") {
+                        is_international_tile_with_all_languages = true;
+                    }
+
                     language_key_precedence.push_back(baton_data_->language_property + "_" + lang);
                     language_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->language_property + "_" + lang);
                 }
@@ -734,6 +749,9 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                     // collect final properties
                     std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
+
+                    // collect the languages
+                    std::vector<std::pair<std::string, std::string>> property_languages;
                     while (auto property = feature.next_property())
                     {
                         // if true, we've already encounterd a property that indicates
@@ -816,10 +834,23 @@ struct LocalizeWorker : Napi::AsyncWorker
                             // wait till we are done looping through all properties before we add class value to final_properties
                         }
 
+                        // property_key starts with "name"
+                        // or property_key starts with "_mbx_" + "name"
                         else if (
                             utils::startswith(property_key, baton_data_->language_property) ||
                             utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->language_property))
                         {
+                            if (is_international_tile_with_all_languages && property_key != baton_data_->language_property) {
+                                // add language property to the list of list of languages to add
+                                std::string clean_property_key = remove_hidden_prefix(property_key, baton_data_->hidden_prefix);
+
+                                property_languages.emplace_back(
+                                    clean_property_key,
+                                    property.value()
+                                );
+                            }
+
+                            // it's a langauge property
                             // check if the property is of higher precedence that language key encountered so far
                             std::uint32_t idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)));
                             if (idx < language_key_idx)
@@ -849,7 +880,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 }
                             }
                             else
-                            {
+                            {                                // @todo add the logic to add the extra languages
                                 if (keep_every_language)
                                 {
                                     if (!utils::startswith(property_key, baton_data_->hidden_prefix))
@@ -887,12 +918,15 @@ struct LocalizeWorker : Napi::AsyncWorker
                     // use the language value of highest precedence
                     if (language_value.valid())
                     {
+                        std::string language_property_final_value;
+
                         // `local` language is "the original language in an acceptable script".
                         if (omit_local_langauge)
                         {
                             // don't need to check if `local` is in the desired list of languages
                             // because the script of the original language is not acceptable.
                             final_properties.emplace_back(baton_data_->language_property, language_value);
+                            language_property_final_value = language_value;
                         }
                         else
                         {
@@ -906,10 +940,23 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 // already exists in the input tile, the code does not enter this if block.
                                 // {language_property}_local` and `{language_prefix}{language_property}_local` take precedence over the local language.
                                 final_properties.emplace_back(baton_data_->language_property, original_language_value);
+                                language_property_final_value = original_language_value;
                             }
                             else
                             {
                                 final_properties.emplace_back(baton_data_->language_property, language_value);
+                                language_property_final_value = language_value;
+                            }
+
+                            for (size_t i = 0; i < property_languages.size(); ++i) {
+                                std::string langauge_key = roperty_languages[i].first;
+                                std::string langauge_value = roperty_languages[i].second;
+
+                                if (langauge_value == original_language_value) {
+                                    continue;
+                                }
+
+                                final_properties.emplace_back(langauge_key, langauge_value);
                             }
                         }
                     }
