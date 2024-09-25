@@ -948,14 +948,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                             }
 
                             for (size_t i = 0; i < property_languages.size(); ++i) {
-                                std::string langauge_key = roperty_languages[i].first;
-                                std::string langauge_value = roperty_languages[i].second;
+                                std::string language_key = property_languages[i].first;
+                                std::string language_value = property_languages[i].second;
 
-                                if (langauge_value == original_language_value) {
+                                if (language_value == original_language_value) {
                                     continue;
                                 }
 
-                                final_properties.emplace_back(langauge_key, langauge_value);
+                                final_properties.emplace_back(language_key, language_value);
                             }
                         }
                     }
