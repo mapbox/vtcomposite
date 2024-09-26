@@ -8,7 +8,6 @@ const mvtFixtures = require('@mapbox/mvt-fixtures');
 const test = require('tape');
 const zlib = require('zlib');
 
-
 test('[localize] success: buffer size stays the same when no changes needed', (assert) => {
   const singlePointBuffer = mvtFixtures.get('002').buffer;
   const params = {
@@ -858,6 +857,160 @@ test('[localize language] _mbx_name_local exists in the input tile', (assert) =>
       name: 'Nǐ hǎo',  // from _mbx_name_local in input tile
       name_local: '你好',
     }, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] languages=all returns name, name_local and all name_xx(s) with _mbx_ dropped removed from property name', (assert) => {
+  const rawDataLanguageProperties = {
+    name: '你好',
+    name_script: 'Han',
+    'name_zh-Hant': 'Nǐ hǎo',
+    name_en: 'hello',
+    name_de: 'hallo',
+    _mbx_name_it: 'ciao',
+    _mbx_name_fr: 'bonjour'
+  };
+  const expectedLocalizedProperties = {
+    name: '你好',
+    name_local: '你好',
+    'name_zh-Hant': 'Nǐ hǎo',
+    name_en: 'hello',
+    name_de: 'hallo',
+    name_it: 'ciao',
+    name_fr: 'bonjour'
+  };
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: Object.keys(rawDataLanguageProperties).flatMap((_, index) => [index, index]),
+              type: 1, // point
+              geometry: [9, 54, 38]
+            }
+          ],
+          keys: Object.keys(rawDataLanguageProperties),
+          values: Object.values(rawDataLanguageProperties).map((value) => ({ string_value: value })),
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['all']
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    const properties = info.layers.places.feature(0).properties;
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(properties, expectedLocalizedProperties, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] languages=all returns only all name_xx(s) that are different from name', (assert) => {
+  const rawDataLanguageProperties = {
+    name: 'place',
+    name_script: 'Latin',
+    name_en: 'place', // same as `name`, expected to be dropped
+    name_de: 'place DE',
+    _mbx_name_it: 'place', // same as `name`, expected to be dropped
+    _mbx_name_fr: 'place FR',
+  };
+  const expectedLocalizedProperties = {
+    name: 'place',
+    name_local: 'place',
+    name_de: 'place DE',
+    name_fr: 'place FR'
+  };
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: Object.keys(rawDataLanguageProperties).flatMap((_, index) => [index, index]),
+              type: 1, // point
+              geometry: [9, 54, 38]
+            }
+          ],
+          keys: Object.keys(rawDataLanguageProperties),
+          values: Object.values(rawDataLanguageProperties).map((value) => ({ string_value: value })),
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['all']
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    const properties = info.layers.places.feature(0).properties;
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(properties, expectedLocalizedProperties, 'expected properties');
+    assert.end();
+  });
+});
+
+test('[localize language] languages=all returns the last value of the same language properties', (assert) => {
+  const rawDataLanguageProperties = {
+    name: '你好',
+    name_script: 'Han',
+    'name_zh-Hant': 'Nǐ hǎo',
+    name_en: 'EN first value - to be overwritten',
+    _mbx_name_de: 'DE first value - to be overwritten',
+    name_de: 'hallo',
+    _mbx_name_it: 'ciao',
+    _mbx_name_fr: 'bonjour',
+    _mbx_name_en: 'hello'
+  };
+  const expectedLocalizedProperties = {
+    name: '你好',
+    name_local: '你好',
+    'name_zh-Hant': 'Nǐ hǎo',
+    name_en: 'hello',
+    name_de: 'hallo',
+    name_it: 'ciao',
+    name_fr: 'bonjour'
+  };
+  const params = {
+    buffer: mvtFixtures.create({
+      layers: [
+        {
+          version: 2,
+          name: 'places',
+          features: [
+            {
+              id: 10,
+              tags: Object.keys(rawDataLanguageProperties).flatMap((_, index) => [index, index]),
+              type: 1, // point
+              geometry: [9, 54, 38]
+            }
+          ],
+          keys: Object.keys(rawDataLanguageProperties),
+          values: Object.values(rawDataLanguageProperties).map((value) => ({ string_value: value })),
+          extent: 4096
+        }
+      ]
+    }).buffer,
+    languages: ['all']
+  };
+
+  localize(params, (err, buffer) => {
+    assert.notOk(err);
+    const info = vtinfo(buffer);
+    const properties = info.layers.places.feature(0).properties;
+    assert.equal(info.layers.places.length, 1, 'expected number of features');
+    assert.deepEqual(properties, expectedLocalizedProperties, 'expected properties');
     assert.end();
   });
 });
