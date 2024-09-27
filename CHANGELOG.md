@@ -1,3 +1,7 @@
+# 2.2.0
+
+- Add language code "all" [#136](https://github.com/mapbox/vtcomposite/pull/136)
+
 # 2.1.0
 
 - Add language code "local" [#133](https://github.com/mapbox/vtcomposite/pull/133)
