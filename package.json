@@ -1,6 +1,6 @@
 {
   "name": "@mapbox/vtcomposite",
-  "version": "2.2.0-dev2",
+  "version": "2.2.0-dev3",
   "description": "Compositing operations on Vector Tiles (c++ bindings using N-API)",
   "url": "http://github.com/mapbox/vtcomposite",
   "main": "./lib/index.js",
