@@ -974,7 +974,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                     // Check the list of languages to be added
                     // Only add the ones that are different from original local language to the final properties
-                    if (is_international_tile_with_all_languages && original_language_value.valid())
+                    if (is_international_tile_with_all_languages)
                     {
                         for (const auto& language_property : language_properties_to_be_added_to_final_properties)
                         {
