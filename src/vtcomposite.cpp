@@ -20,8 +20,8 @@
 #include <algorithm>
 #include <string>
 #include <utility>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 namespace vtile {
 
@@ -653,7 +653,7 @@ struct LocalizeWorker : Napi::AsyncWorker
         return matching_worldviews;
     }
 
-    static std::string remove_hidden_prefix(std::string property_key, std::string hidden_prefix)
+    static std::string remove_hidden_prefix(std::string property_key, std::string& hidden_prefix)
     {
         bool has_hidden_prefix = utils::startswith(property_key, hidden_prefix);
 
@@ -981,8 +981,9 @@ struct LocalizeWorker : Napi::AsyncWorker
                             std::string language_property_key = language_property.first;
                             vtzero::property_value language_property_value = language_property.second;
 
-                            if (language_property_value.string_value() != original_language_value.string_value())
+                            if (language_property_value.string_value() != original_language_value.string_value()) {
                                 final_properties.emplace_back(language_property_key, language_property_value);
+                            }
                         }
                     }
 
