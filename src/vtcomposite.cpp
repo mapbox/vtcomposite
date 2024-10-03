@@ -669,19 +669,24 @@ struct LocalizeWorker : Napi::AsyncWorker
     {
         try
         {
-            bool keep_every_worldview = true;
+            bool keep_all_non_hidden_worldviews = true;
             std::string incompatible_worldview_key;
             std::string compatible_worldview_key;
             std::vector<std::string> class_key_precedence;
             bool keep_all_non_hidden_languages = true;
             bool is_international_tile_with_all_languages = false;
+            bool is_international_tile_with_all_worldviews = false;
             std::vector<std::string> language_key_precedence;
 
             if (baton_data_->return_localized_tile)
             {
-                keep_every_worldview = false;
+                keep_all_non_hidden_worldviews = false;
                 incompatible_worldview_key = baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->hidden_prefix + baton_data_->worldview_property;
+                if (baton_data_->worldviews.size() == 1 && baton_data_->worldviews[0] == "ALL")
+                {
+                    is_international_tile_with_all_worldviews = true;
+                }
 
                 class_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->class_property);
                 class_key_precedence.push_back(baton_data_->class_property);
@@ -703,7 +708,7 @@ struct LocalizeWorker : Napi::AsyncWorker
             }
             else
             {
-                keep_every_worldview = true; // reassign to the same value as default for clarity
+                keep_all_non_hidden_worldviews = true; // reassign to the same value as default for clarity
                 incompatible_worldview_key = baton_data_->hidden_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
 
@@ -802,7 +807,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                                     std::string property_value = static_cast<std::string>(property.value().string_value());
 
                                     // determine which worldviews to create a clone of the feature
-                                    if (keep_every_worldview)
+                                    if (keep_all_non_hidden_worldviews || is_international_tile_with_all_worldviews)
                                     {
                                         worldviews_to_create = {property_value};
                                     }
