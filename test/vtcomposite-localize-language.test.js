@@ -861,7 +861,7 @@ test('[localize language] _mbx_name_local exists in the input tile', (assert) =>
   });
 });
 
-test('[localize language] languages=all returns name, name_local and all name_xx(s) with _mbx_ dropped removed from property name', (assert) => {
+test('[localize language] languages=all returns name, name_local and all name_xx(s) with _mbx_ removed from property name', (assert) => {
   const rawDataLanguageProperties = {
     name: '你好',
     name_script: 'Han',
