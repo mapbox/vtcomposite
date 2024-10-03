@@ -1,0 +1,1 @@
+_napi_register_module_v1
