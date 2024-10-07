@@ -87,6 +87,7 @@ A filtering function for modifying a tile's features and properties to support l
       - The script of `{language_property}`, if available, must be stored in the `{language_property}_script` property.
       - If `{language_property}_script` not in the `params.omit_scripts` list, use `{language_property}` when searching for matching translation.
       - If `{language_property}_script` is in the `params.omit_scripts` list, skip `{language_property}` when searching for matching translation.
+    - `all` language code returns `{language_property}`, `{language_property}_local` and all possible language properties that have different values than `{language_property}`
   - `params.omit_scripts` **Array<Optional<String>>** array of scripts to skip `local` language code.
   - `params.language_property` **String** the primary property in features that identifies the feature in a language.
     - Default value: `name`.

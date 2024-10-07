@@ -19,6 +19,7 @@
 // stl
 #include <algorithm>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -652,6 +653,18 @@ struct LocalizeWorker : Napi::AsyncWorker
         return matching_worldviews;
     }
 
+    static std::string remove_hidden_prefix(std::string property_key, std::string& hidden_prefix)
+    {
+        bool has_hidden_prefix = utils::startswith(property_key, hidden_prefix);
+
+        if (has_hidden_prefix)
+        {
+            return property_key.substr(hidden_prefix.length());
+        }
+
+        return property_key;
+    }
+
     void Execute() override
     {
         try
@@ -660,7 +673,8 @@ struct LocalizeWorker : Napi::AsyncWorker
             std::string incompatible_worldview_key;
             std::string compatible_worldview_key;
             std::vector<std::string> class_key_precedence;
-            bool keep_every_language = true;
+            bool keep_all_non_hidden_languages = true;
+            bool is_international_tile_with_all_languages = false;
             std::vector<std::string> language_key_precedence;
 
             if (baton_data_->return_localized_tile)
@@ -672,13 +686,20 @@ struct LocalizeWorker : Napi::AsyncWorker
                 class_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->class_property);
                 class_key_precedence.push_back(baton_data_->class_property);
 
-                keep_every_language = false;
-                for (auto const& lang : baton_data_->languages)
+                keep_all_non_hidden_languages = false;
+                if (baton_data_->languages.size() == 1 && baton_data_->languages[0] == "all")
                 {
-                    language_key_precedence.push_back(baton_data_->language_property + "_" + lang);
-                    language_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->language_property + "_" + lang);
+                    is_international_tile_with_all_languages = true;
                 }
-                language_key_precedence.push_back(baton_data_->language_property);
+                else
+                {
+                    for (auto const& lang : baton_data_->languages)
+                    {
+                        language_key_precedence.push_back(baton_data_->language_property + "_" + lang);
+                        language_key_precedence.push_back(baton_data_->hidden_prefix + baton_data_->language_property + "_" + lang);
+                    }
+                    language_key_precedence.push_back(baton_data_->language_property);
+                }
             }
             else
             {
@@ -688,7 +709,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                 class_key_precedence.push_back(baton_data_->class_property);
 
-                keep_every_language = true; // reassign to the same value as default for clarity
+                keep_all_non_hidden_languages = true; // reassign to the same value as default for clarity
                 language_key_precedence.push_back(baton_data_->language_property);
             }
 
@@ -730,10 +751,14 @@ struct LocalizeWorker : Napi::AsyncWorker
                     auto language_key_idx = static_cast<std::uint32_t>(language_key_precedence.size());
                     vtzero::property_value language_value;
                     vtzero::property_value original_language_value;
-                    bool omit_local_langauge = false;
+                    bool omit_local_language = false;
 
                     // collect final properties
                     std::vector<std::pair<std::string, vtzero::property_value>> final_properties;
+
+                    // collect the languages
+                    std::unordered_map<std::string, vtzero::property_value> language_properties_to_be_added_to_final_properties;
+
                     while (auto property = feature.next_property())
                     {
                         // if true, we've already encounterd a property that indicates
@@ -816,12 +841,40 @@ struct LocalizeWorker : Napi::AsyncWorker
                             // wait till we are done looping through all properties before we add class value to final_properties
                         }
 
+                        // property_key starts with "name"
+                        // or property_key starts with "_mbx_" + "name"
                         else if (
                             utils::startswith(property_key, baton_data_->language_property) ||
                             utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->language_property))
                         {
+
+                            if (is_international_tile_with_all_languages)
+                            {
+                                std::string cleaned_property_key = remove_hidden_prefix(property_key, baton_data_->hidden_prefix);
+
+                                if (property_key == baton_data_->language_property)
+                                {
+                                    // add local language name to final properties
+                                    final_properties.emplace_back(
+                                        cleaned_property_key,
+                                        property.value());
+                                    original_language_value = property.value();
+                                }
+                                else if (property_key != baton_data_->language_property + "_script")
+                                {
+                                    // add other languages (name_xx, except name_script) to a temporary hashmap
+                                    // later encounter of the same language in the loop overwrites the former
+                                    language_properties_to_be_added_to_final_properties[cleaned_property_key] = property.value();
+                                }
+
+                                continue;
+                            }
+
                             // check if the property is of higher precedence that language key encountered so far
-                            std::uint32_t idx = static_cast<std::uint32_t>(std::distance(language_key_precedence.begin(), std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)));
+                            std::uint32_t idx = static_cast<std::uint32_t>(
+                                std::distance(
+                                    language_key_precedence.begin(),
+                                    std::find(language_key_precedence.begin(), language_key_precedence.end(), property_key)));
                             if (idx < language_key_idx)
                             {
                                 language_key_idx = idx;
@@ -836,21 +889,21 @@ struct LocalizeWorker : Napi::AsyncWorker
                             else if (property_key == baton_data_->language_property + "_script")
                             {
                                 // true if script is in the omitted list
-                                omit_local_langauge = std::any_of(
+                                omit_local_language = std::any_of(
                                     baton_data_->omit_scripts.begin(),
                                     baton_data_->omit_scripts.end(),
                                     [&](const std::string& script) {
                                         return (script == property.value().string_value());
                                     });
 
-                                if (keep_every_language)
+                                if (keep_all_non_hidden_languages)
                                 {
                                     final_properties.emplace_back(property_key, property.value());
                                 }
                             }
                             else
                             {
-                                if (keep_every_language)
+                                if (keep_all_non_hidden_languages)
                                 {
                                     if (!utils::startswith(property_key, baton_data_->hidden_prefix))
                                     {
@@ -888,7 +941,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                     if (language_value.valid())
                     {
                         // `local` language is "the original language in an acceptable script".
-                        if (omit_local_langauge)
+                        if (omit_local_language)
                         {
                             // don't need to check if `local` is in the desired list of languages
                             // because the script of the original language is not acceptable.
@@ -917,6 +970,22 @@ struct LocalizeWorker : Napi::AsyncWorker
                     if (baton_data_->return_localized_tile && original_language_value.valid())
                     {
                         final_properties.emplace_back(baton_data_->language_property + "_local", original_language_value);
+                    }
+
+                    // Check the list of languages to be added
+                    // Only add the ones that are different from original local language to the final properties
+                    if (is_international_tile_with_all_languages)
+                    {
+                        for (const auto& language_property : language_properties_to_be_added_to_final_properties)
+                        {
+                            std::string language_property_key = language_property.first;
+                            vtzero::property_value language_property_value = language_property.second;
+
+                            if (language_property_value.string_value() != original_language_value.string_value())
+                            {
+                                final_properties.emplace_back(language_property_key, language_property_value);
+                            }
+                        }
                     }
 
                     // build new feature(s)
