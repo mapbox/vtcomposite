@@ -1270,3 +1270,77 @@ test('[localize worldview] requesting localize langauge; feature not in the defa
     assert.end();
   });
 });
+
+test('[localize worldview] requesting worldviews=ALL returns no legacy worldview features', (assert) => {
+  const feature = mvtFixtures.create({
+    layers: [
+      {
+        version: 2,
+        name: 'admin',
+        features: [
+          {
+            id: 10,
+            tags: [0, 0],
+            type: 1, // point
+            geometry: [9, 54, 38]
+          }
+        ],
+        keys: ['worldview'],
+        values: [
+          { string_value: 'CN' }
+        ],
+        extent: 4096
+      }
+    ]
+  }).buffer;
+
+  const params = {
+    buffer: feature,
+    worldviews: ['ALL']
+  };
+
+  localize(params, (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.deepEqual(tile.layers, {}, 'has no feature');
+    assert.end();
+  });
+});
+
+test('[localize worldview] requesting worldviews=ALL returns the comma separated list of worldviews', (assert) => {
+  const feature = mvtFixtures.create({
+    layers: [
+      {
+        version: 2,
+        name: 'admin',
+        features: [
+          {
+            id: 10,
+            tags: [0, 0],
+            type: 1, // point
+            geometry: [9, 54, 38]
+          }
+        ],
+        keys: ['_mbx_worldview'],
+        values: [
+          { string_value: 'CN,JP,TR,US' }
+        ],
+        extent: 4096
+      }
+    ]
+  }).buffer;
+
+  const params = {
+    buffer: feature,
+    worldviews: ['ALL']
+  };
+
+  localize(params, (err, vtBuffer) => {
+    assert.ifError(err);
+    const tile = vtinfo(vtBuffer);
+    assert.ok('admin' in tile.layers, 'has admin layer');
+    assert.equal(tile.layers.admin.length, 1, 'has one feature');
+    assert.deepEqual(tile.layers.admin.feature(0).properties, { worldview: 'CN,JP,TR,US' }, 'expected properties');
+    assert.end();
+  });
+});
