@@ -95,6 +95,7 @@ A filtering function for modifying a tile's features and properties to support l
   - `params.worldviews` **Array<Optional<String>>** array of ISO 3166-1 alpha-2 country codes used to filter out features of different worldviews.
     - Optional parameter.
     - For now, only the first item in the array will be processed; the rest are discarded (*TODO in the future*: expand support for more than one worldviews).
+    - When there is only the single value `ALL`, all the different worldviews are returned.
   - `params.worldview_property` **String** the name of the property that specifies in which worldview a feature belongs.
     - Default value: `worldview`.
     - The vector tile encoded property must contain a single ISO 3166-1 alpha-2 country code or a comma-separated string of country codes that define which worldviews the feature represents (for example: `JP`, `IN,RU,US`).
