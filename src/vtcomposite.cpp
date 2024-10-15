@@ -669,17 +669,18 @@ struct LocalizeWorker : Napi::AsyncWorker
     {
         try
         {
-            bool keep_every_worldview = true;
+            bool keep_all_non_hidden_worldviews = true;
             std::string incompatible_worldview_key;
             std::string compatible_worldview_key;
             std::vector<std::string> class_key_precedence;
             bool keep_all_non_hidden_languages = true;
-            bool is_international_tile_with_all_languages = false;
+            bool is_localized_tile_with_all_languages = false;
+            bool is_localized_tile_with_all_worldviews = false;
             std::vector<std::string> language_key_precedence;
 
             if (baton_data_->return_localized_tile)
             {
-                keep_every_worldview = false;
+                keep_all_non_hidden_worldviews = false;
                 incompatible_worldview_key = baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->hidden_prefix + baton_data_->worldview_property;
 
@@ -689,7 +690,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                 keep_all_non_hidden_languages = false;
                 if (baton_data_->languages.size() == 1 && baton_data_->languages[0] == "all")
                 {
-                    is_international_tile_with_all_languages = true;
+                    is_localized_tile_with_all_languages = true;
                 }
                 else
                 {
@@ -700,10 +701,15 @@ struct LocalizeWorker : Napi::AsyncWorker
                     }
                     language_key_precedence.push_back(baton_data_->language_property);
                 }
+
+                if (baton_data_->worldviews.size() == 1 && baton_data_->worldviews[0] == "ALL")
+                {
+                    is_localized_tile_with_all_worldviews = true;
+                }
             }
             else
             {
-                keep_every_worldview = true; // reassign to the same value as default for clarity
+                keep_all_non_hidden_worldviews = true; // reassign to the same value as default for clarity
                 incompatible_worldview_key = baton_data_->hidden_prefix + baton_data_->worldview_property;
                 compatible_worldview_key = baton_data_->worldview_property;
 
@@ -802,7 +808,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                                     std::string property_value = static_cast<std::string>(property.value().string_value());
 
                                     // determine which worldviews to create a clone of the feature
-                                    if (keep_every_worldview)
+                                    if (keep_all_non_hidden_worldviews || is_localized_tile_with_all_worldviews)
                                     {
                                         worldviews_to_create = {property_value};
                                     }
@@ -848,7 +854,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                             utils::startswith(property_key, baton_data_->hidden_prefix + baton_data_->language_property))
                         {
 
-                            if (is_international_tile_with_all_languages)
+                            if (is_localized_tile_with_all_languages)
                             {
                                 std::string cleaned_property_key = remove_hidden_prefix(property_key, baton_data_->hidden_prefix);
 
@@ -974,7 +980,7 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                     // Check the list of languages to be added
                     // Only add the ones that are different from original local language to the final properties
-                    if (is_international_tile_with_all_languages)
+                    if (is_localized_tile_with_all_languages)
                     {
                         for (const auto& language_property : language_properties_to_be_added_to_final_properties)
                         {
