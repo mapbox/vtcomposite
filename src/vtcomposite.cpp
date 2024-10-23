@@ -989,8 +989,9 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                             if (language_property_value.string_value() != original_language_value.string_value())
                             {
-                                if(language_property_value.valid())
+                                if (language_property_value.valid()) {
                                     final_properties.emplace_back(language_property_key, language_property_value);
+                                }
                             }
                         }
                     }
