@@ -989,7 +989,8 @@ struct LocalizeWorker : Napi::AsyncWorker
 
                             if (language_property_value.string_value() != original_language_value.string_value())
                             {
-                                if (language_property_value.valid()) {
+                                if (language_property_value.valid())
+                                {
                                     final_properties.emplace_back(language_property_key, language_property_value);
                                 }
                             }
@@ -1011,7 +1012,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                     }
 
                 } // end of features loop
-            }     // end of layers loop
+            } // end of layers loop
 
             std::string& tile_buffer = *output_buffer_;
             if (baton_data_->compress)
