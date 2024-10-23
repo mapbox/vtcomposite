@@ -990,7 +990,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                             std::string language_property_key = language_property.first;
                             vtzero::property_value language_property_value = language_property.second;
 
-                            if (language_property_value.string_value() != original_language_value.string_value())
+                            if (!original_language_value.valid() || language_property_value.string_value() != original_language_value.string_value())
                             {
                                 final_properties.emplace_back(language_property_key, language_property_value);
                             }
