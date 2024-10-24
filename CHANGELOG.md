@@ -1,3 +1,11 @@
+# 2.3.1
+
+- Fix a bug in `localize` when language propery is missing in raw data [#142](https://github.com/mapbox/vtcomposite/pull/142)
+
+# 2.3.0
+
+- Add wordlview code "ALL" [#141](https://github.com/mapbox/vtcomposite/pull/141)
+
 # 2.2.0
 
 - Add language code "all" [#136](https://github.com/mapbox/vtcomposite/pull/136)
