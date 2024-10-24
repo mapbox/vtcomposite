@@ -870,7 +870,10 @@ struct LocalizeWorker : Napi::AsyncWorker
                                 {
                                     // add other languages (name_xx, except name_script) to a temporary hashmap
                                     // later encounter of the same language in the loop overwrites the former
-                                    language_properties_to_be_added_to_final_properties[cleaned_property_key] = property.value();
+                                    if (property.value().valid())
+                                    {
+                                        language_properties_to_be_added_to_final_properties[cleaned_property_key] = property.value();
+                                    }
                                 }
 
                                 continue;
@@ -987,7 +990,7 @@ struct LocalizeWorker : Napi::AsyncWorker
                             std::string language_property_key = language_property.first;
                             vtzero::property_value language_property_value = language_property.second;
 
-                            if (language_property_value.string_value() != original_language_value.string_value())
+                            if (!original_language_value.valid() || language_property_value.string_value() != original_language_value.string_value())
                             {
                                 final_properties.emplace_back(language_property_key, language_property_value);
                             }
