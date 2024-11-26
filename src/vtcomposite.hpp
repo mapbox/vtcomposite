@@ -1,5 +1,9 @@
 #pragma once
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
 #include <napi.h>
+#pragma GCC diagnostic pop
 
 namespace vtile {
 

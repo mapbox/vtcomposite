@@ -1,0 +1,21 @@
+[submodule "vendor/node-api-headers"]
+	path = vendor/node-api-headers
+	url = git@github.com:nodejs/node-api-headers.git
+[submodule "vendor/node-addon-api"]
+	path = vendor/node-addon-api
+	url = git@github.com:nodejs/node-addon-api.git
+[submodule "vendor/geometry-hpp-internal"]
+	path = vendor/geometry-hpp-internal
+	url = git@github.com:mapbox/geometry-hpp-internal.git
+[submodule "vendor/spatial-algorithms"]
+	path = vendor/spatial-algorithms
+	url = git@github.com:mapbox/spatial-algorithms.git
+[submodule "vendor/protozero"]
+	path = vendor/protozero
+	url = git@github.com:mapbox/protozero.git
+[submodule "vendor/vtzero"]
+	path = vendor/vtzero
+	url = git@github.com:mapbox/vtzero.git
+[submodule "vendor/gzip-hpp"]
+	path = vendor/gzip-hpp
+	url = git@github.com:mapbox/gzip-hpp.git

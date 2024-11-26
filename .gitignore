@@ -5,6 +5,7 @@
 *tgz
 build
 lib/binding
+lib/*.node
 mason_packages
 node_modules
 npm-debug.log
